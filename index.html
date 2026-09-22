@@ -656,6 +656,68 @@ const DASH_PIN = "1234"; // Vorläufiger PIN, in Canva/Notion-Version durch echt
 function iconSrc(name) { return "data:image/png;base64," + ICONS[name]; }
 function normalize(s) { return (s || "").trim().toLowerCase().replace(/ß/g, "ss"); }
 
+// ==================== SPEICHER-BACKEND (Google Apps Script) ====================
+// Auf GitHub Pages gibt es kein window.storage mehr (das war eine Claude-Artifact-Funktion).
+// Diese Schicht bildet dieselbe Schlüssel/Wert-API (get/set/delete/list) über ein kleines
+// Google-Apps-Script nach, damit der komplette restliche Code unverändert weiterläuft.
+//
+// WICHTIG: Trage hier nach dem Deployment des Apps Scripts die Web-App-URL ein
+// (Format: https://script.google.com/macros/s/AKfycb.../exec):
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbzhm6rkABGSotUfnubSLGAdgS7yPArfe6_9xvTicuDA-D6l9E91KNbACuqkDJDjKN/exec";
+
+async function ascAnfrage(url, options) {
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch (netErr) {
+    throw new Error('Speicher-Server nicht erreichbar (Netzwerk).');
+  }
+  if (!res.ok) throw new Error('Speicher-Server-Fehler: ' + res.status);
+  const data = await res.json();
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
+
+window.storage = {
+  async get(key /*, shared */) {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('HIER_DEINE') === 0) {
+      throw new Error('Speicher-Backend noch nicht eingerichtet (APPS_SCRIPT_URL fehlt).');
+    }
+    const data = await ascAnfrage(`${APPS_SCRIPT_URL}?action=get&key=${encodeURIComponent(key)}`);
+    return { key, value: data.value };
+  },
+  async set(key, value /*, shared */) {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('HIER_DEINE') === 0) {
+      throw new Error('Speicher-Backend noch nicht eingerichtet (APPS_SCRIPT_URL fehlt).');
+    }
+    await ascAnfrage(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // vermeidet CORS-Preflight bei Apps Script
+      body: JSON.stringify({ action: 'set', key, value }),
+    });
+    return { key, value };
+  },
+  async delete(key /*, shared */) {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('HIER_DEINE') === 0) {
+      throw new Error('Speicher-Backend noch nicht eingerichtet (APPS_SCRIPT_URL fehlt).');
+    }
+    await ascAnfrage(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'delete', key }),
+    });
+    return { key, deleted: true };
+  },
+  async list(prefix /*, shared */) {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('HIER_DEINE') === 0) {
+      throw new Error('Speicher-Backend noch nicht eingerichtet (APPS_SCRIPT_URL fehlt).');
+    }
+    const data = await ascAnfrage(`${APPS_SCRIPT_URL}?action=list&prefix=${encodeURIComponent(prefix || '')}`);
+    return { keys: data.keys || [], prefix };
+  },
+};
+// ==================== ENDE SPEICHER-BACKEND ====================
+
 // Unterdrückt Autokorrektur/Autovervollständigung/Großschreib-Automatik des Browsers auf ALLEN
 // Text-Eingabefeldern und Textareas im Tool (Vokabeltests, Übungen, Abschlusstests, Lehreransicht).
 // Läuft per MutationObserver, damit auch dynamisch (per JS) erzeugte Felder erfasst werden,
