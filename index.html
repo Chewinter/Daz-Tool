@@ -560,6 +560,18 @@
       </div>
       <div id="exportMeldung"></div>
       <div class="manual-progress-panel">
+        <button class="btn secondary small" id="toggleMigration">Umzug zu neuem Speicher (Rohdaten-Export/Import) ▾</button>
+        <div id="migrationBody" class="hidden">
+          <p class="hint">Export: hier ausführen, wo die <strong>alten</strong> Daten liegen (die bisherige Claude-Chat-Version). Import: hier ausführen, wo die Daten <strong>hin</strong> sollen (die neue, extern gehostete Version).</p>
+          <button class="btn secondary small" id="migrationExportBtn">1. Alle Rohdaten exportieren (.json)</button>
+          <div id="migrationExportMeldung"></div>
+          <hr style="margin:14px 0; border:none; border-top:1px solid var(--line);">
+          <input type="file" id="migrationImportFile" accept="application/json" style="display:block; margin-bottom:8px;">
+          <button class="btn secondary small" id="migrationImportBtn">2. Aus Datei importieren</button>
+          <div id="migrationImportMeldung"></div>
+        </div>
+      </div>
+      <div class="manual-progress-panel">
         <button class="btn secondary small" id="toggleManualProgress">Zugriff manuell freischalten (z. B. bei Quereinstieg) ▾</button>
         <div id="manualProgressBody" class="hidden">
           <p class="hint">Für Schüler, die nicht bei A1 anfangen müssen (z. B. schon auf A2-Niveau). Schaltet den Zugriff auf alles bis einschließlich des gewählten Lernfelds frei — <strong>ohne</strong> es als erledigt zu markieren. Alles bleibt „offen", bis der Schüler es tatsächlich macht.</p>
@@ -663,7 +675,7 @@ function normalize(s) { return (s || "").trim().toLowerCase().replace(/ß/g, "ss
 //
 // WICHTIG: Trage hier nach dem Deployment des Apps Scripts die Web-App-URL ein
 // (Format: https://script.google.com/macros/s/AKfycb.../exec):
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbzhm6rkABGSotUfnubSLGAdgS7yPArfe6_9xvTicuDA-D6l9E91KNbACuqkDJDjKN/exec";
+const APPS_SCRIPT_URL = "HIER_DEINE_APPS_SCRIPT_URL_EINTRAGEN";
 
 async function ascAnfrage(url, options) {
   let res;
@@ -3267,6 +3279,99 @@ document.getElementById('dashStudentFilter').addEventListener('change', () => lo
 document.getElementById('toggleManualProgress').addEventListener('click', () => {
   const body = document.getElementById('manualProgressBody');
   body.classList.toggle('hidden');
+});
+
+// ---------------- UMZUG: ROHDATEN EXPORTIEREN / IMPORTIEREN ----------------
+// Exportiert/importiert die kompletten rohen Schlüssel/Wert-Paare (submission:..., status:...),
+// unabhängig vom jeweiligen Speicher-Backend (Claude-Artifact window.storage ODER das
+// Apps-Script-Backend auf GitHub Pages) — beide bieten dieselbe get/set/list-API, daher
+// funktioniert dieselbe Export-/Import-Logik auf beiden Seiten des Umzugs.
+document.getElementById('toggleMigration').addEventListener('click', () => {
+  document.getElementById('migrationBody').classList.toggle('hidden');
+});
+
+document.getElementById('migrationExportBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('migrationExportBtn');
+  const meldung = document.getElementById('migrationExportMeldung');
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  try {
+    const alleTestIds = Object.keys(TESTS);
+    const alleSchuelerSlugs = [...document.querySelectorAll('#startName option')].map(o => o.value).filter(v => v).map(v => slug(v));
+    const rohPaare = []; // {key, value}
+    const gesehen = new Set();
+
+    async function fuegeHinzu(key) {
+      if (gesehen.has(key)) return;
+      gesehen.add(key);
+      try {
+        const res = await window.storage.get(key, true);
+        if (res && typeof res.value === 'string') rohPaare.push({ key, value: res.value });
+      } catch (e) { /* Schlüssel existiert nicht (mehr) — überspringen */ }
+    }
+
+    const GRUPPENGROESSE = 4;
+    for (let i = 0; i < alleSchuelerSlugs.length; i += GRUPPENGROESSE) {
+      const gruppe = alleSchuelerSlugs.slice(i, i + GRUPPENGROESSE);
+      btn.textContent = `Sammle … (${i}/${alleSchuelerSlugs.length} Schüler)`;
+      for (const sl of gruppe) {
+        for (const tid of alleTestIds) {
+          try {
+            const res = await window.storage.list(`submission:${tid}:${sl}:`, true);
+            for (const k of ((res && res.keys) || [])) await fuegeHinzu(k);
+          } catch (e) { /* dieser Test/Schüler hat nichts oder Fehler — überspringen */ }
+          await fuegeHinzu(`status:${tid}:${sl}`);
+        }
+      }
+    }
+
+    meldung.innerHTML = `<p style="color:var(--good);">${rohPaare.length} Einträge gesammelt. Datei wird heruntergeladen …</p>`;
+    const blob = new Blob([JSON.stringify(rohPaare, null, 0)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `daz-tool-migration-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    meldung.innerHTML = `<p style="color:var(--bad);">Fehler beim Export: ${escapeHtml(e.message || 'unbekannt')}</p>`;
+  }
+  btn.disabled = false;
+  btn.textContent = originalText;
+});
+
+document.getElementById('migrationImportBtn').addEventListener('click', async () => {
+  const fileInput = document.getElementById('migrationImportFile');
+  const meldung = document.getElementById('migrationImportMeldung');
+  const btn = document.getElementById('migrationImportBtn');
+  if (!fileInput.files || !fileInput.files[0]) {
+    meldung.innerHTML = `<p style="color:var(--bad);">Bitte zuerst eine Export-Datei auswählen.</p>`;
+    return;
+  }
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  try {
+    const text = await fileInput.files[0].text();
+    const rohPaare = JSON.parse(text);
+    if (!Array.isArray(rohPaare)) throw new Error('Datei hat nicht das erwartete Format.');
+    let ok = 0, fehler = 0;
+    for (let i = 0; i < rohPaare.length; i++) {
+      const eintrag = rohPaare[i];
+      btn.textContent = `Importiere … (${i + 1}/${rohPaare.length})`;
+      try {
+        await speichereMitRetry(eintrag.key, eintrag.value, true);
+        ok++;
+      } catch (e) { fehler++; }
+    }
+    meldung.innerHTML = `<p style="color:${fehler ? 'var(--warn)' : 'var(--good)'};">${ok} von ${rohPaare.length} Einträgen importiert${fehler ? `, ${fehler} fehlgeschlagen` : ''}.</p>`;
+    loadSubmissions(false);
+  } catch (e) {
+    meldung.innerHTML = `<p style="color:var(--bad);">Fehler beim Import: ${escapeHtml(e.message || 'unbekannt')}</p>`;
+  }
+  btn.disabled = false;
+  btn.textContent = originalText;
 });
 
 // ---------------- ERGEBNISSE AUS DATEI IMPORTIEREN ----------------
