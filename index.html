@@ -727,6 +727,15 @@ window.storage = {
     const data = await ascAnfrage(`${APPS_SCRIPT_URL}?action=list&prefix=${encodeURIComponent(prefix || '')}`);
     return { keys: data.keys || [], prefix };
   },
+    // NEU: liefert Schlüssel+Wert aller Einträge, die auf "suffix" enden, in EINEM Aufruf
+  // (spart bei der Fortschrittsübersicht viele einzelne get()-Aufrufe für den Lehrkraft-Status).
+  async listBySuffix(suffix /*, shared */) {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('HIER_DEINE') === 0) {
+      throw new Error('Speicher-Backend noch nicht eingerichtet (APPS_SCRIPT_URL fehlt).');
+    }
+    const data = await ascAnfrage(`${APPS_SCRIPT_URL}?action=listBySuffix&suffix=${encodeURIComponent(suffix || '')}`);
+    return { items: data.items || [] };
+  },
 };
 // ==================== ENDE SPEICHER-BACKEND ====================
 
@@ -830,18 +839,15 @@ async function refreshProgress() {
   } catch (e) { /* kein manueller Zugriff gesetzt */ }
 
   // Lehrkraft-Freigabestatus je Test laden (nur für Tests, die auch tatsächlich abgegeben wurden)
-  const testApproval = {}; // testId -> 'weiter' | 'wiederholen' | 'offen'
+   const testApproval = {}; // testId -> 'weiter' | 'wiederholen' | 'offen'
   try {
-    const statusRes = await window.storage.list('status:', true);
-    for (const k of (statusRes && statusRes.keys ? statusRes.keys : [])) {
+    const statusRes = await window.storage.listBySuffix(`:${sl}`, true);
+    (statusRes.items || []).forEach(({ key: k, value }) => {
       const parts = k.split(':'); // status:testId:slug
-      if (parts.length >= 3 && parts[2] === sl && doneTests.has(parts[1])) {
-        try {
-          const sres = await window.storage.get(k, true);
-          if (sres && sres.value) testApproval[parts[1]] = JSON.parse(sres.value).status || 'offen';
-        } catch (e) { /* skip */ }
+      if (parts[0] === 'status' && parts.length >= 3 && parts[2] === sl && doneTests.has(parts[1])) {
+        try { testApproval[parts[1]] = JSON.parse(value).status || 'offen'; } catch (e) { /* skip */ }
       }
-    }
+    });
   } catch (e) { /* noch kein Status vorhanden */ }
 
   // Falls inzwischen eine neuere Anfrage (z.B. durch weiteres Tippen) gestartet wurde: dieses veraltete Ergebnis verwerfen
