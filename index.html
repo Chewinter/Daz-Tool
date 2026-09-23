@@ -808,43 +808,48 @@ async function refreshProgress() {
     return;
   }
 
-  const sl = slug(name);
+   const sl = slug(name);
   const doneTests = new Set();
   const doneActs = new Set();
-  try {
-    const subRes = await window.storage.list('submission:', true);
-    (subRes && subRes.keys ? subRes.keys : []).forEach(k => {
+  let manualAccessUpTo = -1;
+  const testApproval = {}; // testId -> 'weiter' | 'wiederholen' | 'offen'
+  const statusComments = {}; // testId -> Kommentartext der Lehrkraft
+  const pausierteTests = new Set(); // testIds mit einem pausierten Entwurf (testprogress:)
+
+  // Die vier unabhängigen Abfragen GLEICHZEITIG starten statt nacheinander — das ist der
+  // entscheidende Geschwindigkeitsgewinn, weil jeder Aufruf ans Apps-Script-Backend spürbare
+  // eigene Latenz hat.
+  const [subRes, actRes, maRes, statusRes] = await Promise.allSettled([
+    window.storage.list('submission:', true),
+    window.storage.list('activitydone:', true),
+    window.storage.get(`manualaccess:${sl}`, true),
+    window.storage.listBySuffix(`:${sl}`, true),
+  ]);
+
+  if (subRes.status === 'fulfilled') {
+    (subRes.value && subRes.value.keys ? subRes.value.keys : []).forEach(k => {
       const parts = k.split(':');
       if (parts.length < 3 || parts[2] !== sl) return;
-      // Alte, mit dem früheren (mittlerweile ersetzten) Werkzeug erzeugte Fake-Einreichungen
-      // tragen "_manuell" am Ende des Schlüssels — die zählen NICHT als "wirklich gemacht".
-      // Erkennung rein am Schlüssel (kein zusätzlicher Abruf nötig) — robuster und schneller.
       if (k.endsWith('_manuell')) return;
       doneTests.add(parts[1]);
     });
-  } catch (e) { /* noch keine Einreichungen */ }
-  try {
-    const actRes = await window.storage.list(`activitydone:`, true);
-    (actRes && actRes.keys ? actRes.keys : []).forEach(k => {
+  }
+
+  if (actRes.status === 'fulfilled') {
+    (actRes.value && actRes.value.keys ? actRes.value.keys : []).forEach(k => {
       const parts = k.split(':');
       if (parts.length >= 3 && parts[2] === sl) doneActs.add(parts[1]);
     });
-  } catch (e) { /* noch keine Übung erledigt */ }
+  }
 
   // Manuell freigeschalteter Zugriff (Quereinstieg) — NICHT als erledigt gewertet, nur zugänglich
-  let manualAccessUpTo = -1;
-  try {
-    const maRes = await window.storage.get(`manualaccess:${sl}`, true);
-    if (maRes && maRes.value) manualAccessUpTo = JSON.parse(maRes.value).uptoStageIndex;
-  } catch (e) { /* kein manueller Zugriff gesetzt */ }
+  if (maRes.status === 'fulfilled' && maRes.value && maRes.value.value) {
+    try { manualAccessUpTo = JSON.parse(maRes.value.value).uptoStageIndex; } catch (e) { /* skip */ }
+  }
 
-  // Lehrkraft-Freigabestatus je Test laden (nur für Tests, die auch tatsächlich abgegeben wurden)
-   const testApproval = {}; // testId -> 'weiter' | 'wiederholen' | 'offen'
-  const statusComments = {}; // testId -> Kommentartext der Lehrkraft
-  const pausierteTests = new Set(); // testIds mit einem pausierten Entwurf (testprogress:)
-  try {
-    const statusRes = await window.storage.listBySuffix(`:${sl}`, true);
-    (statusRes.items || []).forEach(({ key: k, value }) => {
+  // Lehrkraft-Freigabestatus je Test (nur für abgegebene Tests) + Kommentare + pausierte Entwürfe
+  if (statusRes.status === 'fulfilled') {
+    (statusRes.value.items || []).forEach(({ key: k, value }) => {
       const parts = k.split(':');
       if (parts[0] === 'status' && parts.length >= 3 && parts[2] === sl) {
         try {
@@ -856,7 +861,7 @@ async function refreshProgress() {
         pausierteTests.add(parts[1]);
       }
     });
-  } catch (e) { /* noch kein Status vorhanden */ }
+  }
 
   // Falls inzwischen eine neuere Anfrage (z.B. durch weiteres Tippen) gestartet wurde: dieses veraltete Ergebnis verwerfen
   if (myRequestId !== progressRequestId) return;
