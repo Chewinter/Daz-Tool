@@ -840,12 +840,20 @@ async function refreshProgress() {
 
   // Lehrkraft-Freigabestatus je Test laden (nur für Tests, die auch tatsächlich abgegeben wurden)
    const testApproval = {}; // testId -> 'weiter' | 'wiederholen' | 'offen'
+  const statusComments = {}; // testId -> Kommentartext der Lehrkraft
+  const pausierteTests = new Set(); // testIds mit einem pausierten Entwurf (testprogress:)
   try {
     const statusRes = await window.storage.listBySuffix(`:${sl}`, true);
     (statusRes.items || []).forEach(({ key: k, value }) => {
-      const parts = k.split(':'); // status:testId:slug
-      if (parts[0] === 'status' && parts.length >= 3 && parts[2] === sl && doneTests.has(parts[1])) {
-        try { testApproval[parts[1]] = JSON.parse(value).status || 'offen'; } catch (e) { /* skip */ }
+      const parts = k.split(':');
+      if (parts[0] === 'status' && parts.length >= 3 && parts[2] === sl) {
+        try {
+          const obj = JSON.parse(value);
+          if (doneTests.has(parts[1])) testApproval[parts[1]] = obj.status || 'offen';
+          if (obj.comment) statusComments[parts[1]] = obj.comment;
+        } catch (e) { /* skip */ }
+      } else if (parts[0] === 'testprogress' && parts.length >= 3 && parts[2] === sl && value) {
+        pausierteTests.add(parts[1]);
       }
     });
   } catch (e) { /* noch kein Status vorhanden */ }
@@ -889,7 +897,7 @@ async function refreshProgress() {
     // Alle Lernfelder NACH dem aktiven bleiben komplett gesperrt (nichts hinzufügen), außer manuell freigeschaltet
   });
 
-  progressCache = { name, doneTests, doneActs, unlocked, manualAccessUpTo, testApproval, loaded: true };
+   progressCache = { name, doneTests, doneActs, unlocked, manualAccessUpTo, testApproval, statusComments, pausierteTests, loaded: true };
   renderAll();
 }
 
@@ -1064,18 +1072,12 @@ async function renderLernfeldItems(lfIdx, name) {
 
     let kommentar = '';
     if (!isActivity && status !== 'unerledigt') {
-      try {
-        const res = await window.storage.get(`status:${id}:${slug(name)}`, true);
-        if (res && res.value) kommentar = (JSON.parse(res.value).comment || '');
-      } catch (e) { /* kein Status vorhanden */ }
+      kommentar = progressCache.statusComments[id] || '';
     }
 
     let hatPausiertenFortschritt = false;
     if (!isActivity && status === 'unerledigt') {
-      try {
-        const res = await window.storage.get(`testprogress:${id}:${slug(name)}`, true);
-        hatPausiertenFortschritt = !!(res && res.value);
-      } catch (e) { /* kein pausierter Fortschritt */ }
+      hatPausiertenFortschritt = progressCache.pausierteTests.has(id);
     }
 
     const statusBadge = status === 'erledigt'
