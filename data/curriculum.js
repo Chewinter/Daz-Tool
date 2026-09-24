@@ -16,6 +16,7 @@ const CURRICULUM = [
   { id: "a1_lf1", name: "A1.1 Grundschrift", niveau: "A1", items: ["a1_lf1_schritt1", "a1_lf1_schritt2", "a1_lf1_memory", "a1_lf1_schritt3", "a1_lf1_schritt4", "a1_lf1_schritt5", "a1_lf1_wortbauen", "a1_lf1_abschlusstest"] },
   { id: "a1_lf2", name: "A1.2 Begrüßung", niveau: "A1", items: ["a1_lf2_schritt1", "a1_lf2_schritt2", "a1_lf2_schritt3", "a1_lf2_zahlenmemory", "a1_lf2_abschlusstest"] },
   { id: "a1_lf3", name: "A1.3 Personen", niveau: "A1", items: ["a1_lf3_schritt1", "a1_lf3_schritt2", "a1_lf3_schritt3", "a1_lf3_schritt4", "a1_lf3_schritt5", "a1_lf3_memory", "a1_lf3_abschlusstest"] },
+  { id: "a1_lf4", name: "A1.4 Zahlen und Zeiten", niveau: "A1", items: ["a1_lf4_schritt1", "a1_lf4_schritt2", "a1_lf4_schritt3", "a1_lf4_schritt4", "a1_lf4_schritt5", "a1_lf4_immer3", "a1_lf4_schritt7", "a1_lf4_abschlusstest"] },
   // ---- A1: Grammatik-Training + Einstufung ----
   { id: "a1_grammatik", name: "Grammatik-Training", niveau: "A1", items: ["a1_grammatik_block1", "a1_grammatik_block2", "a1_grammatik_block3", "a1_grammatik_block4", "a1_grammatik_block5", "a1_grammatik_block6", "a1_grammatik_block7", "a1_grammatik_block8", "a1_grammatik_block9"] },
   { id: "a1_check", name: "A1-Check", niveau: "A1", items: ["eingangstest_a1"] },

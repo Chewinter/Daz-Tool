@@ -23,7 +23,7 @@ registerTests({
      "klein_h",
      "klein_i",
      "klein_b",
-     "klein_n"
+     "klein_k"
     ],
     "correct": 2
    },
@@ -53,7 +53,7 @@ registerTests({
     "num": 5,
     "word": "Kleinbuchstabe k",
     "icons": [
-     "klein_a",
+     "klein_e",
      "klein_h",
      "klein_k",
      "klein_i"
@@ -64,10 +64,10 @@ registerTests({
     "num": 6,
     "word": "Kleinbuchstabe e",
     "icons": [
-     "klein_i",
+     "klein_b",
      "klein_e",
      "klein_a",
-     "klein_k"
+     "klein_m"
     ],
     "correct": 1
    }
@@ -271,7 +271,7 @@ registerTests({
     "word": "Kleinbuchstabe p",
     "icons": [
      "klein_h",
-     "klein_t",
+     "klein_m",
      "klein_b",
      "klein_p"
     ],
@@ -292,8 +292,8 @@ registerTests({
     "num": 5,
     "word": "Großbuchstabe C",
     "icons": [
-     "Groß_U",
-     "Groß_L",
+     "Groß_K",
+     "Groß_B",
      "Groß_C",
      "Groß_O"
     ],
@@ -489,9 +489,9 @@ registerTests({
     "num": 1,
     "word": "Großbuchstabe S",
     "icons": [
-     "Groß_G",
      "Groß_N",
-     "Groß_U",
+     "Groß_A",
+     "Groß_L",
      "Groß_S"
     ],
     "correct": 3
@@ -522,10 +522,10 @@ registerTests({
     "num": 4,
     "word": "Kleinbuchstabe g",
     "icons": [
-     "klein_n",
-     "klein_u",
+     "klein_b",
+     "klein_h",
      "klein_g",
-     "klein_h"
+     "klein_p"
     ],
     "correct": 2
    },
@@ -766,9 +766,9 @@ registerTests({
     "word": "Kleinbuchstabe z",
     "icons": [
      "klein_s",
-     "klein_b",
+     "klein_r",
      "klein_z",
-     "klein_h"
+     "klein_j"
     ],
     "correct": 2
    },
@@ -788,8 +788,8 @@ registerTests({
     "word": "Großbuchstabe Z",
     "icons": [
      "Groß_S",
-     "Groß_C",
-     "Groß_M",
+     "Groß_U",
+     "Groß_W",
      "Groß_Z"
     ],
     "correct": 3
@@ -798,9 +798,9 @@ registerTests({
     "num": 6,
     "word": "Großbuchstabe J",
     "icons": [
-     "Groß_E",
-     "Groß_H",
-     "Groß_B",
+     "Groß_M",
+     "Groß_D",
+     "Groß_L",
      "Groß_J"
     ],
     "correct": 3

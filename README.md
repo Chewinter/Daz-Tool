@@ -1,30 +1,37 @@
-# DaZ-Tool — Update (Version 20260927a)
-Enthält: neue Dateistruktur (Schüler-Seite + eigene Lehrkraft-Seite), A1.1 Grundschrift, A1.2 Begrüßung, A1.3 Personen.
-Noch NICHT enthalten: A1.4 Zahlen und Zeiten, A1.5 Schule (kommen später als weitere Dateien).
+# DaZ-Tool — Update (Version 20260928a)
+Enthält: neue Dateistruktur, A1.1 Grundschrift, A1.2 Begrüßung, A1.3 Personen, **A1.4 Zahlen und Zeiten (neu)**.
+Noch nicht enthalten: A1.5 Schule (kommt später als weitere Datei).
+
+## Was du hochladen musst
+**Am einfachsten und sichersten: wieder den kompletten Inhalt des Ordners hochladen** (GitHub ersetzt dabei alles; unveränderte Dateien bleiben inhaltlich gleich).
+
+Neu bzw. geändert gegenüber deinem letzten Upload (Version 20260927a) sind nur diese Dateien — falls du lieber nur diese hochlädst:
+* `index.html` und `lehrkraft.html` (neue Versionsnummer + neue Datei im Lader)
+* `js/student.js` (neues Spiel „Immer 3!“)
+* `data/curriculum.js` (Lernpfad enthält A1.4)
+* `data/icons-a1.js` (neue Original-Bilder: Tätigkeiten und Uhren)
+* `data/a1-lf4-zahlen-zeiten.js` (**neu**: A1.4 Tests, Abschlusstest, Spiel)
+Achtung: Die Ordner `js` und `data` dabei mit hochladen (nicht die Dateien einzeln ohne Ordner), sonst liegen sie am falschen Ort.
 
 ## Hochladen auf GitHub (Repository Chewinter/Daz-Tool) — Schritt für Schritt
 1. ZIP auf dem Rechner **entpacken** (Rechtsklick → Alle extrahieren). Es entsteht der Ordner `Daz-Tool`.
-2. GitHub im Browser öffnen → Repository `Daz-Tool` → Knopf **Add file → Upload files**.
-3. Den **Inhalt** des Ordners `Daz-Tool` in das Fenster ziehen: `index.html`, `lehrkraft.html`, `README.md` und die drei Ordner
-   `css`, `js`, `data` (Ordner einfach mitziehen — die Struktur bleibt erhalten).
-   Nicht das ZIP selbst hochladen und nicht den äußeren Ordner `Daz-Tool` (sonst liegt alles eine Ebene zu tief).
-4. Unten bei „Commit changes“ eine Notiz eintippen (z. B. „Neue Struktur + A1.1–A1.3“) → **Commit changes**.
-   Dass `index.html` ersetzt wird, ist richtig.
-5. 1–2 Minuten warten. Dann `https://chewinter.github.io/Daz-Tool/` öffnen und die Seite hart neu laden
-   (Strg+Shift+R bzw. am Tablet die Seite schließen und neu öffnen).
-6. **Google Apps Script / Google Sheet nicht anfassen.** Alle bisherigen Abgaben, Freigaben und Fortschritte bleiben erhalten.
+2. GitHub im Browser → Repository `Daz-Tool` → **Add file → Upload files**.
+3. Den **Inhalt** des Ordners `Daz-Tool` in das Fenster ziehen: `index.html`, `lehrkraft.html`, `README.md` und die Ordner `css`, `js`, `data`.
+   Nicht das ZIP selbst und nicht den äußeren Ordner `Daz-Tool` hochladen.
+4. Unten bei „Commit changes“ eine Notiz eintippen (z. B. „A1.4 Zahlen und Zeiten“) → **Commit changes**.
+5. 1–2 Minuten warten, dann `https://chewinter.github.io/Daz-Tool/` öffnen und hart neu laden (Strg+Shift+R; am Tablet Seite schließen und neu öffnen).
+6. Google Apps Script / Google Sheet **nicht anfassen**. Alle Abgaben und Fortschritte bleiben erhalten.
 
-## Kurzer Test nach dem Hochladen (5 Minuten)
-* Startseite lädt, Name wählen → Fortschrittsübersicht erscheint; bei Schülern, die schon in A2 sind, ist weiterhin A2 vorausgewählt.
-* Als Testschüler einen Vokabeltest aus **A1.1** starten, abschicken → unten „Lehrkraft-Ansicht“ (führt zu `lehrkraft.html`), PIN eingeben,
-  Schüler wählen → die Abgabe ist da und lässt sich freigeben.
-* Ein Bild in A1.2/A1.3 kurz ansehen (Begrüßungs-Szenen, Tätigkeiten).
-Falls etwas nicht stimmt: auf GitHub → Repository → **Commits** → den letzten Commit öffnen → **Revert** stellt den alten Stand wieder her.
+## Kurzer Test nach dem Hochladen
+* Startseite → Name wählen → Fortschrittsübersicht erscheint; unter Niveau A1 gibt es jetzt auch „A1.4 Zahlen und Zeiten“.
+* Einen Vokabeltest aus A1.4 starten (z. B. „Wie spät ist es?“ mit den Uhren), abschicken → Lehrkraft-Ansicht (PIN) → Abgabe ist da.
+* Das Spiel „Immer 3!“ öffnen (Uhr + zwei Uhrzeiten zusammenfinden).
+Falls etwas nicht stimmt: GitHub → **Commits** → letzten Commit öffnen → **Revert** stellt den alten Stand wieder her.
 
 ## Wichtig für später
 * Nach **jeder** Änderung an css/js/data in **beiden** HTML-Dateien oben `var APP_V = '…'` hochzählen.
 * Neuer Schüler: `js/shared.js` → Liste `STUDENTS` → unten anhängen (bestehende Namen nie ändern).
-* Neues Lernfeld: Datei nach dem Muster `data/a1-lf3-personen.js` anlegen, in den Lader-Block **beider** HTML-Dateien eintragen
+* Neues Lernfeld: Datei nach dem Muster `data/a1-lf4-zahlen-zeiten.js` anlegen, in den Lader-Block **beider** HTML-Dateien eintragen
   (vor `data/curriculum.js`) und in `data/curriculum.js` eine Stufe mit neuer `id` ergänzen.
 
 ## Dateien
@@ -36,14 +43,6 @@ Falls etwas nicht stimmt: auf GitHub → Repository → **Commits** → den letz
 | `js/student.js`, `js/teacher.js` | Code der beiden Seiten |
 | `js/tests-common.js` | Abschlusstest-Bausteine |
 | `data/curriculum.js` | Lernpfad (Reihenfolge, feste Stufen-IDs) |
-| `data/a1-lf1-grundschrift.js`, `a1-lf2-begruessung.js`, `a1-lf3-personen.js` | A1.1 bis A1.3 |
+| `data/a1-lf1-…` bis `a1-lf4-…` | A1.1 bis A1.4 |
 | `data/icons-a1.js` | Original-Bilder aus dem Werkbuch |
 | `data/*-a2.js`, `grammatik-a1.js`, `tests-eingangstest.js` | bisherige Inhalte, unverändert |
-
-## Was neu ist
-* A1.1–A1.3 stehen **vor** dem Grammatik-Training (Bilder = Original-Ausschnitte aus dem Werkbuch).
-* Bestandsschutz: Wer schon in einem späteren Lernfeld etwas abgegeben hat (z. B. mitten in A2), bleibt freigeschaltet;
-  die A1-Lernfelder sind für ihn freiwillig sichtbar, aber nicht „erledigt“.
-* „Zugriff manuell freischalten“ speichert die Stufen-ID (alte Einträge werden richtig gelesen).
-* Lehrkraft-Ansicht und Export laden alle Abgaben in einem Aufruf.
-* Antworten, die du selbst bewertest (z. B. „Beantworte …“), erscheinen als „nicht automatisch geprüft“.

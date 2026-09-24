@@ -382,6 +382,7 @@ async function openActivity(actId) {
   else if (a.type === 'schlangenbauen') buildSchlangenbauen(a);
   else if (a.type === 'memory') buildMemory(a);
   else if (a.type === 'wortbauen') buildWortbauen(a);
+  else if (a.type === 'dreier') buildDreier(a);
   else if (a.type === 'grammatikblock') {
     document.getElementById('actBody').innerHTML = '<p class="hint">Lädt …</p>';
     const wiederholung = await ermittleGrammatikWiederholungsfilter(actId, currentActivityName, a);
@@ -2064,5 +2065,57 @@ function buildWortbauen(a) {
   }
   function zurueck() { if (meldung.startsWith('✓')) return; const t = gewaehlt.pop(); if (t) t.benutzt = false; meldung = ''; render(); }
   function weiter() { if (pos + 1 >= reihe.length) { gewonnen = true; render(); } else { pos++; startWort(); } }
+  neuesSpiel();
+}
+
+// ---------------- ÜBUNG: IMMER 3! (drei zusammengehörende Karten finden) ----------------
+// Daten: { type:'dreier', title, sub, hinweis?, runde?, saetze: [[A, B, C], ...] }  (A/B/C = Text ODER { bild: "Bildname" })
+// Pro Runde werden `runde` (Standard 4) zufällige Dreiergruppen gemischt. Tippe drei Karten an, die zusammengehören.
+function buildDreier(a) {
+  const body = document.getElementById('actBody');
+  const anzahl = Math.min(a.runde || 4, a.saetze.length);
+  let karten, gewaehlt, gefunden, versuche, sperre;
+
+  function mischen(arr) { return arr.slice().sort(() => 0.5 - Math.random()); }
+  function inhalt(x) { return (x && typeof x === 'object' && x.bild) ? `<img src="${iconSrc(x.bild)}" alt="" style="max-width:100%; max-height:84px;">` : escapeHtml(x); }
+  function neuesSpiel() {
+    karten = [];
+    mischen(a.saetze).slice(0, anzahl).forEach((s, i) => s.forEach(x => karten.push({ satz: i, inhalt: x })));
+    karten = mischen(karten).map((k, id) => ({ ...k, id, status: 'frei' }));
+    gewaehlt = []; gefunden = 0; versuche = 0; sperre = false;
+    render();
+  }
+  function render() {
+    const fertig = gefunden === anzahl;
+    if (fertig) markActivityDone(currentActivityId);
+    let html = `<p class="hint">${escapeHtml(a.hinweis || 'Finde immer drei Karten, die zusammengehören.')}</p>
+      <div class="quiz-stapel-info"><span>Gefunden: ${gefunden} von ${anzahl}</span><span>Versuche: ${versuche}</span></div>`;
+    if (fertig) {
+      html += `<div class="domino-done"><div class="big-icon">🏆</div><h2 style="font-family:Georgia,serif;">Alle Dreiergruppen gefunden!</h2><p style="color:var(--ink-soft);">Du hast ${versuche} Versuche gebraucht.</p><button class="btn" id="drNeu">Nochmal spielen</button></div>`;
+      body.innerHTML = html;
+      document.getElementById('drNeu').addEventListener('click', neuesSpiel);
+      return;
+    }
+    html += `<div class="memory-grid">` + karten.map(k => `<div class="memory-card ${k.status === 'gewaehlt' ? 'offen' : k.status === 'gefunden' ? 'gefunden' : ''}" data-id="${k.id}">${inhalt(k.inhalt)}</div>`).join('') + `</div>`;
+    body.innerHTML = html;
+    body.querySelectorAll('.memory-card').forEach(el => el.addEventListener('click', () => klick(parseInt(el.getAttribute('data-id'), 10))));
+  }
+  function klick(id) {
+    const k = karten[id];
+    if (sperre || k.status === 'gefunden') return;
+    if (k.status === 'gewaehlt') { k.status = 'frei'; gewaehlt = gewaehlt.filter(x => x !== k); render(); return; }
+    k.status = 'gewaehlt'; gewaehlt.push(k);
+    if (gewaehlt.length === 3) {
+      versuche++;
+      if (gewaehlt.every(x => x.satz === gewaehlt[0].satz)) {
+        gewaehlt.forEach(x => x.status = 'gefunden'); gefunden++; gewaehlt = [];
+      } else {
+        sperre = true; render();
+        setTimeout(() => { gewaehlt.forEach(x => x.status = 'frei'); gewaehlt = []; sperre = false; render(); }, 1000);
+        return;
+      }
+    }
+    render();
+  }
   neuesSpiel();
 }
