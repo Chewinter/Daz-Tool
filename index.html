@@ -7,7 +7,7 @@
 <script>
   // ==== VERSION — nach JEDER Änderung an css/js/data hier hochzählen (z. B. 20260924b), damit Browser die neuen
   //      Dateien sofort laden und nicht mit alten mischen. In index.html UND lehrkraft.html gleich halten. ====
-  var APP_V = '20260928a';
+  var APP_V = '20261001a';
   document.write('<link rel="stylesheet" href="css/style.css?v=' + APP_V + '">');
 </script>
 </head>
@@ -122,6 +122,17 @@
 </div>
 
 
+<!-- ============ ERGEBNIS (nach der Bewertung) ============ -->
+<div id="view-ergebnis" class="hidden">
+  <header class="top"><div class="wrap">
+    <span class="backlink" id="ergebnisBack">← Zurück zur Startseite</span>
+    <p class="eyebrow">Werkstattarbeit DaZ</p>
+    <h1 id="ergTitel">Ergebnis</h1>
+    <p class="sub" id="ergSub"></p>
+  </div></header>
+  <div class="wrap"><section class="card" id="ergBody"></section></div>
+</div>
+
 <script>
   // ==== LADER — lädt alle Skripte in fester Reihenfolge. Neue Datei (z. B. data/a1-lf2.js) hier eintragen. ====
   [
@@ -132,6 +143,7 @@
     'data/a1-lf2-begruessung.js',
     'data/a1-lf3-personen.js',
     'data/a1-lf4-zahlen-zeiten.js',
+    'data/a1-lf5-schule.js',
     'data/tests-a2.js',
     'data/tests-eingangstest.js',
     'data/activities-a2.js',

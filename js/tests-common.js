@@ -780,6 +780,23 @@ function buildAbschlussGenerisch(t) {
   });
 }
 
+// ---------------- TEILE EINES ABSCHLUSSTESTS ----------------
+// Ein "Teil" ist ein Abschnitt mit eigener Überschrift (<h2>) im aufgebauten Test. Jedes Feld (data-key) gehört zum Teil,
+// unter dessen Überschrift es steht. Funktioniert für alle Abschlusstest-Typen (alte Builder und generischer Builder).
+function abschlussTeileInfo() {
+  const mount = document.getElementById('abschlussBody');
+  const teile = [], keyTeil = {};
+  if (!mount) return { teile, keyTeil };
+  mount.querySelectorAll('h2, [data-key]').forEach(el => {
+    if (el.tagName === 'H2') { teile.push({ nr: teile.length + 1, titel: el.textContent.trim() }); }
+    else {
+      if (!teile.length) teile.push({ nr: 1, titel: '' });
+      keyTeil[el.getAttribute('data-key')] = teile.length;
+    }
+  });
+  return { teile, keyTeil };
+}
+
 // ---------------- REGISTER: Abschlusstest-Typ -> Builder ----------------
 // Beide Seiten schlagen hier nach (statt langer if/else-Ketten). Neuer Typ = hier eine Zeile ergänzen.
 const ABSCHLUSS_BUILDER = {

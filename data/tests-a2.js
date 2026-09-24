@@ -1231,11 +1231,11 @@ registerTests({
    {
     "num": 1,
     "vor": "Ich",
-    "nach": "die Wohnung jeden Samstag.",
+    "nach": "die Wohnung jeden Samstag sauber.",
     "options": [
-     "mache sauber",
-     "machst sauber",
-     "macht sauber"
+     "mache",
+     "machst",
+     "macht"
     ],
     "correct": 0
    },
@@ -1253,13 +1253,13 @@ registerTests({
    {
     "num": 3,
     "vor": "Er",
-    "nach": "das Regal.",
+    "nach": "das Regal ab.",
     "options": [
-     "staube ab",
-     "staubst ab",
-     "staubt ab"
+     "staubt",
+     "staube",
+     "staubst"
     ],
-    "correct": 2
+    "correct": 0
    },
    {
     "num": 4,
@@ -1733,7 +1733,7 @@ registerTests({
    },
    {
     "num": 7,
-    "word": "die Hand, die Finger, der Daumen",
+    "word": "die Finger, der Daumen",
     "pronomen": "An meiner Hand sind"
    }
   ],
@@ -1804,17 +1804,17 @@ registerTests({
    {
     "num": 6,
     "word": "das Shampoo",
-    "pronomen": "Mit dem Shampoo schäume ich mir"
+    "pronomen": "Ich schäume mir"
    },
    {
     "num": 7,
     "word": "die Creme",
-    "pronomen": "Mit der Creme creme ich mich"
+    "pronomen": "Ich creme mich"
    },
    {
     "num": 8,
     "word": "das Deo",
-    "pronomen": "Mit dem Deo sprühe ich mich"
+    "pronomen": "Ich sprühe mich"
    }
   ],
   "teil4": []
@@ -2069,13 +2069,13 @@ registerTests({
    {
     "num": 2,
     "vor": "Ich habe Husten,",
-    "nach": "ich kein Halsbonbon.",
+    "nach": "kein Halsbonbon.",
     "options": [
-     "habe",
-     "aber habe",
-     "weil habe"
+     "aber ich habe",
+     "aber habe ich",
+     "weil ich habe"
     ],
-    "correct": 1
+    "correct": 0
    },
    {
     "num": 3,
@@ -2103,12 +2103,12 @@ registerTests({
   "teil3": [
    {
     "num": 5,
-    "word": "weil (Ich gehe ins Bett, ...)",
+    "word": "Grund",
     "pronomen": "Ich gehe ins Bett, weil"
    },
    {
     "num": 6,
-    "word": "obwohl (Ich gehe zur Arbeit, ...)",
+    "word": "Gegensatz",
     "pronomen": "Ich gehe zur Arbeit, obwohl"
    }
   ],
@@ -3598,7 +3598,7 @@ registerTests({
   "teil3": [
    {
     "num": 5,
-    "word": "Hunger, Döner",
+    "word": "Döner",
     "pronomen": "Ich habe Hunger. Ich kaufe mir einen"
    },
    {
@@ -3667,7 +3667,7 @@ registerTests({
    },
    {
     "num": 6,
-    "word": "gestern, Lebensmittel bezahlen",
+    "word": "bezahlen (Perfekt)",
     "pronomen": "Ich habe gestern die Lebensmittel"
    }
   ],
@@ -3731,7 +3731,7 @@ registerTests({
    },
    {
     "num": 6,
-    "word": "gestern einkaufen (Perfekt)",
+    "word": "einkaufen (Perfekt)",
     "pronomen": "Gestern habe ich"
    }
   ],

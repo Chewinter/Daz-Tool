@@ -26,12 +26,12 @@ document.getElementById('pinSubmit').addEventListener('click', () => {
     document.getElementById('pinGate').classList.add('hidden');
     document.getElementById('dashContent').classList.remove('hidden');
     initDashStudentFilter();
-    loadSubmissions(false);
+    zeigeUebersicht();
   } else {
     document.getElementById('pinError').style.display = 'block';
   }
 });
-document.getElementById('refreshBtn').addEventListener('click', () => loadSubmissions(false));
+document.getElementById('refreshBtn').addEventListener('click', () => aktualisiereAnsicht());
 
 function initDashStudentFilter() {
   const filterSelect = document.getElementById('dashStudentFilter');
@@ -103,7 +103,7 @@ document.getElementById('manualProgressBtn').addEventListener('click', async () 
 // Kein Zeit-Intervall mehr (störte beim Lesen) — nur noch aktualisieren, wenn man den Tab/das Fenster wieder aktiviert
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && !document.getElementById('dashContent').classList.contains('hidden')) {
-    loadSubmissions(true);
+    if (!document.getElementById('detailView').classList.contains('hidden')) loadSubmissions(true); else ladeUebersicht(true);
   }
 });
 
@@ -262,18 +262,31 @@ async function loadSubmissions(isBackgroundRefresh) {
     if (res.status === 'fulfilled' && res.value && res.value.value) {
       try { sObj = JSON.parse(res.value.value); } catch (e) { /* offen */ }
     }
-    return { ...sub, lehrkraftStatus: sObj.status, lehrkraftKommentar: sObj.comment || '', bewertetAm: sObj.reviewedAt || null };
+    return { ...sub, lehrkraftStatus: sObj.status, lehrkraftKommentar: sObj.comment || '', bewertetAm: sObj.reviewedAt || null, lehrkraftKorrektur: !!sObj.korrektur, lehrkraftZettel: !!sObj.zettel };
   });
   lastLoadedSubmissions = gefiltert; // für Export DIESES Schülers (Export lädt bei Bedarf zusätzlich alle anderen)
+
+  const gesehenTests = {};
+  gefiltert.forEach(sub => { sub._neueste = !gesehenTests[sub.testId]; gesehenTests[sub.testId] = true; }); // Liste ist neueste-zuerst
+
+  // Entwürfe der Bewertung (deine Schalter, Teil-Wiederholung, Kommentar) parallel laden — pro Abgabe eine Abfrage
+  await Promise.all(gefiltert.map(async (sub) => {
+    if (sub.bereichsErgebnisse) return;
+    try {
+      const r = await window.storage.get(`reviewdraft:${sub.testId}:${slug(sub.name)}:${String(sub._key).split(':')[3]}`, true);
+      if (r && r.value) sub._draft = JSON.parse(r.value);
+    } catch (e) { /* kein Entwurf vorhanden */ }
+  }));
 
   listEl.innerHTML = '';
   for (const sub of gefiltert) {
     // Status wurde bereits oben für alle Einreichungen geladen (enrichedAll) — kein erneuter Einzelabruf nötig.
-    const statusObj = { status: sub.lehrkraftStatus || 'offen', comment: sub.lehrkraftKommentar || '', reviewedAt: sub.bewertetAm };
+    const statusObj = { status: sub.lehrkraftStatus || 'offen', comment: sub.lehrkraftKommentar || '', reviewedAt: sub.bewertetAm, korrektur: sub.lehrkraftKorrektur, zettel: sub.lehrkraftZettel };
     const statusKey = `status:${sub.testId}:${slug(sub.name)}`;
 
     const div = document.createElement('div');
     div.className = 'submission';
+    div.dataset.test = sub.testId;
     const dt = new Date(sub.timestamp);
     const dateStr = dt.toLocaleDateString('de-DE') + ' ' + dt.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'});
 
@@ -358,6 +371,9 @@ async function loadSubmissions(isBackgroundRefresh) {
 
     const berichtHtml = generiereLernbericht(sub.bereichsErgebnisse);
 
+    if (!sub.bereichsErgebnisse) {
+      await baueBewertung(div, sub, statusObj, statusKey);
+    } else {
     // Auswahl, welche Teile/Punkte bei "Wiederholen nötig" erneut abgefragt werden sollen — der
     // Rest wird beim nächsten Öffnen aus dieser Einreichung vorausgefüllt und nicht nochmal verlangt.
     // Bei normalen Vokabeltests sind das die Teile 1–4, bei Grammatikblöcken die Erklärungspunkte 1–9.
@@ -411,6 +427,8 @@ async function loadSubmissions(isBackgroundRefresh) {
       await window.storage.set(statusKey, JSON.stringify(payload), true);
       loadSubmissions(false);
     });
+
+    }
 
     div.querySelectorAll('.override-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -499,7 +517,7 @@ async function sammleAlleEinreichungenFuerExport(fortschrittCallback) {
     if (res.status === 'fulfilled' && res.value && res.value.value) {
       try { sObj = JSON.parse(res.value.value); } catch (e) { /* offen */ }
     }
-    return { ...sub, lehrkraftStatus: sObj.status, lehrkraftKommentar: sObj.comment || '', bewertetAm: sObj.reviewedAt || null };
+    return { ...sub, lehrkraftStatus: sObj.status, lehrkraftKommentar: sObj.comment || '', bewertetAm: sObj.reviewedAt || null, lehrkraftKorrektur: !!sObj.korrektur, lehrkraftZettel: !!sObj.zettel };
   });
 }
 

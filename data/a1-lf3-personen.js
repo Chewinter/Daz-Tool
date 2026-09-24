@@ -934,17 +934,17 @@ registerTests({
   "teil3": [
    {
     "num": 18,
-    "word": "der Vater (Günther, 42)",
+    "word": "Günther, 42 Jahre alt",
     "pronomen": "Mein Vater heißt"
    },
    {
     "num": 19,
-    "word": "die Schwester (Lena, 6)",
+    "word": "Lena, 6 Jahre alt",
     "pronomen": "Meine Schwester heißt"
    },
    {
     "num": 20,
-    "word": "die Großmutter (Hausfrau)",
+    "word": "Hausfrau",
     "pronomen": "Meine Großmutter ist"
    },
    {

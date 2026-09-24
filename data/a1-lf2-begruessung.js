@@ -757,6 +757,7 @@ registerActivities({
   "title": "Zahlen-Memory",
   "sub": "A1.2 Begrüßung — Schritt 4 (Spiel)",
   "type": "memory",
+  "schritt": 4,
   "anzahl": 8,
   "hinweis": "Decke zwei Karten auf: Das Zahlwort und die Zahl passen zusammen. Lies die Zahlen laut vor!",
   "pairs": [

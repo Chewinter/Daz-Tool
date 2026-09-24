@@ -53,8 +53,8 @@
   }
   .img-opt img { width: 100%; height: auto; display: block; margin-bottom: 4px; }
   .img-opt .letter { font-size: 13px; font-weight: 700; color: var(--ink-soft); }
-  .img-opt:hover { border-color: var(--teal); }
-  .img-opt.selected { border-color: var(--teal); background: #EAF2F0; }
+  @media (hover: hover) { .img-opt:hover { border-color: var(--teal); } }
+  .img-opt.selected { border-color: var(--teal); background: #fff; box-shadow: inset 0 0 0 1.5px var(--teal); }
   .img-opt.correct { border-color: var(--good); background: var(--good-bg); }
   .img-opt.incorrect { border-color: var(--bad); background: var(--bad-bg); }
 
@@ -65,8 +65,8 @@
     border: 2px solid var(--line); border-radius: 20px; background: #FCFBF7; padding: 6px 16px;
     cursor: pointer; font-size: 15px; transition: border-color 0.15s, background 0.15s;
   }
-  .mc-opt:hover { border-color: var(--teal); }
-  .mc-opt.selected { border-color: var(--teal); background: #EAF2F0; }
+  @media (hover: hover) { .mc-opt:hover { border-color: var(--teal); } }
+  .mc-opt.selected { border-color: var(--teal); background: #fff; box-shadow: inset 0 0 0 1.5px var(--teal); font-weight: 600; }
   .mc-opt.correct { border-color: var(--good); background: var(--good-bg); color: var(--good); font-weight: 700; }
   .mc-opt.incorrect { border-color: var(--bad); background: var(--bad-bg); color: var(--bad); }
 
@@ -410,7 +410,7 @@
   .gen-select { flex: 0 1 220px; }
   .gen-clock { flex: 0 0 auto; }
   .img-opt img { max-height: 150px; object-fit: contain; }
-  .teil4-bild { height: 64px; max-width: 90px; object-fit: contain; flex: 0 0 auto; }
+  .teil4-bild { height: 80px; max-width: 110px; object-fit: contain; flex: 0 0 auto; }
   .gen-bild { height: 110px; max-width: 190px; object-fit: contain; flex: 0 0 auto; }
   .memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   @media (max-width: 480px) { .memory-grid { grid-template-columns: repeat(3, 1fr); } }
@@ -424,4 +424,73 @@
   .wb-tiles { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
   .wb-tile { min-width: 50px; height: 56px; border: 2px solid var(--teal); border-radius: 8px; background: #FCFBF7; font-size: 26px; font-weight: 700; cursor: pointer; color: var(--teal-dark); padding: 2px 4px; }
   .wb-tile.benutzt { opacity: .25; cursor: default; }
+
+  /* ---- Bewertung (Lehrkraft-Ansicht) ---- */
+  .bw-summe .bw-ergebnis { font-size: 16px; margin: 10px 0 6px; padding: 10px 12px; background: #F2EFE6; border-radius: 8px; }
+  .bw-teil { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 10px 0; background: #fff; }
+  .bw-teil h4 { margin: 0 0 8px; font-size: 15px; }
+  .bw-teilzahl { font-weight: 400; font-size: 13px; color: var(--ink-soft); margin-left: 6px; }
+  .bw-teilzahl.hat-fehler { color: var(--bad); }
+  .bw-zeile { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .bw-text { flex: 1 1 auto; min-width: 0; }
+  .bw-toggle { display: flex; gap: 4px; flex: 0 0 auto; }
+  .bw-btn { width: 34px; height: 30px; border: 1.5px solid var(--line); background: #fff; border-radius: 6px; cursor: pointer; font-size: 15px; padding: 0; }
+  .bw-btn.an-ok { background: var(--good-bg); border-color: var(--good); color: var(--good); font-weight: 700; }
+  .bw-btn.an-bad { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); font-weight: 700; }
+  .geaendert { color: #8A6D1D; }
+  .bw-wdh { display: flex; gap: 6px; align-items: center; margin-top: 8px; font-size: 13.5px; color: var(--ink-soft); cursor: pointer; font-weight: 400; }
+  .bw-label { display: block; margin-top: 12px; font-weight: 600; font-size: 14px; }
+  .bw-pflicht { color: var(--bad); font-weight: 400; }
+  .bw-hinweis { margin: 10px 0; padding: 9px 12px; border-radius: 8px; background: #F2EFE6; font-size: 14px; }
+  .bw-hinweis.gut { background: var(--good-bg); }
+  .bw-hinweis.schlecht { background: var(--bad-bg); }
+  .bw-modusbox { margin: 8px 0; font-size: 14px; }
+  .bw-leer { color: var(--ink-soft); font-size: 13.5px; }
+
+  /* ---- Ergebnis-Ansicht (Schüler) und gesperrte Teile ---- */
+  .erg-punkte { text-align: center; padding: 14px; background: #F2EFE6; border-radius: 10px; margin-bottom: 12px; }
+  .erg-note { font-family: Georgia, serif; font-size: 34px; font-weight: 700; color: var(--teal-dark); }
+  .erg-box { padding: 10px 12px; border-radius: 8px; margin: 10px 0; font-size: 15px; }
+  .erg-box.gut { background: var(--good-bg); }
+  .erg-box.schlecht { background: var(--bad-bg); }
+  .erg-kommentar { padding: 10px 12px; border-left: 4px solid var(--teal); background: #FCFBF7; margin: 12px 0; font-size: 15px; }
+  .erg-h { font-family: Georgia, serif; margin: 18px 0 6px; }
+  .erg-teil { font-weight: 700; margin-top: 12px; color: var(--teal-dark); }
+  .erg-fehler { border-bottom: 1px solid var(--line); padding: 8px 0; font-size: 15px; }
+  .erg-deine { color: var(--bad); }
+  .erg-richtig { color: var(--good); font-weight: 600; }
+  .abschluss-gesperrt { opacity: .55; pointer-events: none; background: #EEF3F0; }
+  .nur-ansicht .bw-btn, .nur-ansicht .bw-wdh, .nur-ansicht .comment-input { pointer-events: none; opacity: .55; }
+
+  /* ---- Übersicht (Lehrkraft-Startseite) ---- */
+  .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
+  .ub-chip { padding: 6px 12px; border-radius: 999px; background: #EFEBDD; font-size: 14px; }
+  .ub-chip.gelb { background: #FBEFC5; } .ub-chip.rot { background: var(--bad-bg); } .ub-chip.orange { background: #FCE3CC; }
+  .ub-h { font-family: Georgia, serif; font-size: 20px; color: var(--teal-dark); margin: 22px 0 6px; }
+  .ub-h3 { font-size: 15px; margin: 14px 0 4px; color: var(--ink-soft); }
+  .ub-zeile { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+  .ub-info { flex: 1 1 auto; min-width: 0; }
+  .ub-alter { color: var(--ink-soft); font-size: 12.5px; margin-left: 6px; white-space: nowrap; }
+  .ub-komm { color: var(--ink-soft); font-size: 13px; margin-top: 2px; }
+  .ub-knopf { flex: 0 0 auto; }
+  .ub-zettel { display: flex; gap: 6px; align-items: center; cursor: pointer; font-size: 13.5px; font-weight: 400; }
+  .ub-leer { color: var(--ink-soft); font-size: 14px; margin: 4px 0; }
+  .brett { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; margin-top: 8px; }
+  .station { flex: 1 1 150px; min-width: 140px; max-width: 230px; border: 2px solid var(--line); border-radius: 10px; background: #FCFBF7; padding: 8px; }
+  .station.niveau-A1 { border-color: #9DBFB8; background: #F1F7F5; }
+  .station.niveau-A2 { border-color: #E2C98E; background: #FBF6E8; }
+  .station.niveau-S { border-style: dashed; }
+  .st-kopf { font-weight: 700; font-size: 13.5px; margin-bottom: 6px; color: var(--teal-dark); }
+  .st-nr { display: inline-block; min-width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 50%; background: var(--teal); color: #fff; font-size: 11.5px; margin-right: 6px; }
+  .st-figuren { display: flex; flex-wrap: wrap; gap: 5px; min-height: 30px; }
+  .st-leer { color: #B5B0A0; }
+  .fig { position: relative; border: 2px solid var(--teal); background: #fff; color: var(--teal-dark); border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .fig.wartet { border-color: #D9A400; background: #FFF6D6; }
+  .fig.wdh { border-color: var(--bad); background: var(--bad-bg); }
+  .fig.klein { cursor: default; padding: 1px 8px; font-size: 12px; }
+  .fig-badge { position: absolute; top: -8px; right: -6px; min-width: 18px; height: 18px; line-height: 18px; border-radius: 9px; background: #D9A400; color: #fff; font-size: 11px; text-align: center; }
+  .ub-legende { font-size: 13px; color: var(--ink-soft); margin-top: 10px; }
+  .detail-kopf { display: flex; align-items: center; gap: 12px; margin: 4px 0 10px; }
+  .detail-kopf h2 { font-family: Georgia, serif; margin: 0; font-size: 22px; }
+  .bw-zettel { display: flex; gap: 6px; align-items: center; margin: 8px 0; font-size: 14px; cursor: pointer; }
 

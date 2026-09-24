@@ -12,7 +12,7 @@ let testState = {};
 
 // ---------------- VIEW SWITCHING ----------------
 function showView(id) {
-  ['view-start','view-test','view-done','view-activity'].forEach(v => {
+  ['view-start','view-test','view-done','view-activity','view-ergebnis'].forEach(v => {
     document.getElementById(v).classList.toggle('hidden', v !== id);
   });
   window.scrollTo(0,0);
@@ -44,6 +44,7 @@ async function refreshProgress() {
   let manualAccessUpTo = -1;
   const testApproval = {}; // testId -> 'weiter' | 'wiederholen' | 'offen'
   const statusComments = {}; // testId -> Kommentartext der Lehrkraft
+  const statusInfo = {}; // testId -> komplettes Status-Objekt (u. a. reviewKey für "Ergebnis ansehen")
   const pausierteTests = new Set(); // testIds mit einem pausierten Entwurf (testprogress:)
 
   // Die vier unabhängigen Abfragen GLEICHZEITIG starten statt nacheinander — das ist der
@@ -86,6 +87,7 @@ async function refreshProgress() {
           const obj = JSON.parse(value);
           if (doneTests.has(parts[1])) testApproval[parts[1]] = obj.status || 'offen';
           if (obj.comment) statusComments[parts[1]] = obj.comment;
+          statusInfo[parts[1]] = obj;
         } catch (e) { /* skip */ }
       } else if (parts[0] === 'testprogress' && parts.length >= 3 && parts[2] === sl && value) {
         pausierteTests.add(parts[1]);
@@ -139,7 +141,7 @@ async function refreshProgress() {
     // Alle Lernfelder NACH dem aktiven bleiben komplett gesperrt (nichts hinzufügen), außer manuell freigeschaltet
   });
 
-   progressCache = { name, doneTests, doneActs, unlocked, manualAccessUpTo, testApproval, statusComments, pausierteTests, loaded: true };
+   progressCache = { name, doneTests, doneActs, unlocked, manualAccessUpTo, testApproval, statusComments, statusInfo, pausierteTests, loaded: true };
   renderAll();
 }
 
@@ -200,7 +202,7 @@ function renderProgressOverview() {
         else { cls = 'unerledigt'; icon = '○'; }
       }
       const typLabel = info.kind === 'test-final' ? 'Abschlusstest' : info.kind === 'eingangstest' ? 'Einstufungstest' : info.kind === 'grammatik' ? 'Grammatikübung' : info.kind === 'activity' ? 'Übung' : 'Vokabeltest';
-      const kurz = info.kind === 'test-final' ? 'Abschlusstest' : info.kind === 'eingangstest' ? info.title : `Schritt ${i+1}: ${info.title}`;
+      const kurz = info.kind === 'test-final' ? 'Abschlusstest' : info.kind === 'eingangstest' ? info.title : titelMitSchritt(id, info.title);
       html += `<div class="overview-item ${cls}"><span class="icon">${icon}</span><span><span class="overview-item-title">${kurz}</span><span class="overview-item-typ">${typLabel}</span></span></div>`;
     });
     html += `</div>`;
@@ -319,22 +321,26 @@ async function renderLernfeldItems(lfIdx, name) {
             ? `<span class="status-pill blau">⏸ pausiert</span>`
             : `<span class="status-pill rot">unerledigt</span>`;
 
+    const si = (progressCache.statusInfo || {})[id];
+    const ergebnisBtnHtml = (!isActivity && si && si.reviewKey && status !== 'unerledigt' && status !== 'wirdgeprueft') ? '<button type="button" class="btn small secondary ergebnis-btn" style="margin-top:8px;">Ergebnis ansehen</button>' : '';
     const card = document.createElement('div');
     card.className = 'ib-item-card';
     const sub = (isActivity || isGrammatik) ? ACTIVITIES[id].sub : TESTS[id].sub;
     card.innerHTML = `
       <div class="ib-item-info">
         <div class="ib-item-typ">${typLabel}</div>
-        <h3>${info.title}</h3>
+        <h3>${titelMitSchritt(id, info.title)}</h3>
         <p>${sub || ''}</p>
         ${statusBadge}
         ${kommentar ? `<div class="repeat-badge">${escapeHtml(kommentar)}</div>` : ''}
+        ${ergebnisBtnHtml}
       </div>
       <button class="btn small ${status !== 'unerledigt' ? 'secondary' : ''}">${status === 'wiederholen' ? 'Wiederholen' : (status === 'erledigt' || status === 'wirdgeprueft') ? 'Nochmal machen' : hatPausiertenFortschritt ? 'Fortsetzen' : (isActivity ? 'Üben' : 'Starten')}</button>
     `;
-    card.querySelector('button').addEventListener('click', () => {
+    card.querySelector('.btn.small:not(.ergebnis-btn)').addEventListener('click', () => {
       if (isActivity || isGrammatik) openActivity(id); else startTest(id, name);
     });
+    const eb = card.querySelector('.ergebnis-btn'); if (eb) eb.addEventListener('click', () => zeigeErgebnis(id, name));
     listEl.appendChild(card);
   }
   if (!listEl.children.length) {
@@ -1269,7 +1275,7 @@ async function startTest(testId, name) {
   currentTestId = testId;
   currentStudentName = name;
   const t = TESTS[testId];
-  document.getElementById('testTitle').textContent = t.title;
+  document.getElementById('testTitle').textContent = titelMitSchritt(testId, t.title);
   document.getElementById('testSub').textContent = t.sub;
 
   const isAbschluss = istAbschlusstest(t); // alle Abschlusstest-Typen (siehe ABSCHLUSS_BUILDER in tests-common.js)
@@ -1284,6 +1290,7 @@ async function startTest(testId, name) {
   if (isAbschluss) {
     abschlussState = { punkte: 0, felderGesamt: 0, felderBeantwortet: 0 };
     ABSCHLUSS_BUILDER[t.type](t);
+    teilweiseGesperrt = await wendeAbschlussWiederholungAn(t, testId, name);
   } else if (isEingangstest) {
     buildEingangstest(t);
   } else {
@@ -1879,6 +1886,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
 
     // Detaillierte Aufschlüsselung pro Feld (Frage/Antwort/richtig-falsch) — genau wie bei den
     // normalen Vokabeltests, damit du auch bei Abschlusstests siehst, was konkret falsch war.
+    const teileInfo = abschlussTeileInfo();
     const felderDetails = [];
     (abschlussState.fieldMeta || []).forEach(meta => {
       const gegebenerWert = felderAntworten[meta.key];
@@ -1887,25 +1895,30 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
       const bewertung = (abschlussState.answered || {})[meta.key];
       let korrektAntwortAnzeige = meta.acceptable;
       if (Array.isArray(korrektAntwortAnzeige)) korrektAntwortAnzeige = korrektAntwortAnzeige.join(' / ');
-      felderDetails.push({
-        frage: meta.label || meta.key,
-        antwort: vollerWert,
-        korrekt: bewertung ? (bewertung.correct === null ? null : !!bewertung.correct) : null,
-        korrektAntwort: korrektAntwortAnzeige,
-      });
+      let korrekt = bewertung ? (bewertung.correct === null ? null : !!bewertung.correct) : null;
+      const uebernommen = !!(abschlussState.uebernommen && abschlussState.uebernommen[meta.key] !== undefined);
+      if (uebernommen) korrekt = abschlussState.uebernommen[meta.key];   // gesperrter Teil: bisherige Bewertung übernehmen
+      const d = { key: meta.key, teil: teileInfo.keyTeil[meta.key] || 0, punkte: meta.points, frage: meta.label || meta.key, antwort: vollerWert, korrekt, korrektAntwort: korrektAntwortAnzeige };
+      if (uebernommen) d.uebernommen = true;
+      felderDetails.push(d);
     });
+    const punkteGesamt = Math.round((abschlussState.fieldMeta || []).reduce((s, m) => s + m.points, 0) * 100) / 100;
+    const hatUebernommene = !!(abschlussState.uebernommen && Object.keys(abschlussState.uebernommen).length);
+    const punkteAuto = hatUebernommene ? felderDetails.reduce((s, d) => s + (d.korrekt === true ? d.punkte : 0), 0) : abschlussState.punkte;
 
     submission = {
       name: currentStudentName,
       testId: currentTestId,
       testTitle: t.title,
       timestamp: new Date().toISOString(),
-      autoCorrect: Math.round(abschlussState.punkte * 10) / 10,
+      autoCorrect: Math.round(punkteAuto * 10) / 10,
       autoTotal: (t.punkte_max != null ? t.punkte_max : abschlussState.punkteMax),
+      punkteGesamt,
       isPunkteTest: true,
       teil3: [],
       felderAntworten,
       felderDetails,
+      teileInfo: teileInfo.teile,
     };
   } else {
     const autoTotal = t.teil1.length + t.teil2.length + t.teil4.length;
@@ -1915,19 +1928,19 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
       const v = testState.teil1[item.num];
       if (!v) return;
       if (v.correct) autoCorrect++;
-      teilDetails.push({ frage: `Bildzuordnung: ${item.word}`, antwort: v.correct ? item.word : (v.chosen || '').replace(/_/g, ' '), korrekt: v.correct, korrektAntwort: item.word });
+      teilDetails.push({ teil: 'teil1', frage: `Bildzuordnung: ${item.word}`, antwort: v.correct ? item.word : (v.chosen || '').replace(/_/g, ' '), korrekt: v.correct, korrektAntwort: item.word });
     });
     t.teil2.forEach(item => {
       const v = testState.teil2[item.num];
       if (!v) return;
       if (v.correct) autoCorrect++;
-      teilDetails.push({ frage: `${item.vor} ___ ${item.nach}`, antwort: v.gewaehlt || '', korrekt: v.correct, korrektAntwort: v.korrektAntwort });
+      teilDetails.push({ teil: 'teil2', frage: `${item.vor} ___ ${item.nach}`, antwort: v.gewaehlt || '', korrekt: v.correct, korrektAntwort: v.korrektAntwort });
     });
     t.teil4.forEach(item => {
       const v = testState.teil4[item.num];
       if (!v) return;
       if (v.korrekt) autoCorrect++;
-      teilDetails.push({ frage: t.teil4Frage ? t.teil4Frage.replace('{word}', item.label || item.word) : `Gegenteil von „${item.word}"`, antwort: v.given || '', korrekt: v.korrekt, korrektAntwort: v.korrektAntwort });
+      teilDetails.push({ teil: 'teil4', frage: t.teil4Frage ? t.teil4Frage.replace('{word}', item.label || item.word) : `Gegenteil von „${item.word}"`, antwort: v.given || '', korrekt: v.korrekt, korrektAntwort: v.korrektAntwort });
     });
     const teil3List = Object.values(testState.teil3).filter(Boolean);
     submission = {
@@ -2118,4 +2131,103 @@ function buildDreier(a) {
     render();
   }
   neuesSpiel();
+}
+
+// ---------------- ERGEBNIS ANSEHEN (nach der Bewertung durch die Lehrkraft) ----------------
+// Der Schüler sieht hier erst NACH deiner Bewertung: Punkte/Note (Abschlusstests) bzw. „korrigiert“ (Vokabeltests,
+// Grammatik), deinen Kommentar, seine falschen Antworten und was er auf Papier korrigieren oder wiederholen muss.
+async function zeigeErgebnis(id, name) {
+  const si = (progressCache.statusInfo || {})[id];
+  if (!si || !si.reviewKey) return;
+  const body = document.getElementById('ergBody');
+  document.getElementById('ergTitel').textContent = 'Ergebnis';
+  document.getElementById('ergSub').textContent = '';
+  body.innerHTML = '<p>Wird geladen …</p>';
+  showView('view-ergebnis');
+  let rv;
+  try { const r = await window.storage.get(si.reviewKey, true); rv = JSON.parse(r.value); }
+  catch (e) { body.innerHTML = '<p>Das Ergebnis konnte gerade nicht geladen werden. Bitte später nochmal versuchen.</p>'; return; }
+
+  document.getElementById('ergTitel').textContent = rv.titel || 'Ergebnis';
+  document.getElementById('ergSub').textContent = rv.reviewedAt ? 'Bewertet am ' + new Date(rv.reviewedAt).toLocaleDateString('de-DE') : '';
+  let h = '';
+  if (rv.art === 'abschluss' && rv.max) {
+    h += `<div class="erg-punkte"><div class="erg-note">Note ${escapeHtml(String(rv.note || '–'))}</div><div>${rv.punkte} von ${rv.max} Punkten · ${rv.prozent} %</div></div>`;
+  } else {
+    h += `<div class="erg-punkte"><div class="erg-note">korrigiert</div><div>${rv.richtig} von ${rv.gesamt} richtig</div></div>`;
+  }
+  if (rv.ergebnis === 'wiederholen') {
+    h += `<div class="erg-box schlecht"><strong>Das musst du wiederholen.</strong>` +
+      (rv.teile || []).filter(x => x.wiederholen).map(x => `<div>• ${escapeHtml(x.titel)}</div>`).join('') + `</div>`;
+  } else if (rv.fehler && rv.fehler.length || (rv.saetze && rv.saetze.length)) {
+    h += `<div class="erg-box gut"><strong>Bestanden — aber bitte korrigieren:</strong> Schreibe alle falschen Aufgaben unten richtig auf einen Zettel (mit der Hand).</div>`;
+  } else {
+    h += `<div class="erg-box gut"><strong>Alles richtig. Gut gemacht!</strong> Du kannst weitermachen.</div>`;
+  }
+  if (si.zettel) h += `<div class="erg-box gut"><strong>Zettel kontrolliert ✓</strong> — deine Korrektur ist erledigt.</div>`;
+  if (rv.kommentar) h += `<div class="erg-kommentar"><strong>Hinweis von deiner Lehrkraft:</strong><br>${escapeHtml(rv.kommentar).replace(/\n/g, '<br>')}</div>`;
+  if (rv.fehler && rv.fehler.length) {
+    h += `<h3 class="erg-h">Das war falsch</h3>`;
+    let letzterTeil = null;
+    rv.fehler.forEach(f => {
+      if (f.teil !== letzterTeil) { h += `<div class="erg-teil">${escapeHtml(f.teil || '')}</div>`; letzterTeil = f.teil; }
+      h += `<div class="erg-fehler"><div>${escapeHtml(f.frage)}</div><div class="erg-deine">Deine Antwort: „${escapeHtml(f.antwort)}“</div><div class="erg-richtig">Richtig: „${escapeHtml(f.korrektAntwort)}“</div></div>`;
+    });
+  }
+  if (rv.saetze && rv.saetze.length) {
+    h += `<h3 class="erg-h">Diese Sätze bitte verbessern</h3>`;
+    rv.saetze.forEach(s => { h += `<div class="erg-fehler"><div>${escapeHtml(s.frage)}</div><div class="erg-deine">Dein Satz: „${escapeHtml(s.satz)}“</div>${s.vorschlag ? `<div class="erg-richtig">Vorschlag: „${escapeHtml(s.vorschlag)}“</div>` : ''}</div>`; });
+  }
+  if (rv.ergebnis === 'wiederholen') {
+    h += `<div style="margin-top:18px;"><button class="btn" id="ergWiederholen">Jetzt wiederholen</button></div>`;
+  }
+  body.innerHTML = h;
+  const wb = document.getElementById('ergWiederholen');
+  if (wb) wb.addEventListener('click', () => {
+    const info = curriculumItemInfo(id);
+    if (info.kind === 'grammatik') openActivity(id); else startTest(id, name || currentStudentName || document.getElementById('startName').value);
+  });
+}
+document.getElementById('ergebnisBack').addEventListener('click', () => { refreshProgress(); showView('view-start'); });
+
+// ---------------- GEZIELTE WIEDERHOLUNG EINZELNER ABSCHLUSSTEST-TEILE ----------------
+// Bei „Wiederholen nötig“ mit ausgewählten Teilen: alle ANDEREN Teile werden aus der letzten Abgabe vorausgefüllt und gesperrt;
+// ihre Bewertung (inkl. deiner Änderungen) wird in die neue Abgabe übernommen. Rückgabe: true, wenn Teile gesperrt wurden.
+async function wendeAbschlussWiederholungAn(t, testId, name) {
+  const sl = slug(name);
+  let status = null;
+  try { const r = await window.storage.get(`status:${testId}:${sl}`, true); status = (r && r.value) ? JSON.parse(r.value) : null; } catch (e) { return false; }
+  if (!status || status.status !== 'wiederholen' || !Array.isArray(status.wiederholenTeile) || !status.wiederholenTeile.length) return false;
+  let keys = [];
+  try { const r = await window.storage.list(`submission:${testId}:${sl}:`, true); keys = (r && r.keys) || []; } catch (e) { return false; }
+  if (!keys.length) return false;
+  keys.sort((a, b) => Number(b.split(':')[3]) - Number(a.split(':')[3]));
+  let sub = null;
+  try { const r = await window.storage.get(keys[0], true); sub = JSON.parse(r.value); } catch (e) { return false; }
+  if (!sub || !sub.felderAntworten) return false;
+  let review = null;
+  try { const r = await window.storage.get(status.reviewKey || `review:${testId}:${sl}:${keys[0].split(':')[3]}`, true); if (r && r.value) review = JSON.parse(r.value); } catch (e) { /* ohne Review */ }
+  const eff = {};
+  if (review && review.felder) review.felder.forEach(f => { eff[f.key] = !!f.korrekt; });
+  else (sub.felderDetails || []).forEach(d => { if (d.key) eff[d.key] = d.korrekt === true; });
+
+  const info = abschlussTeileInfo();
+  const wdh = new Set(status.wiederholenTeile.map(Number));
+  const gesperrt = info.teile.filter(x => !wdh.has(x.nr));
+  if (!gesperrt.length) return false;
+  abschlussState.uebernommen = {};
+  document.querySelectorAll('#abschlussBody [data-key]').forEach(el => {
+    const key = el.getAttribute('data-key');
+    if (wdh.has(info.keyTeil[key])) return;                 // dieser Teil wird wiederholt
+    const alt = sub.felderAntworten[key];
+    if (alt !== undefined) {
+      el.value = alt; el.dispatchEvent(new Event('blur'));
+      if (eff[key] !== undefined) abschlussState.uebernommen[key] = eff[key];
+    }
+    el.disabled = true; el.classList.add('abschluss-gesperrt');
+    const chips = el.closest('.gen-chip-gruppe'); if (chips) chips.classList.add('abschluss-gesperrt');
+  });
+  const namen = info.teile.filter(x => wdh.has(x.nr)).map(x => `Teil ${x.nr}${x.titel ? ' — ' + escapeHtml(x.titel) : ''}`);
+  document.getElementById('progressRestoredNotice').innerHTML = `<div class="repeat-badge">Du musst nur noch wiederholen:<br>${namen.join('<br>')}<br><span style="font-weight:400;">Die anderen Teile hast du schon — sie sind grau und bleiben so.</span></div>`;
+  return true;
 }

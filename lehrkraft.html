@@ -7,7 +7,7 @@
 <script>
   // ==== VERSION — nach JEDER Änderung an css/js/data hier hochzählen (z. B. 20260924b), damit Browser die neuen
   //      Dateien sofort laden und nicht mit alten mischen. In index.html UND lehrkraft.html gleich halten. ====
-  var APP_V = '20260928a';
+  var APP_V = '20261001a';
   document.write('<link rel="stylesheet" href="css/style.css?v=' + APP_V + '">');
 </script>
 </head>
@@ -29,7 +29,8 @@
       <p id="pinError" style="color: var(--bad); font-size: 13px; display:none;">Falscher PIN.</p>
     </div>
     <div id="dashContent" class="hidden">
-      <div class="refresh-row">
+      <div id="uebersichtView">
+        <div class="refresh-row">
         <button class="btn secondary small" id="refreshBtn">Aktualisieren</button>
         <button class="btn secondary small" id="exportBtn">Ergebnisse als Datei speichern</button>
         <a id="resetExportMarker" style="color:var(--ink-soft); font-size:12.5px; text-decoration:underline; cursor:pointer; align-self:center;">Export-Zähler zurücksetzen</a>
@@ -50,13 +51,13 @@
           <div id="manualProgressResult"></div>
         </div>
       </div>
-      <div class="student-filter-row">
-        <label for="dashStudentFilter">Schüler anzeigen:</label>
-        <select id="dashStudentFilter">
-          <option value="">— Bitte wählen —</option>
-        </select>
+      <div id="uebersichtBody"></div>
       </div>
-      <div id="submissionList"></div>
+      <div id="detailView" class="hidden">
+        <div class="detail-kopf"><button class="btn secondary small" id="zurUebersicht">← Zur Übersicht</button><h2 id="detailName"></h2></div>
+        <div class="student-filter-row hidden"><select id="dashStudentFilter"><option value="">— Bitte wählen —</option></select></div>
+        <div id="submissionList"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -73,12 +74,15 @@
     'data/a1-lf2-begruessung.js',
     'data/a1-lf3-personen.js',
     'data/a1-lf4-zahlen-zeiten.js',
+    'data/a1-lf5-schule.js',
     'data/tests-a2.js',
     'data/tests-eingangstest.js',
     'data/activities-a2.js',
     'data/grammatik-a1.js',
     'data/curriculum.js',
     'js/tests-common.js',
+    'js/bewertung.js',
+    'js/uebersicht.js',
     'js/teacher.js'
   ].forEach(function (src) { document.write('<script src="' + src + '?v=' + APP_V + '"><\/script>'); });
 </script>

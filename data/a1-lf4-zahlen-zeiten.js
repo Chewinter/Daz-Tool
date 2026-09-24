@@ -1105,22 +1105,22 @@ registerTests({
    },
    {
     "num": 10,
-    "word": "der Februar (Winter)",
+    "word": "Winter",
     "pronomen": "Der Februar ist im"
    },
    {
     "num": 11,
-    "word": "der Juli (Sommer)",
+    "word": "Sommer",
     "pronomen": "Der Juli ist im"
    },
    {
     "num": 12,
-    "word": "der Dezember (letzter Monat)",
+    "word": "letzter Monat im Jahr",
     "pronomen": "Der Dezember ist der letzte"
    },
    {
     "num": 13,
-    "word": "der Januar (erster Monat)",
+    "word": "erster Monat im Jahr",
     "pronomen": "Der Januar ist der erste"
    }
   ],
@@ -1659,6 +1659,7 @@ registerActivities({
   "title": "Immer 3!",
   "sub": "A1.4 Zahlen und Zeiten — Schritt 6 (Spiel: Uhrzeiten zuordnen)",
   "type": "dreier",
+  "schritt": 6,
   "runde": 4,
   "hinweis": "Finde immer drei Karten, die zusammengehören: die Uhr und zwei Uhrzeiten. Tippe drei Karten an.",
   "saetze": [

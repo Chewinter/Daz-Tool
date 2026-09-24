@@ -211,3 +211,25 @@ function curriculumItemInfo(id) {
 function alleAbgabeIds() {
   return [...Object.keys(TESTS), ...Object.keys(ACTIVITIES).filter(id => ACTIVITIES[id].type === 'grammatikblock')];
 }
+
+// ---------------- NOTEN (Sockel-Prinzip) ----------------
+// Bis einschließlich 50 % der Punkte = 6. Darüber linear in Drittelnoten von 5- bis 1+ (15 Stufen à 3,33 Prozentpunkte).
+// 3- und schlechter (unter 73,3 %) = Test muss wiederholt werden; besser als 3- = bestanden, Fehler auf Papier korrigieren.
+const NOTEN_STUFEN = ['5-', '5', '5+', '4-', '4', '4+', '3-', '3', '3+', '2-', '2', '2+', '1-', '1', '1+'];
+function berechneNote(punkte, max) {
+  if (!max) return null;
+  const p = punkte / max * 100;
+  if (p <= 50 + 1e-9) return '6';
+  const k = Math.min(14, Math.floor((p - 50) / (50 / 15) + 1e-9));
+  return NOTEN_STUFEN[k];
+}
+function noteMussWiederholt(note) { return ['6', '5-', '5', '5+', '4-', '4', '4+', '3-'].indexOf(note) >= 0; }
+
+// "Schritt 3" vor dem Titel: aus der ID (…_schritt3_…) oder aus dem Feld "schritt" einer Übung; Übungen ohne Schrittnummer bleiben ohne.
+function schrittLabel(id) {
+  const m = /schritt(\d+)/.exec(id);
+  if (m) return 'Schritt ' + m[1];
+  const a = ACTIVITIES[id];
+  return (a && a.schritt) ? 'Schritt ' + a.schritt : '';
+}
+function titelMitSchritt(id, title) { const l = schrittLabel(id); return l ? l + ': ' + title : title; }
