@@ -560,18 +560,6 @@
       </div>
       <div id="exportMeldung"></div>
       <div class="manual-progress-panel">
-        <button class="btn secondary small" id="toggleMigration">Umzug zu neuem Speicher (Rohdaten-Export/Import) ▾</button>
-        <div id="migrationBody" class="hidden">
-          <p class="hint">Export: hier ausführen, wo die <strong>alten</strong> Daten liegen (die bisherige Claude-Chat-Version). Import: hier ausführen, wo die Daten <strong>hin</strong> sollen (die neue, extern gehostete Version).</p>
-          <button class="btn secondary small" id="migrationExportBtn">1. Alle Rohdaten exportieren (.json)</button>
-          <div id="migrationExportMeldung"></div>
-          <hr style="margin:14px 0; border:none; border-top:1px solid var(--line);">
-          <input type="file" id="migrationImportFile" accept="application/json" style="display:block; margin-bottom:8px;">
-          <button class="btn secondary small" id="migrationImportBtn">2. Aus Datei importieren</button>
-          <div id="migrationImportMeldung"></div>
-        </div>
-      </div>
-      <div class="manual-progress-panel">
         <button class="btn secondary small" id="toggleManualProgress">Zugriff manuell freischalten (z. B. bei Quereinstieg) ▾</button>
         <div id="manualProgressBody" class="hidden">
           <p class="hint">Für Schüler, die nicht bei A1 anfangen müssen (z. B. schon auf A2-Niveau). Schaltet den Zugriff auf alles bis einschließlich des gewählten Lernfelds frei — <strong>ohne</strong> es als erledigt zu markieren. Alles bleibt „offen", bis der Schüler es tatsächlich macht.</p>
@@ -583,65 +571,6 @@
           <select id="manualStageSelect"></select>
           <button class="btn full" id="manualProgressBtn" style="margin-top:10px;">Zugriff freischalten</button>
           <div id="manualProgressResult"></div>
-        </div>
-      </div>
-      <div class="manual-progress-panel">
-        <button class="btn secondary small" id="toggleImportPanel">Ergebnisse aus Datei importieren (z. B. nach Chat-Wechsel) ▾</button>
-        <div id="importPanelBody" class="hidden">
-          <p class="hint">Lade eine zuvor mit „Ergebnisse als Datei speichern" exportierte JSON-Datei hoch, um Einreichungen wiederherzustellen. Alte Fake-Einträge (vom früheren Freischalt-Werkzeug) werden automatisch erkannt und übersprungen.</p>
-          <input type="file" id="importFileInput" accept="application/json">
-          <div id="importPreview"></div>
-          <button class="btn full" id="importConfirmBtn" style="margin-top:10px; display:none;">Import bestätigen</button>
-          <div id="importResult"></div>
-        </div>
-      </div>
-      <div class="manual-progress-panel">
-        <button class="btn secondary small" id="toggleCleanupPanel">Alte Fake-Einträge aufräumen ▾</button>
-        <div id="cleanupPanelBody" class="hidden">
-          <p class="hint">Findet alle Einreichungen, die mit dem früheren (mittlerweile reparierten) Freischalt-Werkzeug erzeugt wurden, und löscht sie dauerhaft. Diese werden zwar schon automatisch ignoriert, nehmen aber unnötig Platz weg.</p>
-          <button class="btn full secondary" id="cleanupScanBtn">Nach Fake-Einträgen suchen</button>
-          <div id="cleanupResult"></div>
-        </div>
-      </div>
-      <div class="manual-progress-panel">
-        <button class="btn secondary small" id="toggleNamenReparierenPanel">Namen reparieren (alte Kurznamen → volle Namen) ▾</button>
-        <div id="namenReparierenPanelBody" class="hidden">
-          <p class="hint">Findet Einreichungen, die unter einem alten, abweichenden Namen gespeichert wurden (z. B. nur Vorname, aus der Zeit vor dem Namens-Dropdown), erkennt automatisch den passenden vollen Namen und ordnet die Daten korrekt zu.</p>
-          <button class="btn full" id="namenReparierenBtn">Jetzt alles reparieren</button>
-          <div id="namenReparierenResult"></div>
-        </div>
-      </div>
-      <div class="manual-progress-panel">
-        <button class="btn secondary small" id="toggleFortsetzbarPanel">Abgegebenen Test fortsetzbar machen ▾</button>
-        <div id="fortsetzbarPanelBody" class="hidden">
-          <p class="hint">Für Schüler, die einen Test aus Zeitmangel unfertig abgegeben haben (bevor es die "Speichern & später"-Funktion gab). Wandelt eine bereits abgegebene, unvollständige Einreichung in einen fortsetzbaren Entwurf um — bereits beantwortete Fragen bleiben erhalten, der Schüler macht einfach bei den offenen weiter.</p>
-          <label>Schüler</label>
-          <select id="fortsetzbarStudentSelect">
-            <option value="">— Bitte wählen —</option>
-          </select>
-          <button class="btn full secondary" id="fortsetzbarLadenBtn" style="margin-top:10px;">Einreichungen dieses Schülers laden</button>
-          <div id="fortsetzbarListe"></div>
-        </div>
-      </div>
-      <div class="manual-progress-panel">
-        <button class="btn secondary small" id="toggleSheetsPanel">Google-Sheets-Anbindung (unabhängige Kopie) ▾</button>
-        <div id="sheetsPanelBody" class="hidden">
-          <p class="hint">Zusätzlich zur normalen Speicherung schickt das Tool jede Abgabe an ein Google Sheet, das du unabhängig von diesem Tool jederzeit einsehen kannst. Die normale Speicherung hier im Tool bleibt davon unberührt.</p>
-          <label>Web-App-URL (aus Google Apps Script, endet auf /exec)</label>
-          <input type="text" id="sheetsUrlInput" class="text-input" placeholder="https://script.google.com/macros/s/…/exec" style="width:100%; margin-bottom:10px;">
-          <label>Passwort (dasselbe wie im Google-Skript bei API_KEY)</label>
-          <input type="text" id="sheetsKeyInput" class="text-input" placeholder="z. B. daz2026geheim" style="width:100%;">
-          <button class="btn full" id="sheetsSaveBtn" style="margin-top:10px;">Speichern</button>
-          <button class="btn full secondary" id="sheetsTestBtn" style="margin-top:8px;">Verbindung testen</button>
-          <div id="sheetsResult"></div>
-        </div>
-      </div>
-      <div class="manual-progress-panel">
-        <button class="btn secondary small" id="toggleVollstaendigkeitPanel">Vollständigkeitscheck: Sind alle Einreichungen abrufbar? ▾</button>
-        <div id="vollstaendigkeitPanelBody" class="hidden">
-          <p class="hint">Geht einmal gezielt durch alle 16 Schüler und zählt, wie viele Einreichungen pro Schüler wirklich gefunden und abgerufen werden können. So siehst du auf einen Blick, ob alles da ist.</p>
-          <button class="btn full secondary" id="vollstaendigkeitScanBtn">Jetzt prüfen</button>
-          <div id="vollstaendigkeitResult"></div>
         </div>
       </div>
       <div class="student-filter-row">
@@ -948,8 +877,21 @@ const NIVEAUS = ["A1", "A2", "B1"]; // B1 aktuell ohne Inhalte, aber schon vorge
 function curriculumItemInfo(id) {
   if (id === 'eingangstest_a1') return { title: 'Eingangstest A1', kind: 'eingangstest' };
   if (TESTS[id]) return { title: TESTS[id].title, kind: TESTS[id].type && TESTS[id].type.startsWith('abschluss') ? 'test-final' : 'test' };
-  if (ACTIVITIES[id]) return { title: ACTIVITIES[id].title, kind: 'activity' };
+  if (ACTIVITIES[id]) {
+    // Grammatikblöcke verhalten sich wie Tests (Abgabe + Lehrkraft-Freigabe), alle anderen Übungen
+    // (Domino, Quartett, ...) bleiben Selbstmarkierung. isDoneLocal()/getDisplayStatus() behandeln
+    // automatisch jeden Kind außer 'activity' wie einen Test — hier reicht daher diese Weiche.
+    const isGrammatik = ACTIVITIES[id].type === 'grammatikblock';
+    return { title: ACTIVITIES[id].title, kind: isGrammatik ? 'grammatik' : 'activity' };
+  }
   return { title: id, kind: 'unknown' };
+}
+
+// Alle IDs, unter denen tatsächlich Abgaben (submission:) entstehen können — echte Tests PLUS
+// Grammatikblöcke (die seit dem Umbau ebenfalls wie Tests abgeben). Wird für Dashboard-Suche und
+// Export verwendet, damit Grammatikblock-Abgaben dort mit auftauchen.
+function alleAbgabeIds() {
+  return [...Object.keys(TESTS), ...Object.keys(ACTIVITIES).filter(id => ACTIVITIES[id].type === 'grammatikblock')];
 }
 
 function renderProgressOverview() {
@@ -980,7 +922,7 @@ function renderProgressOverview() {
         else if (status === 'wirdgeprueft') { cls = 'wirdgeprueft'; icon = '⏳'; }
         else { cls = 'unerledigt'; icon = '○'; }
       }
-      const typLabel = info.kind === 'test-final' ? 'Abschlusstest' : info.kind === 'eingangstest' ? 'Einstufungstest' : info.kind === 'activity' ? 'Übung' : 'Vokabeltest';
+      const typLabel = info.kind === 'test-final' ? 'Abschlusstest' : info.kind === 'eingangstest' ? 'Einstufungstest' : info.kind === 'grammatik' ? 'Grammatikübung' : info.kind === 'activity' ? 'Übung' : 'Vokabeltest';
       const kurz = info.kind === 'test-final' ? 'Abschlusstest' : info.kind === 'eingangstest' ? info.title : `Schritt ${i+1}: ${info.title}`;
       html += `<div class="overview-item ${cls}"><span class="icon">${icon}</span><span><span class="overview-item-title">${kurz}</span><span class="overview-item-typ">${typLabel}</span></span></div>`;
     });
@@ -1072,8 +1014,9 @@ async function renderLernfeldItems(lfIdx, name) {
     if (!progressCache.unlocked.has(id)) continue;
     const info = curriculumItemInfo(id);
     const isActivity = info.kind === 'activity';
+    const isGrammatik = info.kind === 'grammatik';
     const status = getDisplayStatus(id, info.kind); // 'erledigt' | 'wiederholen' | 'unerledigt'
-    const typLabel = info.kind === 'test-final' ? 'Abschlusstest:' : info.kind === 'eingangstest' ? 'Einstufungstest:' : isActivity ? 'Übung:' : 'Vokabeltest:';
+    const typLabel = info.kind === 'test-final' ? 'Abschlusstest:' : info.kind === 'eingangstest' ? 'Einstufungstest:' : isGrammatik ? 'Grammatikübung:' : isActivity ? 'Übung:' : 'Vokabeltest:';
 
     let kommentar = '';
     if (!isActivity && status !== 'unerledigt') {
@@ -1097,7 +1040,7 @@ async function renderLernfeldItems(lfIdx, name) {
 
     const card = document.createElement('div');
     card.className = 'ib-item-card';
-    const sub = isActivity ? ACTIVITIES[id].sub : TESTS[id].sub;
+    const sub = (isActivity || isGrammatik) ? ACTIVITIES[id].sub : TESTS[id].sub;
     card.innerHTML = `
       <div class="ib-item-info">
         <div class="ib-item-typ">${typLabel}</div>
@@ -1109,7 +1052,7 @@ async function renderLernfeldItems(lfIdx, name) {
       <button class="btn small ${status !== 'unerledigt' ? 'secondary' : ''}">${status === 'wiederholen' ? 'Wiederholen' : (status === 'erledigt' || status === 'wirdgeprueft') ? 'Nochmal machen' : hatPausiertenFortschritt ? 'Fortsetzen' : (isActivity ? 'Üben' : 'Starten')}</button>
     `;
     card.querySelector('button').addEventListener('click', () => {
-      if (isActivity) openActivity(id); else startTest(id, name);
+      if (isActivity || isGrammatik) openActivity(id); else startTest(id, name);
     });
     listEl.appendChild(card);
   }
@@ -1143,28 +1086,89 @@ function markActivityDone(activityId) {
   } catch (e) { /* Speicher nicht verfügbar */ }
 }
 
-function openActivity(actId) {
+async function openActivity(actId) {
   const a = ACTIVITIES[actId];
   currentActivityId = actId;
   currentActivityName = document.getElementById('startName').value.trim();
   document.getElementById('actTitle').textContent = a.title;
   document.getElementById('actSub').textContent = a.sub;
+  showView('view-activity');
   if (a.type === 'domino') buildDomino(a);
   else if (a.type === 'quartett') buildQuartett(a);
   else if (a.type === 'wortarten') buildWortarten(a);
   else if (a.type === 'brettspiel') buildBrettspiel(a);
   else if (a.type === 'quizkarten') buildQuizkarten(a);
   else if (a.type === 'schlangenbauen') buildSchlangenbauen(a);
-  else if (a.type === 'grammatikblock') buildGrammatikblock(a);
-  showView('view-activity');
+  else if (a.type === 'grammatikblock') {
+    document.getElementById('actBody').innerHTML = '<p class="hint">Lädt …</p>';
+    const wiederholung = await ermittleGrammatikWiederholungsfilter(actId, currentActivityName, a);
+    buildGrammatikblock(a, wiederholung);
+    if (!wiederholung.teilweise) restoreGrammatikProgressIfAny(actId, currentActivityName);
+    else {
+      // Bei gezielter Punkt-Wiederholung KEIN altes "später fortsetzen"-Draft laden — das würde die
+      // vorausgefüllten/gesperrten Punkte wieder überschreiben. Ein evtl. alter Draft wird verworfen.
+      try { await window.storage.delete(`testprogress:${actId}:${slug(currentActivityName)}`, true); } catch (e) { /* egal */ }
+    }
+  }
 }
 
-// ---------------- ÜBUNG: GRAMMATIKBLOCK (Erklärung Nr. X → passende Übung Nr. X, abwechselnd) ----------------
-function buildGrammatikblock(a) {
+// Ermittelt, ob die Lehrkraft bei der letzten Kontrolle nur bestimmte Erklärungspunkte (1–9) zur
+// Wiederholung markiert hat statt des ganzen Blocks. Falls ja: die übrigen Punkte werden aus der
+// letzten Abgabe vorausgefüllt und gesperrt, nur die markierten Punkte bleiben editierbar — genau
+// das gleiche Prinzip wie bei der Teil-Wiederholung normaler Vokabeltests.
+async function ermittleGrammatikWiederholungsfilter(id, name, a) {
+  const leer = { gesperrt: {}, daten: {}, hinweis: '', teilweise: false };
+  try {
+    const statusRes = await window.storage.get(`status:${id}:${slug(name)}`, true);
+    if (!statusRes || !statusRes.value) return leer;
+    const statusObj = JSON.parse(statusRes.value);
+    if (statusObj.status !== 'wiederholen' || !Array.isArray(statusObj.punkteWiederholen) || !statusObj.punkteWiederholen.length) return leer;
+
+    const alleNummern = a.punkte.map(p => p.nr);
+    const ausgewaehlt = new Set(statusObj.punkteWiederholen);
+    if (alleNummern.every(nr => ausgewaehlt.has(nr))) return leer; // effektiv alle Punkte -> normales Verhalten
+
+    const listRes = await window.storage.list(`submission:${id}:${slug(name)}:`, true);
+    const keys = (listRes && listRes.keys) || [];
+    if (!keys.length) return leer;
+    const letzterKey = keys.slice().sort().slice(-1)[0]; // Zeitstempel im Key -> alphabetisch = chronologisch
+    const subRes = await window.storage.get(letzterKey, true);
+    if (!subRes || !subRes.value) return leer;
+    const sub = JSON.parse(subRes.value);
+    const raState = sub.raState || {};
+
+    const gesperrt = {}, daten = {};
+    alleNummern.forEach(nr => {
+      gesperrt[nr] = !ausgewaehlt.has(nr);
+      daten[nr] = raState[nr] || [];
+    });
+    const nurDiese = alleNummern.filter(nr => ausgewaehlt.has(nr)).join(', ');
+    return {
+      gesperrt, daten, teilweise: true,
+      hinweis: `<p style="color:var(--warn); font-size:14px;">Deine Lehrkraft möchte, dass du diesmal nur Punkt ${nurDiese} wiederholst — der Rest ist schon eingetragen.</p>`,
+    };
+  } catch (e) {
+    return leer; // im Zweifel: normales Verhalten (ganzer Block wird abgefragt)
+  }
+}
+
+// ---------------- ÜBUNG: GRAMMATIKBLOCK ----------------
+// Verhält sich wie ein Test: kein Sofort-Feedback pro Feld, eine Abgabe für den ganzen Block,
+// Lehrkraft-Kontrolle vor Freigabe, Speichern & später fortsetzen, gezielte Punkt-Wiederholung.
+let currentGrammatikGesperrt = {};
+let currentGrammatikVorherigeDaten = {};
+
+function buildGrammatikblock(a, wiederholung) {
   const body = document.getElementById('actBody');
-  let html = `<p class="hint">Lies jede Erklärung, dann löse direkt die passende Übung dazu.</p>`;
+  currentGrammatikGesperrt = wiederholung.gesperrt || {};
+  currentGrammatikVorherigeDaten = wiederholung.daten || {};
+
+  let html = `<p class="hint">Lies jede Erklärung, dann bearbeite die passende Übung dazu. Am Ende schickst du den ganzen Block auf einmal ab — deine Lehrkraft bespricht ihn danach mit dir.</p>`;
+  html += wiederholung.hinweis || '';
 
   a.punkte.forEach((p, pi) => {
+    const gesperrt = !!currentGrammatikGesperrt[p.nr];
+    const vorherige = currentGrammatikVorherigeDaten[p.nr] || [];
     html += `
       <div class="grammatik-erklaerung">
         <div class="grammatik-nr">${p.nr}</div>
@@ -1174,50 +1178,141 @@ function buildGrammatikblock(a) {
         </div>
       </div>
       <div class="grammatik-uebung">
-        <div class="grammatik-uebung-titel">✎ Übung ${p.nr}</div>
+        <div class="grammatik-uebung-titel">✎ Übung ${p.nr}${gesperrt ? ' <span class="locked-tag">bereits erledigt</span>' : ''}</div>
         <p class="hint" style="margin-top:0;">${escapeHtml(p.uebung.anleitung)}</p>
     `;
     p.uebung.items.forEach((item, ii) => {
       const key = `gb-${pi}-${ii}`;
-      html += `
-        <div class="grammatik-item">
-          <div class="grammatik-frage">${escapeHtml(item.frage)}</div>
-          <input type="text" class="text-input gb-input" data-key="${key}" style="width:100%;">
-          <div class="feedback" id="fb-${key}"></div>
-        </div>
-      `;
+      if (gesperrt) {
+        html += `
+          <div class="grammatik-item">
+            <div class="grammatik-frage">${escapeHtml(item.frage)}</div>
+            <div style="color:var(--ink-soft); padding:8px 0;">„${escapeHtml(vorherige[ii] || '')}"</div>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="grammatik-item">
+            <div class="grammatik-frage">${escapeHtml(item.frage)}</div>
+            <input type="text" class="text-input gb-input" data-key="${key}" style="width:100%;">
+          </div>
+        `;
+      }
     });
     html += `</div>`;
   });
 
+  html += `<div id="grammatikAbgabeBereich" style="margin-top:18px;"></div>`;
   body.innerHTML = html;
+  renderGrammatikAbgabeBereich(a);
+}
 
-  body.querySelectorAll('.gb-input').forEach(input => {
-    const key = input.getAttribute('data-key');
-    const [_, pi, ii] = key.split('-');
-    const item = a.punkte[parseInt(pi)].uebung.items[parseInt(ii)];
-    input.addEventListener('blur', () => {
-      const fb = document.getElementById(`fb-${key}`);
-      if (!input.value.trim()) { fb.className = 'feedback'; fb.textContent = ''; return; }
-      const korrekt = checkAcceptable(input.value, item.antwort);
-      fb.className = 'feedback show ' + (korrekt ? 'good' : 'bad');
-      fb.style.background = korrekt ? 'var(--good-bg)' : 'var(--bad-bg)';
-      fb.style.color = korrekt ? 'var(--good)' : 'var(--bad)';
-      fb.textContent = korrekt ? '✓ Richtig!' : `✗ Richtig wäre: „${item.antwort}"`;
-      input.style.borderColor = korrekt ? 'var(--good)' : 'var(--bad)';
+function renderGrammatikAbgabeBereich(a) {
+  const bereich = document.getElementById('grammatikAbgabeBereich');
+  bereich.innerHTML = `
+    <button class="btn full" id="grammatikAbgebenBtn" style="font-size:16px; padding:14px;">Block abgeben</button>
+    <button class="btn secondary full" id="grammatikSpaeterBtn" style="margin-top:10px;">Speichern &amp; später fortsetzen</button>
+  `;
+  document.getElementById('grammatikAbgebenBtn').addEventListener('click', () => submitGrammatikblock(a));
+  document.getElementById('grammatikSpaeterBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('grammatikSpaeterBtn');
+    btn.disabled = true;
+    btn.textContent = 'Speichere …';
+    const ok = await saveGrammatikProgressNow();
+    if (ok) {
+      await refreshProgress();
+      showView('view-start');
+    } else {
+      btn.textContent = 'Fehler — nochmal versuchen';
+      btn.disabled = false;
+      setTimeout(() => { btn.textContent = 'Speichern & später fortsetzen'; }, 2500);
+    }
+  });
+}
+
+async function saveGrammatikProgressNow() {
+  const felder = {};
+  document.querySelectorAll('#actBody .gb-input').forEach(input => {
+    if (input.value.trim()) felder[input.getAttribute('data-key')] = input.value;
+  });
+  const payload = { kind: 'grammatik', felder, gespeichertAm: new Date().toISOString() };
+  try {
+    await window.storage.set(`testprogress:${currentActivityId}:${slug(currentActivityName)}`, JSON.stringify(payload), true);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function restoreGrammatikProgressIfAny(id, name) {
+  let res;
+  try { res = await window.storage.get(`testprogress:${id}:${slug(name)}`, true); } catch (e) { return; }
+  if (!res || !res.value) return;
+  let payload;
+  try { payload = JSON.parse(res.value); } catch (e) { return; }
+  if (payload.kind !== 'grammatik') return;
+  Object.entries(payload.felder || {}).forEach(([key, val]) => {
+    const el = document.querySelector(`#actBody .gb-input[data-key="${CSS.escape(key)}"]`);
+    if (el) el.value = val;
+  });
+  const bereich = document.getElementById('grammatikAbgabeBereich');
+  if (bereich) {
+    bereich.insertAdjacentHTML('beforebegin', `<div class="fortschritt-geladen-hinweis">↩️ Dein bisheriger Fortschritt von ${payload.gespeichertAm ? new Date(payload.gespeichertAm).toLocaleString('de-DE') : 'deinem letzten Versuch'} wurde geladen. Mach einfach weiter!</div>`);
+  }
+}
+
+async function submitGrammatikblock(a) {
+  const btn = document.getElementById('grammatikAbgebenBtn');
+  btn.disabled = true;
+  btn.textContent = 'Wird gesendet …';
+
+  const teilDetails = [];
+  const raState = {};
+  let autoCorrect = 0, autoTotal = 0;
+
+  a.punkte.forEach((p, pi) => {
+    const gesperrt = !!currentGrammatikGesperrt[p.nr];
+    const vorherige = currentGrammatikVorherigeDaten[p.nr] || [];
+    const antworten = [];
+    p.uebung.items.forEach((item, ii) => {
+      autoTotal++;
+      const korrektAnzeige = Array.isArray(item.antwort) ? item.antwort.join(' / ') : item.antwort;
+      if (gesperrt) {
+        // Unverändert aus der letzten Abgabe übernehmen — dieser Punkt wurde nicht neu bearbeitet
+        const wert = vorherige[ii] || '';
+        antworten.push(wert);
+        teilDetails.push({ frage: item.frage, antwort: wert, korrekt: true, korrektAntwort: korrektAnzeige, punktNr: p.nr });
+        autoCorrect++;
+      } else {
+        const input = document.querySelector(`#actBody .gb-input[data-key="gb-${pi}-${ii}"]`);
+        const wert = input ? input.value.trim() : '';
+        antworten.push(wert);
+        const korrekt = wert !== '' && checkAcceptable(wert, item.antwort);
+        if (korrekt) autoCorrect++;
+        teilDetails.push({ frage: item.frage, antwort: wert || '(keine Antwort)', korrekt, korrektAntwort: korrektAnzeige, punktNr: p.nr });
+      }
     });
+    raState[p.nr] = antworten;
   });
 
-  const markBtn = document.createElement('button');
-  markBtn.className = 'btn full';
-  markBtn.style.marginTop = '18px';
-  markBtn.textContent = 'Block als geübt markieren ✓';
-  markBtn.addEventListener('click', () => {
-    markActivityDone(currentActivityId);
-    markBtn.textContent = 'Gespeichert ✓';
-    markBtn.disabled = true;
-  });
-  body.appendChild(markBtn);
+  const submission = {
+    name: currentActivityName, testId: currentActivityId, testTitle: a.title,
+    timestamp: new Date().toISOString(), isGrammatikblock: true,
+    autoCorrect, autoTotal, teilDetails, raState, teil3: [],
+  };
+
+  try {
+    const key = `submission:${currentActivityId}:${slug(currentActivityName)}:${Date.now()}`;
+    await speichereMitRetry(key, JSON.stringify(submission), true);
+    await speichereMitRetry(`status:${currentActivityId}:${slug(currentActivityName)}`, JSON.stringify({ status: 'offen' }), true);
+    try { await window.storage.delete(`testprogress:${currentActivityId}:${slug(currentActivityName)}`, true); } catch (e) { /* unkritisch */ }
+    document.getElementById('doneName').textContent = currentActivityName;
+    showView('view-done');
+  } catch (e) {
+    alert('Der Block konnte nicht gespeichert werden (' + (e && e.message ? e.message : 'Speicherfehler') + '). Bitte kurz warten und nochmal auf „Block abgeben" tippen — deine Antworten sind noch da.');
+    btn.disabled = false;
+    btn.textContent = 'Block abgeben';
+  }
 }
 
 // ---------------- ÜBUNG: DOMINO-KETTE (echtes Legespiel mit 2-seitigen Steinen) ----------------
@@ -2195,7 +2290,10 @@ function buildTeil3(items, gesperrt, vorherigeDaten) {
           korrekt: !!result.korrekt, feedback: result.feedback || '', verbesserung: result.verbesserung || ''
         };
       } catch (e) {
-        testState.teil3[item.num] = { checked: true, word: item.word, pronomen: item.pronomen, satz: vollerSatz, korrekt: null, feedback: 'KI-Prüfung fehlgeschlagen: ' + (e.message || 'unbekannter Fehler'), verbesserung: '' };
+        // Kein Feedback-Text mit der technischen Fehlermeldung speichern — verwirrt in der
+        // Lehrkraft-Ansicht nur. korrekt bleibt null ("noch nicht bewertet"), die Lehrkraft markiert
+        // den Satz dort manuell als richtig/falsch.
+        testState.teil3[item.num] = { checked: true, word: item.word, pronomen: item.pronomen, satz: vollerSatz, korrekt: null, feedback: '', verbesserung: '' };
       }
       feedback.className = 'feedback';
       feedback.textContent = '';
@@ -2206,56 +2304,28 @@ function buildTeil3(items, gesperrt, vorherigeDaten) {
   });
 }
 
+// Ruft die KI-Bewertung über das eigene Apps-Script-Backend auf (statt direkt Anthropic), weil ein
+// Schlüsselloser Direktaufruf zu api.anthropic.com nur innerhalb der Claude-Artefakt-Umgebung
+// funktioniert. Das Apps Script hält den echten API-Schlüssel serverseitig (Script-Eigenschaften)
+// und macht den eigentlichen Anthropic-Aufruf; der Prompt selbst lebt dadurch auch nur noch dort.
 async function bewerteSatz(pronomen, vokabel, satz, versuch) {
   versuch = versuch || 1;
-  const prompt = `Du bist Lehrkraft für Deutsch als Zweitsprache (DaZ), Niveau A2 (Aufbaukurs). Eine erwachsene Lernperson soll einen vollständigen Satz mit der Vokabel "${vokabel}" schreiben und dabei mit dem Personalpronomen "${pronomen}" beginnen.
-
-Der geschriebene Satz lautet: "${satz}"
-
-Prüfe:
-1. Beginnt der Satz korrekt mit "${pronomen}" und ist das Verb richtig konjugiert?
-2. Wird "${vokabel}" sinnvoll und korrekt verwendet?
-3. Ist der Satz für A2-Niveau grammatikalisch akzeptabel?
-
-Antworte AUSSCHLIESSLICH mit einem JSON-Objekt, ohne Text davor/danach, ohne Markdown-Codeblock:
-{"korrekt": true oder false, "feedback": "Kurzes, konkretes Feedback auf Deutsch für die Lehrkraft, max. 20 Wörter", "verbesserung": "Falls Fehler vorhanden: korrigierter vollständiger Satz. Falls korrekt: leerer String."}`;
-
-  let response;
-  try {
-    response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: prompt }] })
-    });
-  } catch (netErr) {
-    if (versuch < 3) { await new Promise(r => setTimeout(r, 800 * versuch)); return bewerteSatz(pronomen, vokabel, satz, versuch + 1); }
-    throw new Error('Netzwerkfehler: ' + (netErr.message || 'unbekannt'));
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('HIER_DEINE') === 0) {
+    throw new Error('Speicher-Backend noch nicht eingerichtet (APPS_SCRIPT_URL fehlt).');
   }
-
-  if (!response.ok) {
-    if ((response.status === 429 || response.status >= 500) && versuch < 3) {
-      await new Promise(r => setTimeout(r, 900 * versuch));
+  try {
+    const data = await ascAnfrage(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'bewerteSatz', pronomen, vokabel, satz }),
+    });
+    return { korrekt: !!data.korrekt, feedback: data.feedback || '', verbesserung: data.verbesserung || '' };
+  } catch (err) {
+    if (versuch < 3) {
+      await new Promise(r => setTimeout(r, 700 * versuch));
       return bewerteSatz(pronomen, vokabel, satz, versuch + 1);
     }
-    throw new Error(`API-Fehler ${response.status} ${response.statusText}`);
-  }
-
-  const responseData = await response.json();
-  if (responseData.error) {
-    throw new Error('API-Fehler: ' + (responseData.error.message || responseData.error.type || 'unbekannt'));
-  }
-  const textBlocks = (responseData.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-  let clean = textBlocks.replace(/```json|```/g, "").trim();
-  try {
-    return JSON.parse(clean);
-  } catch (parseErr) {
-    // Falls die Antwort zusätzlichen Text vor/nach dem JSON enthält: nur den {...}-Block herausziehen
-    const match = clean.match(/\{[\s\S]*\}/);
-    if (match) {
-      try { return JSON.parse(match[0]); } catch (e2) { /* fällt durch zum Fehler unten */ }
-    }
-    if (versuch < 3) { await new Promise(r => setTimeout(r, 500)); return bewerteSatz(pronomen, vokabel, satz, versuch + 1); }
-    throw new Error('Antwort war kein gültiges JSON: „' + clean.slice(0, 80) + '…"');
+    throw err;
   }
 }
 
@@ -3068,7 +3138,6 @@ function buildEingangstest(t) {
           };
           window.storage.set(`submission:eingangstest_a1:${slug(name)}:${Date.now()}`, JSON.stringify(eingangsSubmission), true).catch(() => {});
           window.storage.delete(progressKey, true).catch(() => {});
-          sendeAnSheets(eingangsSubmission);
         } catch (e) { /* Speicher nicht verfügbar */ }
       }
       return;
@@ -3248,7 +3317,6 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     await speichereMitRetry(key, JSON.stringify(submission), true);
     await speichereMitRetry(`status:${currentTestId}:${slug(currentStudentName)}`, JSON.stringify({ status: 'offen' }), true);
     try { await window.storage.delete(progressKeyFor(currentTestId, currentStudentName), true); } catch (e) { /* unkritisch */ }
-    sendeAnSheets(submission); // unabhängige Kopie, blockiert die Haupt-Speicherung nicht
     document.getElementById('doneName').textContent = currentStudentName;
     showView('view-done');
   } catch (e) {
@@ -3292,748 +3360,6 @@ document.getElementById('dashStudentFilter').addEventListener('change', () => lo
 document.getElementById('toggleManualProgress').addEventListener('click', () => {
   const body = document.getElementById('manualProgressBody');
   body.classList.toggle('hidden');
-});
-
-// ---------------- UMZUG: ROHDATEN EXPORTIEREN / IMPORTIEREN ----------------
-// Exportiert/importiert die kompletten rohen Schlüssel/Wert-Paare (submission:..., status:...),
-// unabhängig vom jeweiligen Speicher-Backend (Claude-Artifact window.storage ODER das
-// Apps-Script-Backend auf GitHub Pages) — beide bieten dieselbe get/set/list-API, daher
-// funktioniert dieselbe Export-/Import-Logik auf beiden Seiten des Umzugs.
-document.getElementById('toggleMigration').addEventListener('click', () => {
-  document.getElementById('migrationBody').classList.toggle('hidden');
-});
-
-document.getElementById('migrationExportBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('migrationExportBtn');
-  const meldung = document.getElementById('migrationExportMeldung');
-  btn.disabled = true;
-  const originalText = btn.textContent;
-  try {
-    const alleTestIds = Object.keys(TESTS);
-    const alleSchuelerSlugs = [...document.querySelectorAll('#startName option')].map(o => o.value).filter(v => v).map(v => slug(v));
-    const rohPaare = []; // {key, value}
-    const gesehen = new Set();
-
-    async function fuegeHinzu(key) {
-      if (gesehen.has(key)) return;
-      gesehen.add(key);
-      try {
-        const res = await window.storage.get(key, true);
-        if (res && typeof res.value === 'string') rohPaare.push({ key, value: res.value });
-      } catch (e) { /* Schlüssel existiert nicht (mehr) — überspringen */ }
-    }
-
-    const GRUPPENGROESSE = 4;
-    for (let i = 0; i < alleSchuelerSlugs.length; i += GRUPPENGROESSE) {
-      const gruppe = alleSchuelerSlugs.slice(i, i + GRUPPENGROESSE);
-      btn.textContent = `Sammle … (${i}/${alleSchuelerSlugs.length} Schüler)`;
-      for (const sl of gruppe) {
-        for (const tid of alleTestIds) {
-          try {
-            const res = await window.storage.list(`submission:${tid}:${sl}:`, true);
-            for (const k of ((res && res.keys) || [])) await fuegeHinzu(k);
-          } catch (e) { /* dieser Test/Schüler hat nichts oder Fehler — überspringen */ }
-          await fuegeHinzu(`status:${tid}:${sl}`);
-        }
-      }
-    }
-
-    meldung.innerHTML = `<p style="color:var(--good);">${rohPaare.length} Einträge gesammelt. Datei wird heruntergeladen …</p>`;
-    const blob = new Blob([JSON.stringify(rohPaare, null, 0)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `daz-tool-migration-${new Date().toISOString().slice(0,10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  } catch (e) {
-    meldung.innerHTML = `<p style="color:var(--bad);">Fehler beim Export: ${escapeHtml(e.message || 'unbekannt')}</p>`;
-  }
-  btn.disabled = false;
-  btn.textContent = originalText;
-});
-
-document.getElementById('migrationImportBtn').addEventListener('click', async () => {
-  const fileInput = document.getElementById('migrationImportFile');
-  const meldung = document.getElementById('migrationImportMeldung');
-  const btn = document.getElementById('migrationImportBtn');
-  if (!fileInput.files || !fileInput.files[0]) {
-    meldung.innerHTML = `<p style="color:var(--bad);">Bitte zuerst eine Export-Datei auswählen.</p>`;
-    return;
-  }
-  btn.disabled = true;
-  const originalText = btn.textContent;
-  try {
-    const text = await fileInput.files[0].text();
-    const rohPaare = JSON.parse(text);
-    if (!Array.isArray(rohPaare)) throw new Error('Datei hat nicht das erwartete Format.');
-    let ok = 0, fehler = 0;
-    for (let i = 0; i < rohPaare.length; i++) {
-      const eintrag = rohPaare[i];
-      btn.textContent = `Importiere … (${i + 1}/${rohPaare.length})`;
-      try {
-        await speichereMitRetry(eintrag.key, eintrag.value, true);
-        ok++;
-      } catch (e) { fehler++; }
-    }
-    meldung.innerHTML = `<p style="color:${fehler ? 'var(--warn)' : 'var(--good)'};">${ok} von ${rohPaare.length} Einträgen importiert${fehler ? `, ${fehler} fehlgeschlagen` : ''}.</p>`;
-    loadSubmissions(false);
-  } catch (e) {
-    meldung.innerHTML = `<p style="color:var(--bad);">Fehler beim Import: ${escapeHtml(e.message || 'unbekannt')}</p>`;
-  }
-  btn.disabled = false;
-  btn.textContent = originalText;
-});
-
-// ---------------- ERGEBNISSE AUS DATEI IMPORTIEREN ----------------
-document.getElementById('toggleImportPanel').addEventListener('click', () => {
-  document.getElementById('importPanelBody').classList.toggle('hidden');
-});
-
-let importParsedData = null;
-
-document.getElementById('importFileInput').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  const previewEl = document.getElementById('importPreview');
-  const confirmBtn = document.getElementById('importConfirmBtn');
-  previewEl.innerHTML = '';
-  confirmBtn.style.display = 'none';
-  importParsedData = null;
-
-  if (!file) return;
-
-  try {
-    const text = await file.text();
-    const data = JSON.parse(text);
-    const einreichungen = data.einreichungen || [];
-    if (!einreichungen.length) {
-      previewEl.innerHTML = '<p style="color:var(--bad);">Diese Datei enthält keine Einreichungen.</p>';
-      return;
-    }
-    const echte = einreichungen.filter(e => !(e._key || '').endsWith('_manuell'));
-    const fake = einreichungen.length - echte.length;
-    const namen = [...new Set(echte.map(e => e.name))];
-
-    previewEl.innerHTML = `
-      <div class="lernbericht" style="margin-top:10px;">
-        <div class="lernbericht-titel">Vorschau</div>
-        <p style="margin:4px 0;">Exportiert am: ${data.exportiertAm ? new Date(data.exportiertAm).toLocaleString('de-DE') : 'unbekannt'}</p>
-        <p style="margin:4px 0;"><strong>${echte.length}</strong> echte Einreichungen werden importiert${fake ? `, <strong>${fake}</strong> alte Fake-Einträge werden übersprungen` : ''}.</p>
-        <p style="margin:4px 0;">Betroffene Schüler: ${namen.map(escapeHtml).join(', ') || '—'}</p>
-      </div>
-    `;
-    importParsedData = echte;
-    confirmBtn.style.display = 'block';
-  } catch (err) {
-    previewEl.innerHTML = '<p style="color:var(--bad);">Konnte die Datei nicht lesen. Ist es eine gültige, mit diesem Tool exportierte JSON-Datei?</p>';
-  }
-});
-
-document.getElementById('importConfirmBtn').addEventListener('click', async () => {
-  if (!importParsedData || !importParsedData.length) return;
-  const resultEl = document.getElementById('importResult');
-  const btn = document.getElementById('importConfirmBtn');
-  btn.disabled = true;
-  btn.textContent = 'Importiere …';
-  resultEl.className = '';
-  resultEl.textContent = '';
-
-  let importiert = 0, fehler = 0;
-  for (const eintrag of importParsedData) {
-    try {
-      const { _key, lehrkraftStatus, lehrkraftKommentar, bewertetAm, ...reineSubmission } = eintrag;
-      const key = _key || `submission:${eintrag.testId}:${slug(eintrag.name)}:${Date.now()}_import`;
-      await window.storage.set(key, JSON.stringify(reineSubmission), true);
-
-      // Lehrkraft-Bewertung mit wiederherstellen, falls in der Datei vorhanden und nicht nur der leere Standard
-      if (lehrkraftStatus && lehrkraftStatus !== 'offen') {
-        const statusKey = `status:${eintrag.testId}:${slug(eintrag.name)}`;
-        await window.storage.set(statusKey, JSON.stringify({
-          status: lehrkraftStatus, comment: lehrkraftKommentar || '', reviewedAt: bewertetAm || new Date().toISOString(),
-        }), true);
-      }
-      importiert++;
-    } catch (e) {
-      fehler++;
-    }
-  }
-
-  resultEl.className = fehler ? 'err' : 'ok';
-  resultEl.textContent = `✓ ${importiert} Einreichungen importiert.${fehler ? ` ${fehler} Fehler beim Import.` : ''}`;
-  btn.disabled = false;
-  btn.textContent = 'Import bestätigen';
-  document.getElementById('importFileInput').value = '';
-  document.getElementById('importPreview').innerHTML = '';
-  btn.style.display = 'none';
-  importParsedData = null;
-  loadSubmissions(false);
-});
-
-// ---------------- ALTE FAKE-EINTRÄGE AUFRÄUMEN ----------------
-document.getElementById('toggleCleanupPanel').addEventListener('click', () => {
-  document.getElementById('cleanupPanelBody').classList.toggle('hidden');
-});
-
-let cleanupCandidates = [];
-
-document.getElementById('cleanupScanBtn').addEventListener('click', async () => {
-  const resultEl = document.getElementById('cleanupResult');
-  const btn = document.getElementById('cleanupScanBtn');
-  btn.disabled = true;
-  btn.textContent = 'Suche …';
-  resultEl.innerHTML = '';
-
-  try {
-    const alleTestIds = Object.keys(TESTS);
-    const alleSchuelerSlugs = [...document.querySelectorAll('#startName option')].map(o => o.value).filter(v => v).map(v => slug(v));
-    const gefunden = [];
-    const GRUPPENGROESSE = 4;
-    for (let i = 0; i < alleSchuelerSlugs.length; i += GRUPPENGROESSE) {
-      const gruppe = alleSchuelerSlugs.slice(i, i + GRUPPENGROESSE);
-      btn.textContent = `Suche … (${i}/${alleSchuelerSlugs.length} Schüler)`;
-      const ergebnisse = await Promise.all(gruppe.map(async (sl) => {
-        const perTest = await Promise.all(alleTestIds.map(async (tid) => {
-          try {
-            const r = await window.storage.list(`submission:${tid}:${sl}:`, true);
-            return (r && Array.isArray(r.keys)) ? r.keys : [];
-          } catch (e) { return []; }
-        }));
-        return perTest.flat();
-      }));
-      gefunden.push(...ergebnisse.flat());
-    }
-    cleanupCandidates = gefunden.filter(k => k.endsWith('_manuell'));
-  } catch (e) {
-    cleanupCandidates = [];
-  }
-
-  if (!cleanupCandidates.length) {
-    resultEl.innerHTML = '<p style="color:var(--good);">✓ Keine alten Fake-Einträge gefunden. Alles sauber.</p>';
-  } else {
-    resultEl.innerHTML = `
-      <p style="margin:8px 0;"><strong>${cleanupCandidates.length}</strong> alte Fake-Einträge gefunden.</p>
-      <button class="btn full danger" id="cleanupDeleteBtn">Jetzt ${cleanupCandidates.length} Einträge dauerhaft löschen</button>
-    `;
-    document.getElementById('cleanupDeleteBtn').addEventListener('click', async () => {
-      const delBtn = document.getElementById('cleanupDeleteBtn');
-      delBtn.disabled = true;
-      delBtn.textContent = 'Lösche …';
-      let geloescht = 0;
-      for (const key of cleanupCandidates) {
-        try { await window.storage.delete(key, true); geloescht++; } catch (e) { /* skip */ }
-      }
-      resultEl.innerHTML = `<p style="color:var(--good);">✓ ${geloescht} alte Fake-Einträge gelöscht.</p>`;
-      cleanupCandidates = [];
-      loadSubmissions(false);
-    });
-  }
-  btn.disabled = false;
-  btn.textContent = 'Nach Fake-Einträgen suchen';
-});
-
-// ---------------- GOOGLE-SHEETS-ANBINDUNG (unabhängige Kopie jeder Abgabe) ----------------
-const SHEETS_SETTINGS_KEY = 'settings:sheetsIntegration';
-
-async function ladeSheetsEinstellungen() {
-  try {
-    const res = await window.storage.get(SHEETS_SETTINGS_KEY, true);
-    if (res && res.value) return JSON.parse(res.value);
-  } catch (e) { /* noch nicht eingerichtet */ }
-  return null;
-}
-
-// Schickt eine Kopie der Einreichung ans Google Sheet — falls nicht eingerichtet oder fehlgeschlagen,
-// wird das STILL ignoriert. window.storage bleibt die eigentliche, maßgebliche Speicherung.
-async function sendeAnSheets(submission) {
-  const einstellungen = await ladeSheetsEinstellungen();
-  if (!einstellungen || !einstellungen.url) return;
-  try {
-    await fetch(einstellungen.url, {
-      method: 'POST',
-      mode: 'no-cors', // Apps Script unterstützt keine CORS-Preflight-Anfragen zuverlässig; "no-cors" sendet trotzdem zuverlässig
-      headers: { 'Content-Type': 'text/plain' }, // vermeidet eine Preflight-Anfrage
-      body: JSON.stringify({ ...submission, apiKey: einstellungen.apiKey || '' }),
-    });
-  } catch (e) {
-    // Bewusst stillschweigend ignorieren — die Haupt-Speicherung (window.storage) hat bereits geklappt.
-  }
-}
-
-// ---------------- ABGEGEBENEN TEST FORTSETZBAR MACHEN ----------------
-document.getElementById('toggleFortsetzbarPanel').addEventListener('click', () => {
-  document.getElementById('fortsetzbarPanelBody').classList.toggle('hidden');
-});
-
-(function initFortsetzbarStudentSelect() {
-  const sel = document.getElementById('fortsetzbarStudentSelect');
-  document.querySelectorAll('#startName option').forEach(opt => {
-    if (!opt.value) return;
-    const o = document.createElement('option');
-    o.value = opt.value; o.textContent = opt.textContent;
-    sel.appendChild(o);
-  });
-})();
-
-document.getElementById('fortsetzbarLadenBtn').addEventListener('click', async () => {
-  const name = document.getElementById('fortsetzbarStudentSelect').value;
-  const listeEl = document.getElementById('fortsetzbarListe');
-  if (!name) { listeEl.innerHTML = '<p style="color:var(--bad);">Bitte einen Schüler auswählen.</p>'; return; }
-
-  listeEl.innerHTML = '<p>Suche …</p>';
-  const sl = slug(name);
-  const alleTestIds = Object.keys(TESTS);
-
-  const treffer = [];
-  await Promise.all(alleTestIds.map(async (tid) => {
-    try {
-      const res = await window.storage.list(`submission:${tid}:${sl}:`, true);
-      for (const key of (res.keys || [])) {
-        const r = await window.storage.get(key, true);
-        if (r && r.value) {
-          try { treffer.push({ key, ...JSON.parse(r.value) }); } catch (e) { /* skip */ }
-        }
-      }
-    } catch (e) { /* skip */ }
-  }));
-  treffer.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  if (!treffer.length) {
-    listeEl.innerHTML = '<p style="color:var(--ink-soft);">Keine Einreichungen von diesem Schüler gefunden.</p>';
-    return;
-  }
-
-  listeEl.innerHTML = '';
-  // Nach testId gruppieren — falls ein Schüler mehrfach abgegeben hat, sollen ALLE Einreichungen
-  // dieses Tests zusammen behandelt werden (sonst bleibt bei "nur eine umwandeln" eine übrig,
-  // die den Test weiterhin als "abgegeben" markiert).
-  const gruppenNachTest = {};
-  treffer.forEach(sub => {
-    if (!gruppenNachTest[sub.testId]) gruppenNachTest[sub.testId] = [];
-    gruppenNachTest[sub.testId].push(sub);
-  });
-
-  Object.values(gruppenNachTest).forEach(gruppe => {
-    gruppe.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-    const neuste = gruppe[0];
-    const t = TESTS[neuste.testId];
-    const info = curriculumItemInfo(neuste.testId);
-    const hatIrgendwoFelddaten = gruppe.some(s => (s.felderAntworten && Object.keys(s.felderAntworten).length) || (s.teilDetails && s.teilDetails.length) || (s.teil3 && s.teil3.length));
-    const istAbschlussMitFeldern = info.kind === 'test-final' && gruppe.some(s => s.felderAntworten && Object.keys(s.felderAntworten).length > 0);
-    const istRegulaer = info.kind === 'test';
-    const istKonvertierbar = istRegulaer || istAbschlussMitFeldern;
-    const mehrfach = gruppe.length > 1;
-    const dt = new Date(neuste.timestamp).toLocaleString('de-DE');
-    const div = document.createElement('div');
-    div.className = 'ib-item-card';
-    div.innerHTML = `
-      <div class="ib-item-info">
-        <h3>${escapeHtml(neuste.testTitle || neuste.testId)}</h3>
-        <p>${dt} — ${neuste.autoCorrect ?? '?'} / ${neuste.autoTotal ?? '?'} automatisch ausgewertet</p>
-        ${mehrfach ? `<p style="color:var(--warn); font-size:12.5px; font-weight:700;">⚠ ${gruppe.length} Einreichungen für diesen Test gefunden (mehrfach abgegeben) — werden zusammen behandelt.</p>` : ''}
-        ${!istKonvertierbar ? `<p style="color:var(--bad); font-size:12.5px;">Nicht möglich — bei ${mehrfach ? 'diesen Einreichungen wurden' : 'dieser Einreichung wurde'} keine Einzelfelder gespeichert, nur die Gesamtpunktzahl (ältere Abgabe, von vor dieser Funktion).</p>` : ''}
-      </div>
-      ${istKonvertierbar ? `<button class="btn small">In Fortsetzen-Modus umwandeln</button>` : `<button class="btn small secondary">Zurücksetzen (komplett neu)</button>`}
-    `;
-    if (!istKonvertierbar) {
-      const resetBtn = div.querySelector('button');
-      let bestaetigungAusstehend = false;
-      resetBtn.addEventListener('click', async (e) => {
-        const btn = e.target;
-
-        // Zwei-Klick-Bestätigung direkt im Button — kein natives confirm(), das in der
-        // Artefakt-Umgebung teils blockiert wird und dann gar keine Reaktion zeigt.
-        if (!bestaetigungAusstehend) {
-          bestaetigungAusstehend = true;
-          btn.textContent = 'Wirklich? Nochmal klicken zum Bestätigen';
-          btn.style.background = 'var(--bad-bg)';
-          btn.style.color = 'var(--bad)';
-          btn.style.borderColor = 'var(--bad)';
-          setTimeout(() => {
-            if (bestaetigungAusstehend) {
-              bestaetigungAusstehend = false;
-              btn.textContent = 'Zurücksetzen (komplett neu)';
-              btn.style.background = '';
-              btn.style.color = '';
-              btn.style.borderColor = '';
-            }
-          }, 4000);
-          return;
-        }
-        bestaetigungAusstehend = false;
-
-        btn.disabled = true;
-        btn.textContent = 'Setze zurück …';
-        try {
-          const nichtErfolgreich = [];
-          for (const s of gruppe) {
-            let versuchErfolgreich = false;
-            for (let versuch = 1; versuch <= 3 && !versuchErfolgreich; versuch++) {
-              await window.storage.delete(s.key, true);
-              const kontrolle = await window.storage.get(s.key, true);
-              if (!kontrolle || !kontrolle.value) { versuchErfolgreich = true; }
-              else if (versuch < 3) { await new Promise(r => setTimeout(r, 400 * versuch)); }
-            }
-            if (!versuchErfolgreich) nichtErfolgreich.push(s.key);
-          }
-          await window.storage.delete(`status:${neuste.testId}:${sl}`, true);
-
-          if (nichtErfolgreich.length) {
-            btn.disabled = false;
-            btn.textContent = 'Löschen nicht bestätigt — nochmal versuchen';
-            div.querySelector('.ib-item-info').insertAdjacentHTML('beforeend', `<p style="color:var(--bad); font-size:13px;">⚠ Nach 3 Versuchen ist die Einreichung beim Rücklesen immer noch vorhanden. Bitte nochmal klicken.</p>`);
-          } else {
-            btn.textContent = '✓ Zurückgesetzt (bestätigt)';
-            div.querySelector('.ib-item-info').insertAdjacentHTML('beforeend', `<p style="color:var(--good); font-size:13px;">Der Test steht jetzt wieder komplett leer zur Verfügung.</p>`);
-            loadSubmissions(false);
-          }
-        } catch (err) {
-          btn.disabled = false;
-          btn.textContent = 'Fehler — nochmal versuchen';
-        }
-      });
-    }
-    if (istKonvertierbar) {
-      div.querySelector('button').addEventListener('click', async (e) => {
-        const btn = e.target;
-        btn.disabled = true;
-        btn.textContent = 'Wandle um …';
-        const ok = istAbschlussMitFeldern
-          ? await wandleAbschlussEinreichungInEntwurfUm(gruppe, sl)
-          : await wandleEinreichungInEntwurfUm(gruppe, t, sl);
-        if (ok) {
-          btn.textContent = '✓ Umgewandelt';
-          div.querySelector('.ib-item-info').insertAdjacentHTML('beforeend', `<p style="color:var(--good); font-size:13px;">Der Schüler kann den Test jetzt öffnen und dort weitermachen, wo er aufgehört hat.</p>`);
-          loadSubmissions(false);
-        } else {
-          btn.disabled = false;
-          btn.textContent = 'Fehler — nochmal versuchen';
-        }
-      });
-    }
-    listeEl.appendChild(div);
-  });
-});
-
-// Baut aus einer bereits abgegebenen (aber unvollständigen) Einreichung wieder einen
-// fortsetzbaren Entwurf (testprogress:) — genau im selben Format, das restoreTestProgressIfAny() erwartet.
-// Löscht einen Schlüssel und liest zur Kontrolle zurück, ob er wirklich weg ist —
-// manche Speicher-Rückmeldungen sind unzuverlässig (siehe "Unexpected response type"-Fälle),
-// ein stiller Fehlschlag beim Löschen darf nicht als Erfolg vorgetäuscht werden.
-async function loescheMitVerifikation(key) {
-  for (let versuch = 1; versuch <= 3; versuch++) {
-    try {
-      await window.storage.delete(key, true);
-      const kontrolle = await window.storage.get(key, true);
-      if (!kontrolle || !kontrolle.value) return true;
-    } catch (e) { /* nochmal versuchen */ }
-    if (versuch < 3) await new Promise(r => setTimeout(r, 400 * versuch));
-  }
-  return false;
-}
-
-async function wandleEinreichungInEntwurfUm(gruppe, t, sl) {
-  try {
-    const neuerTestState = { teil1: {}, teil2: {}, teil3: {}, teil4: {} };
-
-    // Älteste zuerst verarbeiten, neueste zuletzt — bei mehrfachen Einreichungen für denselben
-    // Test gewinnt so immer die neuere Antwort, falls sich beide zum selben Punkt äußern.
-    const zeitlichSortiert = [...gruppe].sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-    zeitlichSortiert.forEach(sub => {
-      (sub.teilDetails || []).forEach(d => {
-        if (d.frage.startsWith('Bildzuordnung: ')) {
-          const wort = d.frage.replace('Bildzuordnung: ', '');
-          const item = (t.teil1 || []).find(i => i.word === wort);
-          if (!item) return;
-          const chosen = d.korrekt ? item.icons[item.correct] : d.antwort.replace(/ /g, '_');
-          neuerTestState.teil1[item.num] = { correct: d.korrekt, locked: true, word: item.word, chosen, korrektAntwort: item.icons[item.correct] };
-        } else if (d.frage.startsWith('Gegenteil von „')) {
-          const wort = d.frage.replace('Gegenteil von „', '').replace(/"$/, '');
-          const item = (t.teil4 || []).find(i => i.word === wort);
-          if (!item) return;
-          neuerTestState.teil4[item.num] = { korrekt: d.korrekt, checked: true, word: item.word, given: d.antwort, korrektAntwort: d.korrektAntwort };
-        } else {
-          const item = (t.teil2 || []).find(i => `${i.vor} ___ ${i.nach}` === d.frage);
-          if (!item) return;
-          neuerTestState.teil2[item.num] = { correct: d.korrekt, locked: true, gewaehlt: d.antwort, korrektAntwort: d.korrektAntwort };
-        }
-      });
-
-      (sub.teil3 || []).forEach(s3 => {
-        const item = (t.teil3 || []).find(i => i.word === s3.word);
-        if (!item) return;
-        neuerTestState.teil3[item.num] = { checked: true, word: s3.word, pronomen: s3.pronomen, satz: s3.satz, korrekt: s3.korrekt, feedback: s3.feedback, verbesserung: s3.verbesserung || '' };
-      });
-    });
-
-    const payload = { kind: 'normal', testState: neuerTestState, teil3Rohtext: {}, gespeichertAm: new Date().toISOString() };
-    await window.storage.set(`testprogress:${gruppe[0].testId}:${sl}`, JSON.stringify(payload), true);
-
-    // ALLE (auch mehrfachen) unvollständigen Einreichungen dieses Tests entfernen — der Schüler
-    // reicht ja noch eine vollständige nach. Nur eine zu löschen würde den Test weiterhin als
-    // "abgegeben" markiert lassen, wenn mehrfach abgegeben wurde.
-    for (const sub of gruppe) {
-      const ok = await loescheMitVerifikation(sub.key || sub._key);
-      if (!ok) return false; // lieber klar scheitern, als einen Rest-Zustand als "erledigt" zu melden
-    }
-    await window.storage.delete(`status:${gruppe[0].testId}:${sl}`, true);
-
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-// Wie wandleEinreichungInEntwurfUm, aber für Abschlusstests: dort sind die Antworten
-// bereits direkt als data-key/Wert-Paare gespeichert, kein Umbau nötig.
-async function wandleAbschlussEinreichungInEntwurfUm(gruppe, sl) {
-  try {
-    // Älteste zuerst, neueste zuletzt zusammenführen — neuere Antworten überschreiben ältere für dasselbe Feld.
-    const zeitlichSortiert = [...gruppe].sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
-    const zusammengefuehrteFelder = {};
-    zeitlichSortiert.forEach(sub => { Object.assign(zusammengefuehrteFelder, sub.felderAntworten || {}); });
-
-    const payload = { kind: 'abschluss', felder: zusammengefuehrteFelder, gespeichertAm: new Date().toISOString() };
-    await window.storage.set(`testprogress:${gruppe[0].testId}:${sl}`, JSON.stringify(payload), true);
-
-    for (const sub of gruppe) {
-      const ok = await loescheMitVerifikation(sub.key);
-      if (!ok) return false;
-    }
-    await window.storage.delete(`status:${gruppe[0].testId}:${sl}`, true);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-document.getElementById('toggleSheetsPanel').addEventListener('click', async () => {
-  const body = document.getElementById('sheetsPanelBody');
-  body.classList.toggle('hidden');
-  if (!body.classList.contains('hidden')) {
-    const einstellungen = await ladeSheetsEinstellungen();
-    if (einstellungen) {
-      document.getElementById('sheetsUrlInput').value = einstellungen.url || '';
-      document.getElementById('sheetsKeyInput').value = einstellungen.apiKey || '';
-    }
-  }
-});
-
-document.getElementById('sheetsSaveBtn').addEventListener('click', async () => {
-  const url = document.getElementById('sheetsUrlInput').value.trim();
-  const apiKey = document.getElementById('sheetsKeyInput').value.trim();
-  const resultEl = document.getElementById('sheetsResult');
-  if (!url) {
-    resultEl.innerHTML = '<p style="color:var(--bad);">Bitte eine URL eintragen (oder leer lassen, um die Anbindung zu deaktivieren).</p>';
-    if (!url) {
-      try { await window.storage.delete(SHEETS_SETTINGS_KEY, true); } catch (e) {}
-      resultEl.innerHTML = '<p style="color:var(--good);">Anbindung deaktiviert.</p>';
-    }
-    return;
-  }
-  try {
-    await window.storage.set(SHEETS_SETTINGS_KEY, JSON.stringify({ url, apiKey }), true);
-    resultEl.innerHTML = '<p style="color:var(--good);">✓ Gespeichert. Ab jetzt wird jede neue Abgabe zusätzlich ans Sheet geschickt.</p>';
-  } catch (e) {
-    resultEl.innerHTML = '<p style="color:var(--bad);">Konnte nicht gespeichert werden. Bitte nochmal versuchen.</p>';
-  }
-});
-
-document.getElementById('sheetsTestBtn').addEventListener('click', async () => {
-  const url = document.getElementById('sheetsUrlInput').value.trim();
-  const apiKey = document.getElementById('sheetsKeyInput').value.trim();
-  const resultEl = document.getElementById('sheetsResult');
-  if (!url) { resultEl.innerHTML = '<p style="color:var(--bad);">Bitte zuerst eine URL eintragen.</p>'; return; }
-  resultEl.innerHTML = '<p>Sende Test-Datensatz …</p>';
-  try {
-    await fetch(url, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        apiKey, name: 'TEST-Eintrag (kann gelöscht werden)', testId: 'verbindungstest',
-        testTitle: 'Verbindungstest aus dem Dashboard', timestamp: new Date().toISOString(),
-        autoCorrect: 0, autoTotal: 0, isPunkteTest: false,
-      }),
-    });
-    resultEl.innerHTML = '<p style="color:var(--good);">✓ Test-Anfrage gesendet. Bitte im Google Sheet nachsehen, ob eine neue Zeile mit "TEST-Eintrag" erschienen ist — wegen "no-cors" kann das Tool selbst nicht bestätigen, ob es angekommen ist.</p>';
-  } catch (e) {
-    resultEl.innerHTML = '<p style="color:var(--bad);">Senden fehlgeschlagen: ' + escapeHtml(e.message || 'unbekannter Fehler') + '</p>';
-  }
-});
-
-// ---------------- NAMEN REPARIEREN (alte Kurznamen -> volle Namen) ----------------
-document.getElementById('toggleNamenReparierenPanel').addEventListener('click', () => {
-  document.getElementById('namenReparierenPanelBody').classList.toggle('hidden');
-});
-
-document.getElementById('namenReparierenBtn').addEventListener('click', async () => {
-  const resultEl = document.getElementById('namenReparierenResult');
-  const btn = document.getElementById('namenReparierenBtn');
-  btn.disabled = true;
-  btn.textContent = 'Suche …';
-  resultEl.innerHTML = '';
-
-  const bekannteNamen = [...document.querySelectorAll('#startName option')].map(o => o.value).filter(v => v);
-  const bekannteSlugs = new Set(bekannteNamen.map(n => slug(n)));
-  // Vorname (erstes Wort) -> voller Name, für automatischen Abgleich
-  const vornameZuVollemNamen = {};
-  bekannteNamen.forEach(n => {
-    const vorname = slug(n.split(' ')[0]);
-    if (vornameZuVollemNamen[vorname]) {
-      vornameZuVollemNamen[vorname] = null; // mehrdeutig -> nicht automatisch zuordnen
-    } else {
-      vornameZuVollemNamen[vorname] = n;
-    }
-  });
-
-  // Großen Abruf mit Wiederholungsversuchen holen (einmaliger Wartungsvorgang, daher hier vertretbar)
-  async function listeAlleMitRetry(prefix) {
-    for (let versuch = 1; versuch <= 3; versuch++) {
-      try {
-        const res = await window.storage.list(prefix, true);
-        return (res && Array.isArray(res.keys)) ? res.keys : [];
-      } catch (e) {
-        if (versuch === 3) return null;
-        await new Promise(r => setTimeout(r, 500 * versuch));
-      }
-    }
-    return null;
-  }
-
-  btn.textContent = 'Durchsuche Speicher …';
-  const submissionKeys = await listeAlleMitRetry('submission:');
-  const statusKeys = await listeAlleMitRetry('status:');
-  const activityKeys = await listeAlleMitRetry('activitydone:');
-
-  if (submissionKeys === null) {
-    resultEl.innerHTML = '<p style="color:var(--bad);">Konnte den Speicher nicht vollständig durchsuchen. Bitte nochmal versuchen.</p>';
-    btn.disabled = false;
-    btn.textContent = 'Jetzt alles reparieren';
-    return;
-  }
-
-  // Migrationsplan aufbauen: [alterSchluessel, neuerSchluessel, gefundenerName]
-  const plan = [];
-  function pruefeUndPlane(keys, teilIndex) {
-    (keys || []).forEach(k => {
-      const teile = k.split(':');
-      if (teile.length <= teilIndex) return;
-      const altSlug = teile[teilIndex];
-      if (bekannteSlugs.has(altSlug) || altSlug.endsWith('_manuell')) return; // schon korrekt oder Fake-Eintrag (anderes Werkzeug)
-      const vorname = altSlug.split('_')[0];
-      const vollerName = vornameZuVollemNamen[vorname];
-      if (!vollerName) return; // kein eindeutiger Treffer -> überspringen, nicht raten
-      const neuSlug = slug(vollerName);
-      const neueTeile = [...teile];
-      neueTeile[teilIndex] = neuSlug;
-      plan.push({ alt: k, neu: neueTeile.join(':'), name: vollerName, altSlug });
-    });
-  }
-  pruefeUndPlane(submissionKeys, 2);
-  pruefeUndPlane(statusKeys, 2);
-  pruefeUndPlane(activityKeys, 2);
-
-  if (!plan.length) {
-    resultEl.innerHTML = '<p style="color:var(--good);">✓ Alles sauber – keine veralteten Namen gefunden.</p>';
-    btn.disabled = false;
-    btn.textContent = 'Jetzt alles reparieren';
-    return;
-  }
-
-  btn.textContent = `Repariere ${plan.length} Einträge …`;
-  let erfolgreich = 0, fehler = 0;
-  const betroffeneNamen = new Set();
-  for (const eintrag of plan) {
-    try {
-      const wert = await window.storage.get(eintrag.alt, true);
-      if (wert && wert.value != null) {
-        // Bei Submissions: den "name"-Wert im Inhalt selbst auch korrigieren
-        let neuerWert = wert.value;
-        if (eintrag.alt.startsWith('submission:')) {
-          try {
-            const obj = JSON.parse(wert.value);
-            obj.name = eintrag.name;
-            neuerWert = JSON.stringify(obj);
-          } catch (e) { /* falls kein gültiges JSON: Wert unverändert übernehmen */ }
-        }
-        await window.storage.set(eintrag.neu, neuerWert, true);
-        await window.storage.delete(eintrag.alt, true);
-        erfolgreich++;
-        betroffeneNamen.add(eintrag.name);
-      }
-    } catch (e) {
-      fehler++;
-    }
-  }
-
-  resultEl.innerHTML = `
-    <p style="color:var(--good);">✓ ${erfolgreich} Einträge repariert und den vollen Namen zugeordnet.</p>
-    ${betroffeneNamen.size ? `<p style="font-size:13px;">Betroffene Schüler: ${[...betroffeneNamen].map(escapeHtml).join(', ')}</p>` : ''}
-    ${fehler ? `<p style="color:var(--bad);">${fehler} Einträge konnten nicht repariert werden.</p>` : ''}
-  `;
-  btn.disabled = false;
-  btn.textContent = 'Jetzt alles reparieren';
-  loadSubmissions(false);
-});
-
-// ---------------- VOLLSTÄNDIGKEITSCHECK: Sind alle Einreichungen für jeden Schüler abrufbar? ----------------
-document.getElementById('toggleVollstaendigkeitPanel').addEventListener('click', () => {
-  document.getElementById('vollstaendigkeitPanelBody').classList.toggle('hidden');
-});
-
-document.getElementById('vollstaendigkeitScanBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('vollstaendigkeitScanBtn');
-  const resultEl = document.getElementById('vollstaendigkeitResult');
-  btn.disabled = true;
-  resultEl.innerHTML = '';
-
-  const alleTestIds = Object.keys(TESTS);
-  const alleSchueler = [...document.querySelectorAll('#startName option')]
-    .map(o => o.value).filter(v => v);
-
-  const ergebnisse = [];
-  for (let i = 0; i < alleSchueler.length; i++) {
-    const name = alleSchueler[i];
-    const sl = slug(name);
-    btn.textContent = `Prüfe … (${i+1}/${alleSchueler.length}: ${name})`;
-
-    let keys = [];
-    let fehler = 0;
-    const perTest = await Promise.all(alleTestIds.map(async (tid) => {
-      try {
-        const r = await window.storage.list(`submission:${tid}:${sl}:`, true);
-        return (r && Array.isArray(r.keys)) ? r.keys : [];
-      } catch (e) { fehler++; return null; }
-    }));
-    perTest.forEach(ks => { if (ks) keys = keys.concat(ks); });
-    const echteKeys = keys.filter(k => !k.endsWith('_manuell'));
-    const fakeKeys = keys.filter(k => k.endsWith('_manuell'));
-
-    ergebnisse.push({ name, anzahl: echteKeys.length, fake: fakeKeys.length, fehler, testIds: [...new Set(echteKeys.map(k => k.split(':')[1]))] });
-  }
-
-  btn.disabled = false;
-  btn.textContent = 'Jetzt prüfen';
-
-  const gesamtEchte = ergebnisse.reduce((s, r) => s + r.anzahl, 0);
-  const gesamtFehler = ergebnisse.reduce((s, r) => s + r.fehler, 0);
-
-  let html = `<div class="lernbericht" style="margin-top:10px;">
-    <div class="lernbericht-titel">Ergebnis: ${gesamtEchte} echte Einreichungen insgesamt gefunden${gesamtFehler ? `, ${gesamtFehler} Teilabfragen mit Fehler` : ' — keine Abfragefehler'}</div>`;
-  ergebnisse.forEach(r => {
-    const farbe = r.fehler > 0 ? 'var(--bad)' : (r.anzahl > 0 ? 'var(--good)' : 'var(--ink-soft)');
-    html += `<div class="lernbericht-zeile">
-      <span style="color:${farbe}; font-weight:700;">${r.anzahl}</span> Einreichung(en) — ${escapeHtml(r.name)}
-      ${r.fake ? `<span style="color:var(--ink-soft); font-size:12px;"> (+${r.fake} alte Fake-Einträge)</span>` : ''}
-      ${r.fehler ? `<span style="color:var(--bad); font-size:12px;"> — ${r.fehler} Abfragen fehlgeschlagen!</span>` : ''}
-      ${r.testIds.length ? `<div style="font-size:12px; color:var(--ink-soft);">${r.testIds.join(', ')}</div>` : ''}
-    </div>`;
-  });
-  html += `</div>`;
-  resultEl.innerHTML = html;
 });
 
 (function initManualProgressPanel() {
@@ -4190,7 +3516,7 @@ async function loadSubmissions(isBackgroundRefresh) {
   // Gezielt NUR die Einreichungen dieses einen Schülers abfragen (ein kleiner list()-Aufruf pro Test,
   // statt eines einzigen riesigen list()-Aufrufs über ALLE Schüler und ALLE Tests hinweg).
   // Das vermeidet "Unexpected response type"-Fehler, die bei sehr vielen Einträgen auf einmal auftreten können.
-  const alleTestIds = Object.keys(TESTS);
+  const alleTestIds = alleAbgabeIds(); // echte Tests + Grammatikblöcke, die ebenfalls abgeben
   let keys = [];
   let fehlerAnzahl = 0;
   const MAX_VERSUCHE = 2;
@@ -4269,8 +3595,8 @@ async function loadSubmissions(isBackgroundRefresh) {
     const dateStr = dt.toLocaleDateString('de-DE') + ' ' + dt.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'});
 
     let teil3Html = '';
-    (sub.teil3 || []).forEach(s3 => {
-      const urteil = s3.korrekt === true ? '<span class="urteil good">✓ korrekt</span>' : s3.korrekt === false ? '<span class="urteil bad">✗ Fehler</span>' : '<span class="urteil">— nicht geprüft</span>';
+    (sub.teil3 || []).forEach((s3, i) => {
+      const urteil = s3.korrekt === true ? '<span class="urteil good">✓ Richtig</span>' : s3.korrekt === false ? '<span class="urteil bad">✗ Falsch</span>' : '<span class="urteil">— noch nicht bewertet</span>';
       teil3Html += `
         <div class="satzblock">
           <div class="vokabel">${escapeHtml(s3.word)}</div>
@@ -4278,6 +3604,10 @@ async function loadSubmissions(isBackgroundRefresh) {
           ${urteil}
           ${s3.feedback ? `<div class="kifeedback">${escapeHtml(s3.feedback)}</div>` : ''}
           ${s3.verbesserung ? `<div class="verbesserung">Vorschlag: ${escapeHtml(s3.verbesserung)}</div>` : ''}
+          <div style="margin-top:6px; display:flex; gap:6px;">
+            <button class="btn small ${s3.korrekt === true ? 'ok' : 'secondary'} teil3-marker-btn" data-i="${i}" data-wert="true">✓ Richtig</button>
+            <button class="btn small ${s3.korrekt === false ? 'danger' : 'secondary'} teil3-marker-btn" data-i="${i}" data-wert="false">✗ Falsch</button>
+          </div>
         </div>`;
     });
 
@@ -4345,19 +3675,24 @@ async function loadSubmissions(isBackgroundRefresh) {
 
     const berichtHtml = generiereLernbericht(sub.bereichsErgebnisse);
 
-    // Für normale Vokabeltests (keine Eingangstest-Bereiche): Auswahl, welche Teile bei
-    // "Wiederholen nötig" erneut abgefragt werden sollen — der Rest wird beim nächsten Öffnen
-    // aus dieser Einreichung vorausgefüllt und nicht nochmal verlangt.
+    // Auswahl, welche Teile/Punkte bei "Wiederholen nötig" erneut abgefragt werden sollen — der
+    // Rest wird beim nächsten Öffnen aus dieser Einreichung vorausgefüllt und nicht nochmal verlangt.
+    // Bei normalen Vokabeltests sind das die Teile 1–4, bei Grammatikblöcken die Erklärungspunkte 1–9.
     const testDef = TESTS[sub.testId];
-    const teilOptionen = (!sub.bereichsErgebnisse && testDef) ? ['teil1','teil2','teil3','teil4'].filter(tn => testDef[tn] && testDef[tn].length) : [];
+    const grammatikDef = (ACTIVITIES[sub.testId] && ACTIVITIES[sub.testId].type === 'grammatikblock') ? ACTIVITIES[sub.testId] : null;
     const teilLabels = { teil1: 'Teil 1', teil2: 'Teil 2', teil3: 'Teil 3', teil4: 'Teil 4' };
-    const vorherigeAuswahl = new Set(Array.isArray(statusObj.wiederholenTeile) && statusObj.wiederholenTeile.length ? statusObj.wiederholenTeile : teilOptionen);
-    const teilCheckboxenHtml = teilOptionen.length > 1 ? `
+    const wiederholenOptionen = grammatikDef
+      ? grammatikDef.punkte.map(p => p.nr)
+      : (!sub.bereichsErgebnisse && testDef) ? ['teil1','teil2','teil3','teil4'].filter(tn => testDef[tn] && testDef[tn].length) : [];
+    const wiederholenFeldName = grammatikDef ? 'punkteWiederholen' : 'wiederholenTeile';
+    const wiederholenLabel = opt => grammatikDef ? `Punkt ${opt}` : teilLabels[opt];
+    const vorherigeAuswahl = new Set(Array.isArray(statusObj[wiederholenFeldName]) && statusObj[wiederholenFeldName].length ? statusObj[wiederholenFeldName] : wiederholenOptionen);
+    const teilCheckboxenHtml = wiederholenOptionen.length > 1 ? `
       <div class="teil-wiederholen-auswahl" style="margin-top:10px; font-size:13.5px; color:var(--ink-soft);">
-        Bei „Wiederholen nötig" nur diese Teile erneut abfragen:
+        Bei „Wiederholen nötig" nur diese ${grammatikDef ? 'Punkte' : 'Teile'} erneut abfragen:
         <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:6px;">
-          ${teilOptionen.map(tn => `<label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-weight:400;">
-            <input type="checkbox" class="teil-wiederholen-cb" value="${tn}" ${vorherigeAuswahl.has(tn) ? 'checked' : ''}> ${teilLabels[tn]}
+          ${wiederholenOptionen.map(opt => `<label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-weight:400;">
+            <input type="checkbox" class="teil-wiederholen-cb" value="${opt}" ${vorherigeAuswahl.has(opt) ? 'checked' : ''}> ${wiederholenLabel(opt)}
           </label>`).join('')}
         </div>
       </div>` : '';
@@ -4368,7 +3703,7 @@ async function loadSubmissions(isBackgroundRefresh) {
         <span class="meta">${escapeHtml(sub.testTitle)} · ${dateStr}</span>
       </div>
       <span class="status-tag ${statusObj.status}">${statusObj.status === 'wiederholen' ? 'Wiederholen nötig' : statusObj.status === 'weiter' ? 'Kann weitermachen' : 'Noch nicht bewertet'}</span>
-      ${sub.bereichsErgebnisse ? `<div class="autoscore">${sub.autoCorrect} von ${sub.autoTotal} Bereichen mit ≥85% bestanden</div>${berichtHtml}${bereicheHtml}` : `<div class="autoscore">${sub.isPunkteTest ? 'Automatisch ausgewertet' : 'Teil 1/2/4 automatisch ausgewertet'}: <strong>${sub.autoCorrect} / ${sub.autoTotal}</strong> ${sub.isPunkteTest ? 'Punkte' : 'richtig'}</div>${teilDetailsHtml}${teil3Html}`}
+      ${sub.bereichsErgebnisse ? `<div class="autoscore">${sub.autoCorrect} von ${sub.autoTotal} Bereichen mit ≥85% bestanden</div>${berichtHtml}${bereicheHtml}` : `<div class="autoscore">${(sub.isPunkteTest || sub.isGrammatikblock) ? 'Automatisch ausgewertet' : 'Teil 1/2/4 automatisch ausgewertet'}: <strong>${sub.autoCorrect} / ${sub.autoTotal}</strong> ${sub.isPunkteTest ? 'Punkte' : 'richtig'}</div>${teilDetailsHtml}${teil3Html}`}
       <textarea class="comment-input" placeholder="Kommentar für den Schüler (optional)">${escapeHtml(statusObj.comment || '')}</textarea>
       ${teilCheckboxenHtml}
       <div class="status-controls">
@@ -4385,10 +3720,10 @@ async function loadSubmissions(isBackgroundRefresh) {
     div.querySelector('.status-danger-btn').addEventListener('click', async () => {
       const angehakt = [...div.querySelectorAll('.teil-wiederholen-cb:checked')].map(cb => cb.value);
       const payload = { status: 'wiederholen', comment: commentInput.value.trim(), reviewedAt: new Date().toISOString() };
-      // Nur speichern, wenn NICHT alle vorhandenen Teile angehakt sind — sonst ist es eine normale
-      // volle Wiederholung (bestehendes Verhalten, kein Vorausfüllen nötig).
-      if (teilOptionen.length > 1 && angehakt.length && angehakt.length < teilOptionen.length) {
-        payload.wiederholenTeile = angehakt;
+      // Nur speichern, wenn NICHT alle vorhandenen Teile/Punkte angehakt sind — sonst ist es eine
+      // normale volle Wiederholung (bestehendes Verhalten, kein Vorausfüllen nötig).
+      if (wiederholenOptionen.length > 1 && angehakt.length && angehakt.length < wiederholenOptionen.length) {
+        payload[wiederholenFeldName] = grammatikDef ? angehakt.map(Number) : angehakt;
       }
       await window.storage.set(statusKey, JSON.stringify(payload), true);
       loadSubmissions(false);
@@ -4417,6 +3752,22 @@ async function loadSubmissions(isBackgroundRefresh) {
       });
     });
 
+    div.querySelectorAll('.teil3-marker-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const i = parseInt(btn.getAttribute('data-i'), 10);
+        const neuerWert = btn.getAttribute('data-wert') === 'true';
+        const { _key, lehrkraftStatus, lehrkraftKommentar, bewertetAm, ...subOhneKey } = sub;
+        if (!subOhneKey.teil3 || !subOhneKey.teil3[i]) return;
+        if (subOhneKey.teil3[i].korrekt === neuerWert) return; // schon so markiert
+        subOhneKey.teil3[i].korrekt = neuerWert;
+        div.querySelectorAll(`.teil3-marker-btn[data-i="${i}"]`).forEach(b => b.disabled = true);
+        try {
+          await window.storage.set(_key, JSON.stringify(subOhneKey), true);
+        } catch (e) { /* Speicher nicht verfügbar */ }
+        setTimeout(() => loadSubmissions(true), 300);
+      });
+    });
+
     listEl.appendChild(div);
   }
   document.getElementById('lastUpdated').textContent = 'Zuletzt aktualisiert: ' + new Date().toLocaleTimeString('de-DE');
@@ -4424,7 +3775,7 @@ async function loadSubmissions(isBackgroundRefresh) {
 }
 
 async function sammleAlleEinreichungenFuerExport(fortschrittCallback) {
-  const alleTestIds = Object.keys(TESTS);
+  const alleTestIds = alleAbgabeIds(); // echte Tests + Grammatikblöcke, die ebenfalls abgeben
   const alleSchuelerSlugs = [...document.querySelectorAll('#startName option')]
     .map(o => o.value).filter(v => v).map(v => slug(v));
 
