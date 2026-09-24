@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DaZ Vokabeltests — Lehrkraft</title>
+<script>
+  // ==== VERSION — nach JEDER Änderung an css/js/data hier hochzählen (z. B. 20260924b), damit Browser die neuen
+  //      Dateien sofort laden und nicht mit alten mischen. In index.html UND lehrkraft.html gleich halten. ====
+  var APP_V = '20260927a';
+  document.write('<link rel="stylesheet" href="css/style.css?v=' + APP_V + '">');
+</script>
+</head>
+<body>
+
+<!-- ============ LEHRER-DASHBOARD ============ -->
+<div id="view-dashboard">
+  <header class="top">
+    <a class="backlink" id="dashBack" href="index.html">← Zur Schüler-Ansicht</a>
+    <p class="eyebrow">Werkstattarbeit DaZ</p>
+    <h1>Lehrkraft-Ansicht</h1>
+    <p class="sub">Eingereichte Tests & KI-Auswertung</p>
+  </header>
+  <div class="wrap">
+    <div id="pinGate" class="pin-gate">
+      <p>PIN eingeben, um die Ergebnisse zu sehen.</p>
+      <input type="password" inputmode="numeric" id="pinInput" maxlength="4" placeholder="••••">
+      <button class="btn full" id="pinSubmit">Öffnen</button>
+      <p id="pinError" style="color: var(--bad); font-size: 13px; display:none;">Falscher PIN.</p>
+    </div>
+    <div id="dashContent" class="hidden">
+      <div class="refresh-row">
+        <button class="btn secondary small" id="refreshBtn">Aktualisieren</button>
+        <button class="btn secondary small" id="exportBtn">Ergebnisse als Datei speichern</button>
+        <a id="resetExportMarker" style="color:var(--ink-soft); font-size:12.5px; text-decoration:underline; cursor:pointer; align-self:center;">Export-Zähler zurücksetzen</a>
+        <span class="status-text" id="lastUpdated"></span>
+      </div>
+      <div id="exportMeldung"></div>
+      <div class="manual-progress-panel">
+        <button class="btn secondary small" id="toggleManualProgress">Zugriff manuell freischalten (z. B. bei Quereinstieg) ▾</button>
+        <div id="manualProgressBody" class="hidden">
+          <p class="hint">Für Schüler, die nicht bei A1 anfangen müssen (z. B. schon auf A2-Niveau). Schaltet den Zugriff auf alles bis einschließlich des gewählten Lernfelds frei — <strong>ohne</strong> es als erledigt zu markieren. Alles bleibt „offen", bis der Schüler es tatsächlich macht.</p>
+          <label>Schüler</label>
+          <select id="manualStudentSelect">
+            <option value="">— Bitte wählen —</option>
+          </select>
+          <label>Zugriff freischalten bis einschließlich</label>
+          <select id="manualStageSelect"></select>
+          <button class="btn full" id="manualProgressBtn" style="margin-top:10px;">Zugriff freischalten</button>
+          <div id="manualProgressResult"></div>
+        </div>
+      </div>
+      <div class="student-filter-row">
+        <label for="dashStudentFilter">Schüler anzeigen:</label>
+        <select id="dashStudentFilter">
+          <option value="">— Bitte wählen —</option>
+        </select>
+      </div>
+      <div id="submissionList"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Unsichtbarer Arbeitsbereich: Abschlusstests werden hier im Hintergrund aufgebaut, um ältere Abgaben aufzuschlüsseln -->
+<div class="hidden" aria-hidden="true"><div id="abschlussBody"></div></div>
+
+<script>
+  // ==== LADER — lädt alle Skripte in fester Reihenfolge. Neue Datei (z. B. data/a1-lf2.js) hier eintragen. ====
+  [
+    'js/shared.js',
+    'data/a1-lf1-grundschrift.js',
+    'data/a1-lf2-begruessung.js',
+    'data/a1-lf3-personen.js',
+    'data/tests-a2.js',
+    'data/tests-eingangstest.js',
+    'data/activities-a2.js',
+    'data/grammatik-a1.js',
+    'data/curriculum.js',
+    'js/tests-common.js',
+    'js/teacher.js'
+  ].forEach(function (src) { document.write('<script src="' + src + '?v=' + APP_V + '"><\/script>'); });
+</script>
+<noscript><p style="padding:20px">Bitte JavaScript aktivieren.</p></noscript>
+
+</body>
+</html>
