@@ -538,7 +538,7 @@ registerTests({
  },
  "a1_lf2_abschlusstest": {
   "title": "Lernfeld-Test A1.2",
-  "sub": "A1.2 Begrüßung — Abschlusstest (33 Punkte, davon 5 von der Lehrkraft)",
+  "sub": "A1.2 Begrüßung — Lernfeld-Test (33 Punkte, davon 5 von der Lehrkraft)",
   "type": "abschlusstest_generisch",
   "abschnitte": [
    {

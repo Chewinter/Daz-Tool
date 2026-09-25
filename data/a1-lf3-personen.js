@@ -1006,7 +1006,7 @@ registerTests({
  },
  "a1_lf3_abschlusstest": {
   "title": "Lernfeld-Test A1.3",
-  "sub": "A1.3 Personen — Abschlusstest (55 Punkte, davon 5 von der Lehrkraft)",
+  "sub": "A1.3 Personen — Lernfeld-Test (55 Punkte, davon 5 von der Lehrkraft)",
   "type": "abschlusstest_generisch",
   "abschnitte": [
    {
@@ -1269,7 +1269,7 @@ registerTests({
 registerActivities({
  "a1_lf3_memory": {
   "title": "Familien-Memory",
-  "sub": "A1.3 Personen — Übung (Bild und Wort)",
+  "sub": "A1.3 Personen — Spiel (Bild und Wort)",
   "type": "memory",
   "anzahl": 8,
   "hinweis": "Decke zwei Karten auf: Das Bild und das Wort passen zusammen. Lies das Wort laut!",

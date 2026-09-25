@@ -433,7 +433,7 @@ registerTests({
  },
  "lf1_abschlusstest": {
   "title": "Lernfeld-Test 1",
-  "sub": "Lernfeld 1: Freizeit — Abschlusstest",
+  "sub": "Lernfeld 1: Freizeit — Lernfeld-Test",
   "type": "abschlusstest",
   "konjugation": [
    {
@@ -1327,7 +1327,7 @@ registerTests({
  },
  "lf2_abschlusstest": {
   "title": "Lernfeld-Test 2",
-  "sub": "Lernfeld 2: Wohnen — Abschlusstest",
+  "sub": "Lernfeld 2: Wohnen — Lernfeld-Test",
   "type": "abschlusstest2",
   "konjugation": [
    {
@@ -2116,7 +2116,7 @@ registerTests({
  },
  "lf3_abschlusstest": {
   "title": "Lernfeld-Test 3",
-  "sub": "Lernfeld 3: Körper — Abschlusstest",
+  "sub": "Lernfeld 3: Körper — Lernfeld-Test",
   "type": "abschlusstest3",
   "konjugation": [
    {
@@ -2751,7 +2751,7 @@ registerTests({
  },
  "lf4_abschlusstest": {
   "title": "Lernfeld-Test 4",
-  "sub": "Lernfeld 4: Essen — Abschlusstest",
+  "sub": "Lernfeld 4: Essen — Lernfeld-Test",
   "type": "abschlusstest4",
   "tabellen": [
    {
@@ -3739,7 +3739,7 @@ registerTests({
  },
  "lf5_abschlusstest": {
   "title": "Lernfeld-Test 5",
-  "sub": "Lernfeld 5: Einkaufen — Abschlusstest",
+  "sub": "Lernfeld 5: Einkaufen — Lernfeld-Test",
   "type": "abschlusstest5",
   "tabellen": [
    {

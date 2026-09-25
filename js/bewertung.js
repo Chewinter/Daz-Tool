@@ -68,7 +68,7 @@ function analysiereAbgabe(sub) {
     const def = ACTIVITIES[sub.testId];
     const nrs = [];
     (sub.teilDetails || []).forEach(d => { if (nrs.indexOf(d.punktNr) < 0) nrs.push(d.punktNr); });
-    A.teile = nrs.map(nr => { const p = def && def.punkte ? def.punkte.find(x => x.nr === nr) : null; return { id: 'p' + nr, nr, titel: `Punkt ${nr}${p && p.titel ? ' — ' + p.titel : ''}` }; });
+    A.teile = nrs.map(nr => { const p = def && def.punkte ? def.punkte.find(x => x.nr === nr) : null; return { id: 'p' + nr, nr, titel: `Aufgabe ${nr}${p && p.titel ? ' — ' + p.titel : ''}` }; });
     (sub.teilDetails || []).forEach((d, i) => {
       A.items.push({ id: 'd' + i, teil: 'p' + d.punktNr, frage: d.frage, antwort: d.antwort, auto: d.korrekt === undefined ? null : d.korrekt, korrektAntwort: d.korrektAntwort, punkte: 1 });
     });
@@ -114,7 +114,7 @@ function berechneErgebnis(A, ov) {
   return { teile, punkte, max, prozent, note, offen, falsch };
 }
 
-function zeileHtml(it, ov) {
+function zeileHtml(it, ov, fb, fbOffen) {
   const e = effektiv(it, ov);
   const geaendert = ov && ov[it.id] !== undefined && ov[it.id] !== it.auto;
   const opt = (it.korrektAntwort || '').toString().split(' / ').map(s => s.trim()).filter(Boolean);
@@ -127,12 +127,22 @@ function zeileHtml(it, ov) {
   if (e === null || e === undefined) text += ' <em>(nicht automatisch geprüft — bitte bewerten)</em>';
   if (it.satz && it.feedback) text += `<div class="kifeedback">${escapeHtml(it.feedback)}</div>`;
   if (geaendert) text += ' <em class="geaendert">(von dir geändert)</em>';
-  return `<div class="antwortzeile bw-zeile ${cls}" data-id="${it.id}">
+  const zeile = `<div class="antwortzeile bw-zeile ${cls}" data-id="${it.id}">
       <div class="bw-text">${text}</div>
       <div class="bw-toggle" role="group" aria-label="Richtig oder falsch">
         <button type="button" class="bw-btn ${e === true ? 'an-ok' : ''}" data-wert="true" title="als richtig werten">✓</button>
         <button type="button" class="bw-btn ${e === false ? 'an-bad' : ''}" data-wert="false" title="als falsch werten">✗</button>
       </div></div>`;
+  // Hinweis für den Schüler (richtige Lösung + Fehler) — bei Sätzen/eigenen Antworten sofort offen, sonst per Link
+  const f = (fb && fb[it.id]) || null;
+  const offen = e === false && (it.satz || it.manuell || f || (fbOffen && fbOffen.has(it.id)));
+  let fbHtml = '';
+  if (offen) {
+    fbHtml = `<div class="bw-fb" data-id="${it.id}"><input type="text" class="bw-fb-loesung" placeholder="So heißt es richtig …" value="${escapeHtml(f ? f.loesung || '' : '')}"><input type="text" class="bw-fb-fehler" placeholder="Wo war der Fehler? (z. B. Verb an Position 2)" value="${escapeHtml(f ? f.fehler || '' : '')}"></div>`;
+  } else if (e === false) {
+    fbHtml = `<div class="bw-fb-zu"><button type="button" class="bw-fb-link" data-id="${it.id}">+ Hinweis für den Schüler</button></div>`;
+  }
+  return zeile + fbHtml;
 }
 
 // Baut den kompletten Bewertungsbereich einer Abgabe (ersetzt die alte Karte für alle Nicht-Eingangstests)
@@ -142,9 +152,11 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
   const ov = Object.assign({}, draft.overrides || {});
   let teilWdh = Array.isArray(draft.teilWdh) ? draft.teilWdh.slice() : null;
   let teilWdhDirty = !!teilWdh;
+  const fb = Object.assign({}, draft.fb || {});      // Hinweise pro Antwort: { id: { loesung, fehler } }
+  const fbOffen = new Set();
   const dt = new Date(sub.timestamp);
   const dateStr = dt.toLocaleDateString('de-DE') + ' ' + dt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  const titelAnzeige = titelMitSchritt(sub.testId, sub.testTitle);
+  const titelAnzeige = anzeigeTitel(sub.testId, sub.testTitle);
   const istAbschluss = A.art === 'abschluss';
   const statusText = statusObj.status === 'wiederholen' ? 'Wiederholen nötig' : statusObj.status === 'weiter' ? (statusObj.korrektur ? (statusObj.zettel ? 'Korrektur auf Papier — Zettel kontrolliert ✓' : 'Korrektur auf Papier — Zettel noch offen') : 'Bewertet — kann weitermachen') : 'Noch nicht bewertet';
 
@@ -185,7 +197,7 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
       const zahl = istAbschluss ? `${te.punkte} von ${te.max} Punkten` : `${te.richtig} von ${te.gesamt} richtig`;
       return `<div class="bw-teil" data-teil="${tl.id}">
         <h4>${escapeHtml(tl.titel)} <span class="bw-teilzahl ${te.falsch ? 'hat-fehler' : ''}">${zahl}</span></h4>
-        ${its.length ? its.map(it => zeileHtml(it, ov)).join('') : '<div class="bw-leer">Keine Antworten in diesem Teil.</div>'}
+        ${its.length ? its.map(it => zeileHtml(it, ov, fb, fbOffen)).join('') : '<div class="bw-leer">Keine Antworten in diesem Teil.</div>'}
         <label class="bw-wdh"><input type="checkbox" class="teil-wdh-cb" value="${tl.id}" ${teilWdh.indexOf(tl.id) >= 0 ? 'checked' : ''}> ${istAbschluss ? 'Diesen Teil wiederholen lassen' : 'Diesen Teil wiederholen lassen (nur bei „Wiederholen nötig“)'}</label>
       </div>`;
     }).join('');
@@ -219,7 +231,7 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
   function speichereEntwurf() {
     clearTimeout(speichereEntwurf._t);
     speichereEntwurf._t = setTimeout(async () => {
-      const draftObj = { overrides: ov, teilWdh: teilWdhDirty ? teilWdh : null, kommentar: kommentarEl.value, savedAt: new Date().toISOString() };
+      const draftObj = { overrides: ov, fb, teilWdh: teilWdhDirty ? teilWdh : null, kommentar: kommentarEl.value, savedAt: new Date().toISOString() };
       try { await window.storage.set(draftKeyFuer(sub), JSON.stringify(draftObj), true); } catch (e) { /* Entwurf nicht kritisch */ }
     }, 350);
   }
@@ -248,6 +260,20 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
     teilWdh = [...teileEl.querySelectorAll('.teil-wdh-cb:checked')].map(cb => cb.value);
     speichereEntwurf();
   });
+  teileEl.addEventListener('input', (ev) => {
+    const box = ev.target.closest('.bw-fb');
+    if (!box || nurAnsicht) return;
+    const id = box.getAttribute('data-id');
+    const l = box.querySelector('.bw-fb-loesung').value, f = box.querySelector('.bw-fb-fehler').value;
+    if (l.trim() || f.trim()) fb[id] = { loesung: l, fehler: f }; else delete fb[id];
+    speichereEntwurf();
+  });
+  teileEl.addEventListener('click', (ev) => {
+    const link = ev.target.closest('.bw-fb-link');
+    if (!link || nurAnsicht) return;
+    fbOffen.add(link.getAttribute('data-id'));
+    aktualisiere();
+  });
   kommentarEl.addEventListener('input', speichereEntwurf);
 
   async function abschliessen(gewuenscht) {
@@ -267,8 +293,9 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
     }
     const korrektur = ergebnis === 'weiter' && erg.falsch > 0;
     const teileErg = erg.teile.map(x => ({ id: x.id, titel: x.titel, richtig: x.richtig, gesamt: x.gesamt, punkte: x.punkte, max: x.max, wiederholen: ergebnis === 'wiederholen' && gewaehlt.indexOf(x.id) >= 0 }));
-    const fehler = A.items.filter(it => !it.satz && effektiv(it, ov) === false).map(it => ({ teil: (A.teile.find(x => x.id === it.teil) || {}).titel || '', frage: it.frage, antwort: it.antwort, korrektAntwort: it.korrektAntwort }));
-    const saetze = A.items.filter(it => it.satz && effektiv(it, ov) === false).map(it => ({ frage: it.frage, satz: it.antwort, vorschlag: it.korrektAntwort }));
+    const hinw = it => { const f = fb[it.id]; return f ? { loesung: (f.loesung || '').trim(), hinweis: (f.fehler || '').trim() } : { loesung: '', hinweis: '' }; };
+    const fehler = A.items.filter(it => !it.satz && effektiv(it, ov) === false).map(it => ({ teil: (A.teile.find(x => x.id === it.teil) || {}).titel || '', frage: it.frage, antwort: it.antwort, korrektAntwort: it.korrektAntwort || '', ...hinw(it) }));
+    const saetze = A.items.filter(it => it.satz && effektiv(it, ov) === false).map(it => ({ frage: it.frage, satz: it.antwort, vorschlag: it.korrektAntwort || '', ...hinw(it) }));
     const felder = istAbschluss ? A.items.filter(it => it.key).map(it => ({ key: it.key, korrekt: effektiv(it, ov) === true })) : [];
     const review = { v: 1, testId: sub.testId, name: sub.name, titel: titelAnzeige, art: A.art, reviewedAt: new Date().toISOString(), kommentar, ergebnis, korrektur,
       punkte: istAbschluss ? erg.punkte : null, max: istAbschluss ? erg.max : null, prozent: istAbschluss ? erg.prozent : null, note: erg.note,
@@ -286,7 +313,7 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
     try {
       await window.storage.set(reviewKeyFuer(sub), JSON.stringify(review), true);
       await window.storage.set(statusKey, JSON.stringify(status), true);
-      await window.storage.set(draftKeyFuer(sub), JSON.stringify({ overrides: ov, teilWdh: gewaehlt, kommentar, savedAt: review.reviewedAt }), true);
+      await window.storage.set(draftKeyFuer(sub), JSON.stringify({ overrides: ov, fb, teilWdh: gewaehlt, kommentar, savedAt: review.reviewedAt }), true);
     } catch (e) { alert('Konnte die Bewertung nicht speichern (' + (e && e.message ? e.message : 'Speicherfehler') + '). Bitte nochmal versuchen.'); return; }
     loadSubmissions(false);
   }

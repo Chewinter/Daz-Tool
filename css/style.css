@@ -398,7 +398,8 @@
   .konj-person-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .konj-person-label { width: 70px; flex-shrink: 0; font-size: 12.5px; color: var(--ink-soft); }
   .konj-person-row input { flex: 1; font-size: 14px; padding: 6px 8px; border: 2px solid var(--line); border-radius: 6px; min-width: 0; }
-  .konj-stamm { font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+  .konj-stamm { font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; align-self: stretch; display: flex; align-items: center; background: #F2EFE6; border: 2px solid var(--line); border-right: none; border-radius: 6px 0 0 6px; padding: 0 2px 0 8px; }
+  .konj-stamm + .konj-endung-input { margin-left: -8px; flex: 0 0 64px !important; border-radius: 0 6px 6px 0 !important; }
   .konj-endung-input { flex: 0 1 70px !important; text-align: left; }
 
   /* ---- Generischer Abschlusstest (A1) + Emoji-Bilder + Spiele Memory/Wörter bauen ---- */
@@ -461,6 +462,24 @@
   .erg-richtig { color: var(--good); font-weight: 600; }
   .abschluss-gesperrt { opacity: .55; pointer-events: none; background: #EEF3F0; }
   .nur-ansicht .bw-btn, .nur-ansicht .bw-wdh, .nur-ansicht .comment-input { pointer-events: none; opacity: .55; }
+  .bw-fb { display: flex; gap: 6px; flex-wrap: wrap; margin: -2px 0 8px 22px; }
+  .bw-fb input { flex: 1 1 240px; padding: 6px 8px; border: 1.5px solid var(--line); border-radius: 6px; font-size: 13.5px; background: #fff; }
+  .bw-fb-zu { margin: -4px 0 6px 22px; }
+  .bw-fb-link { background: none; border: none; color: var(--teal-dark); text-decoration: underline; cursor: pointer; font-size: 12.5px; padding: 0; }
+  .erg-hinweis { color: var(--ink); font-style: italic; }
+
+  /* ---- Verbtabellen (B1) ---- */
+  .vt-karte { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px 8px; margin: 10px 0; background: #fff; }
+  .vt { width: 100%; border-collapse: collapse; }
+  .vt caption { text-align: left; font-weight: 700; padding: 2px 0 6px; color: var(--teal-dark); }
+  .vt th { text-align: left; width: 96px; font-weight: 600; font-size: 13px; padding: 3px 6px; background: #F2EFE6; }
+  .vt td { padding: 2px 4px; } .vt td input { width: 100%; }
+  .vt-vorgabe { color: var(--ink-soft); font-style: italic; padding-left: 8px !important; }
+  .gen-bild-gross-wrap { margin: 8px 0 12px; text-align: center; }
+  .gen-bild-gross { max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  .gen-lang { flex: 1 1 100%; min-height: 150px; width: 100%; resize: vertical; font-family: inherit; }
+  .gen-item { flex-wrap: wrap; }
+  .gen-item .gen-lang { width: 100% !important; max-width: none !important; }
 
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
@@ -493,4 +512,21 @@
   .detail-kopf { display: flex; align-items: center; gap: 12px; margin: 4px 0 10px; }
   .detail-kopf h2 { font-family: Georgia, serif; margin: 0; font-size: 22px; }
   .bw-zettel { display: flex; gap: 6px; align-items: center; margin: 8px 0; font-size: 14px; cursor: pointer; }
+
+  /* ---- Schritt-Matrix ---- */
+  .mx-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: #fff; margin-top: 6px; max-height: 70vh; }
+  .mx { border-collapse: separate; border-spacing: 0; font-size: 12px; }
+  .mx th, .mx td { border-bottom: 1px solid #EFEBDD; border-right: 1px solid #F3F0E6; padding: 0; }
+  .mx .mx-name { position: sticky; left: 0; background: #FCFBF7; z-index: 2; text-align: left; min-width: 150px; max-width: 190px; padding: 3px 6px; font-weight: 600; }
+  .mx-namebtn { background: none; border: none; cursor: pointer; font: inherit; font-weight: 600; color: var(--teal-dark); padding: 0; text-align: left; }
+  .mx thead th { position: sticky; top: 0; background: #F2EFE6; z-index: 3; }
+  .mx thead tr:nth-child(2) th { top: 26px; }
+  .mx-stufe { padding: 4px 6px !important; font-size: 11.5px; white-space: nowrap; }
+  .mx-stufe.niveau-A1 { background: #E3EFEB !important; } .mx-stufe.niveau-A2 { background: #F8EFD3 !important; } .mx-stufe.niveau-B1 { background: #E6E2F3 !important; }
+  .mx-spalte { min-width: 24px; font-weight: 500; color: var(--ink-soft); padding: 2px 2px !important; }
+  .mx-zelle { display: table-cell; min-width: 24px; height: 22px; cursor: pointer; }
+  .mx-legende .mx-zelle { display: inline-block; width: 14px; min-width: 14px; height: 14px; vertical-align: middle; margin: 0 3px 0 10px; border: 1px solid #D9D4C4; cursor: default; }
+  .mx-zelle.leer { background: #F4F2EA; } .mx-zelle.angefangen { background: #9DC3E6; } .mx-zelle.wartet { background: #F2C230; }
+  .mx-zelle.zettel { background: #F0955A; } .mx-zelle.wdh { background: #E06666; } .mx-zelle.fertig { background: #6DB98D; }
+  .mx-legende { font-size: 12.5px; color: var(--ink-soft); margin: 4px 0; line-height: 1.9; }
 

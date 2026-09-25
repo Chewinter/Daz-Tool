@@ -2,7 +2,7 @@
 registerActivities({
  "lf1_schritt3_domino": {
   "title": "Gegenteil-Domino",
-  "sub": "Lernfeld 1: Freizeit — Schritt 3 (Übung)",
+  "sub": "Lernfeld 1: Freizeit — Schritt 3 (Spiel)",
   "type": "domino",
   "pairs": [
    [
@@ -69,7 +69,7 @@ registerActivities({
  },
  "lf1_schritt4_steigern": {
   "title": "Adjektiv-Quartett",
-  "sub": "Lernfeld 1: Freizeit — Schritt 4 (Übung)",
+  "sub": "Lernfeld 1: Freizeit — Schritt 4 (Spiel)",
   "type": "quartett",
   "items": [
    {
@@ -124,7 +124,7 @@ registerActivities({
  },
  "lf1_schritt5_wortarten": {
   "title": "Wortarten",
-  "sub": "Lernfeld 1: Freizeit — Schritt 5 (Übung)",
+  "sub": "Lernfeld 1: Freizeit — Schritt 5 (Spiel)",
   "type": "wortarten",
   "sortierItems": [
    {
@@ -252,7 +252,7 @@ registerActivities({
  },
  "lf2_schritt6_brettspiel": {
   "title": "Wohnung einrichten",
-  "sub": "Lernfeld 2: Wohnen — Schritt 6 (Übung)",
+  "sub": "Lernfeld 2: Wohnen — Schritt 6 (Spiel)",
   "type": "brettspiel",
   "moebel_zimmer": {
    "Bett": {
@@ -509,7 +509,7 @@ registerActivities({
  },
  "lf3_schritt8_quiz": {
   "title": "Körper-Quiz",
-  "sub": "Lernfeld 3: Körper — Schritt 8 (Übung)",
+  "sub": "Lernfeld 3: Körper — Schritt 8 (Spiel)",
   "type": "quizkarten",
   "karten": [
    {
@@ -644,7 +644,7 @@ registerActivities({
  },
  "lf4_schritt5_schlange": {
   "title": "Schlangenbauen",
-  "sub": "Lernfeld 4: Essen — Schritt 5 (Übung)",
+  "sub": "Lernfeld 4: Essen — Schritt 5 (Spiel)",
   "type": "schlangenbauen",
   "personalpronomen": [
    "ich",

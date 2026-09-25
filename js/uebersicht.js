@@ -24,7 +24,7 @@ function kurzName(name) {
 function stufeFuerTest(id) { const i = CURRICULUM.findIndex(s => s.items.indexOf(id) >= 0); return i; }
 function testAnzeige(id) {
   const i = stufeFuerTest(id); const info = curriculumItemInfo(id);
-  return { stufe: i >= 0 ? CURRICULUM[i].name : '', titel: titelMitSchritt(id, info.title) };
+  return { stufe: i >= 0 ? CURRICULUM[i].name : '', titel: anzeigeTitel(id, info.title) };
 }
 
 // Zettel-Haken (Korrektur auf Papier): am Status-Eintrag des Tests speichern
@@ -110,6 +110,51 @@ function sammleAufgaben(schueler) {
   return { wartet, wiederholen, zettel, pausiert };
 }
 
+
+// ---------------- SCHRITT-MATRIX ----------------
+// Zeilen = Schüler, Spalten = jeder Schritt/Test/Spiel/Lernfeld-Test/Einstufungstest/Grammatik-Block in Lernpfad-Reihenfolge.
+function zellStatus(s, id) {
+  const kind = curriculumItemInfo(id).kind;
+  if (kind === 'activity') return s.doneActs.has(id) ? { cls: 'fertig', t: 'gespielt' } : { cls: 'leer', t: 'noch nicht gespielt' };
+  const st = s.status[id];
+  if (s.done.has(id)) {
+    if (st && st.status === 'wiederholen') return { cls: 'wdh', t: 'Wiederholung nötig' };
+    if (st && st.status === 'weiter') return (st.korrektur && !st.zettel) ? { cls: 'zettel', t: 'Korrektur auf Papier offen' } : { cls: 'fertig', t: 'bewertet' };
+    return { cls: 'wartet', t: 'wartet auf deine Bewertung' };
+  }
+  if (Object.prototype.hasOwnProperty.call(s.pausiert, id)) return { cls: 'angefangen', t: 'angefangen (pausiert)' };
+  return { cls: 'leer', t: 'nicht begonnen' };
+}
+function spaltenLabel(id) {
+  const kind = curriculumItemInfo(id).kind;
+  if (kind === 'test-final') return 'LT';
+  if (kind === 'eingangstest') return 'E';
+  if (kind === 'grammatik') { const m = /block(\d+)/.exec(id); return 'G' + (m ? m[1] : ''); }
+  const l = schrittLabel(id);
+  const nr = l ? l.replace('Schritt ', '') : '';
+  return kind === 'activity' ? (nr ? 'Sp' + nr : 'Sp') : (nr ? 'S' + nr : '•');
+}
+function rendereMatrixHtml(schueler) {
+  let kopf1 = '<tr><th class="mx-name"></th>', kopf2 = '<tr><th class="mx-name">Schüler</th>';
+  CURRICULUM.forEach(st => {
+    kopf1 += `<th colspan="${st.items.length}" class="mx-stufe niveau-${st.niveau}">${escapeHtml(st.name)}</th>`;
+    st.items.forEach(id => { kopf2 += `<th class="mx-spalte" title="${escapeHtml(anzeigeTitel(id, curriculumItemInfo(id).title))}">${escapeHtml(spaltenLabel(id))}</th>`; });
+  });
+  let zeilen = '';
+  schueler.forEach(s => {
+    zeilen += `<tr><th class="mx-name"><button type="button" class="mx-namebtn" data-slug="${s.slug}">${escapeHtml(s.name)}</button></th>`;
+    CURRICULUM.forEach(st => st.items.forEach(id => {
+      const z = zellStatus(s, id);
+      zeilen += `<td class="mx-zelle ${z.cls}" data-slug="${s.slug}" data-test="${id}" title="${escapeHtml(s.name + ' — ' + anzeigeTitel(id, curriculumItemInfo(id).title) + ': ' + z.t)}"></td>`;
+    }));
+    zeilen += '</tr>';
+  });
+  return `<h2 class="ub-h">Schritt für Schritt</h2>
+    <div class="mx-legende"><span class="mx-zelle leer"></span> nicht begonnen <span class="mx-zelle angefangen"></span> angefangen <span class="mx-zelle wartet"></span> wartet auf dich <span class="mx-zelle zettel"></span> Zettel offen <span class="mx-zelle wdh"></span> Wiederholung <span class="mx-zelle fertig"></span> fertig / gespielt
+      · S = Test zu Schritt · Sp = Spiel · G = Grammatik-Block · LT = Lernfeld-Test · E = Einstufungstest</div>
+    <div class="mx-wrap"><table class="mx"><thead>${kopf1}</tr>${kopf2}</tr></thead><tbody>${zeilen}</tbody></table></div>`;
+}
+
 function zeileHtmlUeb(x, knopf, extra) {
   return `<div class="ub-zeile" data-slug="${x.slug}" data-test="${x.testId}">
     <div class="ub-info"><strong>${escapeHtml(x.name)}</strong> · ${escapeHtml(x.stufe)} · ${escapeHtml(x.titel)}
@@ -157,8 +202,11 @@ function rendereUebersicht() {
       }).join('') : '<span class="st-leer">–</span>') + `</div></div>`;
   });
   h += `</div><p class="ub-legende"><span class="fig wartet klein">gelb</span> wartet auf deine Bewertung · <span class="fig wdh klein">rot</span> muss wiederholen · Zahl = Anzahl offener Bewertungen</p>`;
+  h += rendereMatrixHtml(schueler);
   body.innerHTML = h;
 
+  body.querySelectorAll('.mx-zelle[data-test]').forEach(c => c.addEventListener('click', () => oeffneSchueler(c.getAttribute('data-slug'), c.getAttribute('data-test'))));
+  body.querySelectorAll('.mx-namebtn').forEach(b => b.addEventListener('click', () => oeffneSchueler(b.getAttribute('data-slug'))));
   body.querySelectorAll('.fig').forEach(b => b.addEventListener('click', () => oeffneSchueler(b.getAttribute('data-slug'))));
   body.querySelectorAll('.ub-bewerten').forEach(b => b.addEventListener('click', () => { const z = b.closest('.ub-zeile'); oeffneSchueler(z.getAttribute('data-slug'), z.getAttribute('data-test')); }));
   body.querySelectorAll('.ub-zettel-cb').forEach(cb => cb.addEventListener('change', async () => {

@@ -193,7 +193,7 @@ function aufloeseManualAccessIndex(rec) {
 function istAbschlusstest(t) { return !!(t && t.type && t.type.startsWith('abschlusstest')); }
 
 function curriculumItemInfo(id) {
-  if (id === 'eingangstest_a1') return { title: 'Eingangstest A1', kind: 'eingangstest' };
+  if (id === 'eingangstest_a1') return { title: 'Einstufungstest A1', kind: 'eingangstest' };
   if (TESTS[id]) return { title: TESTS[id].title, kind: TESTS[id].type && TESTS[id].type.startsWith('abschluss') ? 'test-final' : 'test' };
   if (ACTIVITIES[id]) {
     // Grammatikblöcke verhalten sich wie Tests (Abgabe + Lehrkraft-Freigabe), alle anderen Übungen
@@ -233,3 +233,16 @@ function schrittLabel(id) {
   return (a && a.schritt) ? 'Schritt ' + a.schritt : '';
 }
 function titelMitSchritt(id, title) { const l = schrittLabel(id); return l ? l + ': ' + title : title; }
+
+// ---------------- BEZEICHNUNGEN (einheitlich im ganzen Tool) ----------------
+// Test zu Schritt N · Spiel · Lernfeld-Test · Grammatik-Block (mit Aufgabe N) · Einstufungstest A1
+function typBezeichnung(kind) {
+  return kind === 'test-final' ? 'Lernfeld-Test' : kind === 'eingangstest' ? 'Einstufungstest' : kind === 'grammatik' ? 'Grammatik-Block' : kind === 'activity' ? 'Spiel' : 'Test';
+}
+function anzeigeTitel(id, title) {
+  const info = curriculumItemInfo(id);
+  const l = schrittLabel(id);
+  if (info.kind === 'test') return l ? `Test zu ${l}: ${title}` : `Test: ${title}`;
+  if (info.kind === 'activity') return l ? `Spiel zu ${l}: ${title}` : `Spiel: ${title}`;
+  return title;
+}

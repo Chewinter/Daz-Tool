@@ -1,7 +1,7 @@
-/* Eingangstest A1 (Einstufung vor A2). */
+/* Einstufungstest A1 (vor A2). */
 registerTests({
  "eingangstest_a1": {
-  "title": "Eingangstest A1",
+  "title": "Einstufungstest A1",
   "sub": "Bevor es mit A2 losgeht — prüfen wir, ob A1 wirklich sitzt",
   "type": "eingangstest",
   "schwelle": 85,

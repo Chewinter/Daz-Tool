@@ -20,12 +20,15 @@ const CURRICULUM = [
   { id: "a1_lf5", name: "A1.5 Schule", niveau: "A1", items: ["a1_lf5_schritt1", "a1_lf5_schritt2", "a1_lf5_memory", "a1_lf5_abschlusstest"] },
   // ---- A1: Grammatik-Training + Einstufung ----
   { id: "a1_grammatik", name: "Grammatik-Training", niveau: "A1", items: ["a1_grammatik_block1", "a1_grammatik_block2", "a1_grammatik_block3", "a1_grammatik_block4", "a1_grammatik_block5", "a1_grammatik_block6", "a1_grammatik_block7", "a1_grammatik_block8", "a1_grammatik_block9"] },
-  { id: "a1_check", name: "A1-Check", niveau: "A1", items: ["eingangstest_a1"] },
+  { id: "a1_check", name: "Einstufungstest A1", niveau: "A1", items: ["eingangstest_a1"] },
   // ---- A2 ----
   { id: "a2_lf1", name: "Lernfeld 1: Freizeit", niveau: "A2", items: ["lf1_schritt1", "lf1_schritt2", "lf1_schritt3_domino", "lf1_schritt4_steigern", "lf1_schritt5_wortarten", "lf1_abschlusstest"] },
   { id: "a2_lf2", name: "Lernfeld 2: Wohnen", niveau: "A2", items: ["lf2_schritt1", "lf2_schritt2", "lf2_schritt3", "lf2_schritt4", "lf2_schritt5", "lf2_schritt6_brettspiel", "lf2_abschlusstest"] },
   { id: "a2_lf3", name: "Lernfeld 3: Körper", niveau: "A2", items: ["lf3_schritt1", "lf3_schritt2", "lf3_schritt3", "lf3_schritt4", "lf3_schritt5", "lf3_schritt6", "lf3_schritt7", "lf3_schritt8_quiz", "lf3_abschlusstest"] },
   { id: "a2_lf4", name: "Lernfeld 4: Essen", niveau: "A2", items: ["lf4_schritt1", "lf4_schritt2", "lf4_schritt3", "lf4_schritt4", "lf4_schritt5_schlange", "lf4_abschlusstest"] },
   { id: "a2_lf5", name: "Lernfeld 5: Einkaufen", niveau: "A2", items: ["lf5_schritt1", "lf5_schritt2", "lf5_schritt3", "lf5_abschlusstest"] },
+  // ---- B1 (Fortgeschrittenenkurs) ----
+  { id: "b1_lf1", name: "B1.1 Unterwegs", niveau: "B1", items: ["b1_lf1_schritt1", "b1_lf1_puzzle", "b1_lf1_schritt3", "b1_lf1_schritt4", "b1_lf1_schritt5", "b1_lf1_schritt6", "b1_lf1_abschlusstest"] },
+  { id: "b1_lf2", name: "B1.2 Die Erde", niveau: "B1", items: ["b1_lf2_schritt1", "b1_lf2_schritt2", "b1_lf2_schritt3", "b1_lf2_schritt4", "b1_lf2_schritt5", "b1_lf2_abschlusstest"] },
 ];
 const NIVEAUS = ["A1", "A2", "B1"]; // B1 aktuell ohne Inhalte, aber schon vorgesehen

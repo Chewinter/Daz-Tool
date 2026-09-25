@@ -501,7 +501,7 @@ registerTests({
  },
  "a1_lf5_abschlusstest": {
   "title": "Lernfeld-Test A1.5",
-  "sub": "A1.5 Schule — Abschlusstest (34 Punkte, davon 2 von der Lehrkraft)",
+  "sub": "A1.5 Schule — Lernfeld-Test (34 Punkte, davon 2 von der Lehrkraft)",
   "type": "abschlusstest_generisch",
   "abschnitte": [
    {
@@ -795,7 +795,7 @@ registerTests({
 registerActivities({
  "a1_lf5_memory": {
   "title": "Klassenzimmer-Memory",
-  "sub": "A1.5 Schule — Übung (Bild und Wort)",
+  "sub": "A1.5 Schule — Spiel (Bild und Wort)",
   "type": "memory",
   "anzahl": 8,
   "hinweis": "Decke zwei Karten auf: Das Bild und das Wort passen zusammen. Lies das Wort laut!",

@@ -201,8 +201,8 @@ function renderProgressOverview() {
         else if (status === 'wirdgeprueft') { cls = 'wirdgeprueft'; icon = '⏳'; }
         else { cls = 'unerledigt'; icon = '○'; }
       }
-      const typLabel = info.kind === 'test-final' ? 'Abschlusstest' : info.kind === 'eingangstest' ? 'Einstufungstest' : info.kind === 'grammatik' ? 'Grammatikübung' : info.kind === 'activity' ? 'Übung' : 'Vokabeltest';
-      const kurz = info.kind === 'test-final' ? 'Abschlusstest' : info.kind === 'eingangstest' ? info.title : titelMitSchritt(id, info.title);
+      const typLabel = typBezeichnung(info.kind);
+      const kurz = info.kind === 'test-final' ? 'Lernfeld-Test' : info.kind === 'eingangstest' ? info.title : titelMitSchritt(id, info.title);
       html += `<div class="overview-item ${cls}"><span class="icon">${icon}</span><span><span class="overview-item-title">${kurz}</span><span class="overview-item-typ">${typLabel}</span></span></div>`;
     });
     html += `</div>`;
@@ -299,7 +299,7 @@ async function renderLernfeldItems(lfIdx, name) {
     const isActivity = info.kind === 'activity';
     const isGrammatik = info.kind === 'grammatik';
     const status = getDisplayStatus(id, info.kind); // 'erledigt' | 'wiederholen' | 'unerledigt'
-    const typLabel = info.kind === 'test-final' ? 'Abschlusstest:' : info.kind === 'eingangstest' ? 'Einstufungstest:' : isGrammatik ? 'Grammatikübung:' : isActivity ? 'Übung:' : 'Vokabeltest:';
+    const typLabel = (info.kind === 'test' || info.kind === 'activity') ? '' : typBezeichnung(info.kind) + ':'; // bei Test/Spiel steht die Art schon im Titel
 
     let kommentar = '';
     if (!isActivity && status !== 'unerledigt') {
@@ -329,7 +329,7 @@ async function renderLernfeldItems(lfIdx, name) {
     card.innerHTML = `
       <div class="ib-item-info">
         <div class="ib-item-typ">${typLabel}</div>
-        <h3>${titelMitSchritt(id, info.title)}</h3>
+        <h3>${anzeigeTitel(id, info.title)}</h3>
         <p>${sub || ''}</p>
         ${statusBadge}
         ${kommentar ? `<div class="repeat-badge">${escapeHtml(kommentar)}</div>` : ''}
@@ -388,7 +388,7 @@ async function openActivity(actId) {
   else if (a.type === 'schlangenbauen') buildSchlangenbauen(a);
   else if (a.type === 'memory') buildMemory(a);
   else if (a.type === 'wortbauen') buildWortbauen(a);
-  else if (a.type === 'dreier') buildDreier(a);
+  else if (a.type === 'dreier' || a.type === 'vierer') buildDreier(a);
   else if (a.type === 'grammatikblock') {
     document.getElementById('actBody').innerHTML = '<p class="hint">Lädt …</p>';
     const wiederholung = await ermittleGrammatikWiederholungsfilter(actId, currentActivityName, a);
@@ -435,7 +435,7 @@ async function ermittleGrammatikWiederholungsfilter(id, name, a) {
     const nurDiese = alleNummern.filter(nr => ausgewaehlt.has(nr)).join(', ');
     return {
       gesperrt, daten, teilweise: true,
-      hinweis: `<p style="color:var(--warn); font-size:14px;">Deine Lehrkraft möchte, dass du diesmal nur Punkt ${nurDiese} wiederholst — der Rest ist schon eingetragen.</p>`,
+      hinweis: `<p style="color:var(--warn); font-size:14px;">Deine Lehrkraft möchte, dass du diesmal nur Aufgabe ${nurDiese} wiederholst — der Rest ist schon eingetragen.</p>`,
     };
   } catch (e) {
     return leer; // im Zweifel: normales Verhalten (ganzer Block wird abgefragt)
@@ -453,7 +453,7 @@ function buildGrammatikblock(a, wiederholung) {
   currentGrammatikGesperrt = wiederholung.gesperrt || {};
   currentGrammatikVorherigeDaten = wiederholung.daten || {};
 
-  let html = `<p class="hint">Lies jede Erklärung, dann bearbeite die passende Übung dazu. Am Ende schickst du den ganzen Block auf einmal ab — deine Lehrkraft bespricht ihn danach mit dir.</p>`;
+  let html = `<p class="hint">Lies jede Erklärung, dann bearbeite die passende Aufgabe dazu. Am Ende schickst du den ganzen Block auf einmal ab — deine Lehrkraft bespricht ihn danach mit dir.</p>`;
   html += wiederholung.hinweis || '';
 
   a.punkte.forEach((p, pi) => {
@@ -468,7 +468,7 @@ function buildGrammatikblock(a, wiederholung) {
         </div>
       </div>
       <div class="grammatik-uebung">
-        <div class="grammatik-uebung-titel">✎ Übung ${p.nr}${gesperrt ? ' <span class="locked-tag">bereits erledigt</span>' : ''}</div>
+        <div class="grammatik-uebung-titel">✎ Aufgabe ${p.nr}${gesperrt ? ' <span class="locked-tag">bereits erledigt</span>' : ''}</div>
         <p class="hint" style="margin-top:0;">${escapeHtml(p.uebung.anleitung)}</p>
     `;
     p.uebung.items.forEach((item, ii) => {
@@ -1275,7 +1275,7 @@ async function startTest(testId, name) {
   currentTestId = testId;
   currentStudentName = name;
   const t = TESTS[testId];
-  document.getElementById('testTitle').textContent = titelMitSchritt(testId, t.title);
+  document.getElementById('testTitle').textContent = anzeigeTitel(testId, t.title);
   document.getElementById('testSub').textContent = t.sub;
 
   const isAbschluss = istAbschlusstest(t); // alle Abschlusstest-Typen (siehe ABSCHLUSS_BUILDER in tests-common.js)
@@ -2081,12 +2081,13 @@ function buildWortbauen(a) {
   neuesSpiel();
 }
 
-// ---------------- ÜBUNG: IMMER 3! (drei zusammengehörende Karten finden) ----------------
+// ---------------- SPIEL: ZUSAMMENGEHÖRENDE KARTEN (3er-Gruppen "Immer 3!" und 4er-Gruppen "Vier-Seiten-Puzzle") ----------------
 // Daten: { type:'dreier', title, sub, hinweis?, runde?, saetze: [[A, B, C], ...] }  (A/B/C = Text ODER { bild: "Bildname" })
 // Pro Runde werden `runde` (Standard 4) zufällige Dreiergruppen gemischt. Tippe drei Karten an, die zusammengehören.
 function buildDreier(a) {
   const body = document.getElementById('actBody');
   const anzahl = Math.min(a.runde || 4, a.saetze.length);
+  const gr = a.saetze[0].length; // Karten pro Gruppe (3 oder 4)
   let karten, gewaehlt, gefunden, versuche, sperre;
 
   function mischen(arr) { return arr.slice().sort(() => 0.5 - Math.random()); }
@@ -2101,10 +2102,10 @@ function buildDreier(a) {
   function render() {
     const fertig = gefunden === anzahl;
     if (fertig) markActivityDone(currentActivityId);
-    let html = `<p class="hint">${escapeHtml(a.hinweis || 'Finde immer drei Karten, die zusammengehören.')}</p>
+    let html = `<p class="hint">${escapeHtml(a.hinweis || ('Finde immer ' + gr + ' Karten, die zusammengehören.'))}</p>
       <div class="quiz-stapel-info"><span>Gefunden: ${gefunden} von ${anzahl}</span><span>Versuche: ${versuche}</span></div>`;
     if (fertig) {
-      html += `<div class="domino-done"><div class="big-icon">🏆</div><h2 style="font-family:Georgia,serif;">Alle Dreiergruppen gefunden!</h2><p style="color:var(--ink-soft);">Du hast ${versuche} Versuche gebraucht.</p><button class="btn" id="drNeu">Nochmal spielen</button></div>`;
+      html += `<div class="domino-done"><div class="big-icon">🏆</div><h2 style="font-family:Georgia,serif;">Alle Gruppen gefunden!</h2><p style="color:var(--ink-soft);">Du hast ${versuche} Versuche gebraucht.</p><button class="btn" id="drNeu">Nochmal spielen</button></div>`;
       body.innerHTML = html;
       document.getElementById('drNeu').addEventListener('click', neuesSpiel);
       return;
@@ -2118,7 +2119,7 @@ function buildDreier(a) {
     if (sperre || k.status === 'gefunden') return;
     if (k.status === 'gewaehlt') { k.status = 'frei'; gewaehlt = gewaehlt.filter(x => x !== k); render(); return; }
     k.status = 'gewaehlt'; gewaehlt.push(k);
-    if (gewaehlt.length === 3) {
+    if (gewaehlt.length === gr) {
       versuche++;
       if (gewaehlt.every(x => x.satz === gewaehlt[0].satz)) {
         gewaehlt.forEach(x => x.status = 'gefunden'); gefunden++; gewaehlt = [];
@@ -2171,12 +2172,12 @@ async function zeigeErgebnis(id, name) {
     let letzterTeil = null;
     rv.fehler.forEach(f => {
       if (f.teil !== letzterTeil) { h += `<div class="erg-teil">${escapeHtml(f.teil || '')}</div>`; letzterTeil = f.teil; }
-      h += `<div class="erg-fehler"><div>${escapeHtml(f.frage)}</div><div class="erg-deine">Deine Antwort: „${escapeHtml(f.antwort)}“</div><div class="erg-richtig">Richtig: „${escapeHtml(f.korrektAntwort)}“</div></div>`;
+      h += `<div class="erg-fehler"><div>${escapeHtml(f.frage)}</div><div class="erg-deine">Deine Antwort: „${escapeHtml(f.antwort)}“</div>${(f.loesung || f.korrektAntwort) ? `<div class="erg-richtig">Richtig: „${escapeHtml(f.loesung || f.korrektAntwort)}“</div>` : ''}${f.hinweis ? `<div class="erg-hinweis">Hinweis: ${escapeHtml(f.hinweis)}</div>` : ''}</div>`;
     });
   }
   if (rv.saetze && rv.saetze.length) {
     h += `<h3 class="erg-h">Diese Sätze bitte verbessern</h3>`;
-    rv.saetze.forEach(s => { h += `<div class="erg-fehler"><div>${escapeHtml(s.frage)}</div><div class="erg-deine">Dein Satz: „${escapeHtml(s.satz)}“</div>${s.vorschlag ? `<div class="erg-richtig">Vorschlag: „${escapeHtml(s.vorschlag)}“</div>` : ''}</div>`; });
+    rv.saetze.forEach(s => { h += `<div class="erg-fehler"><div>${escapeHtml(s.frage)}</div><div class="erg-deine">Dein Satz: „${escapeHtml(s.satz)}“</div>${(s.loesung || s.vorschlag) ? `<div class="erg-richtig">So heißt der Satz richtig: „${escapeHtml(s.loesung || s.vorschlag)}“</div>` : ''}${s.hinweis ? `<div class="erg-hinweis">Hinweis: ${escapeHtml(s.hinweis)}</div>` : ''}</div>`; });
   }
   if (rv.ergebnis === 'wiederholen') {
     h += `<div style="margin-top:18px;"><button class="btn" id="ergWiederholen">Jetzt wiederholen</button></div>`;

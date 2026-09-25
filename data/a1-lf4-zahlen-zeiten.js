@@ -1171,7 +1171,7 @@ registerTests({
  },
  "a1_lf4_abschlusstest": {
   "title": "Lernfeld-Test A1.4",
-  "sub": "A1.4 Zahlen und Zeiten — Abschlusstest (75 Punkte, davon 3 von der Lehrkraft)",
+  "sub": "A1.4 Zahlen und Zeiten — Lernfeld-Test (75 Punkte, davon 3 von der Lehrkraft)",
   "type": "abschlusstest_generisch",
   "abschnitte": [
    {

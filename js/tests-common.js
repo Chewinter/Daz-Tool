@@ -656,13 +656,14 @@ function buildAbschlusstest5(t) {
 // Ein einziger, konfigurierbarer Abschlusstest-Typ. Die Aufgaben stehen komplett in den Daten
 // (type: 'abschlusstest_generisch', abschnitte: [...]) — dadurch braucht ein neuer Abschlusstest KEINEN neuen Code.
 //
-// Jeder Abschnitt: { titel, kurz?, hinweis?, beispiel?, art, punkte?, items: [...] }
+// Jeder Abschnitt: { titel, kurz?, hinweis?, beispiel?, bild? (großes Bild über dem Abschnitt), art, punkte?, items: [...] }   Item bei 'eingabe': lang:true = mehrzeiliges Textfeld
 //   art 'eingabe'   : Eingabefeld.   Item: { frage?, bild? (Bildname aus ICONS), antwort (Text oder Liste), exakt?, punkte?, label? }
 //                     exakt:true = Groß-/Kleinschreibung UND ß/ss zählen (für Buchstaben/Rechtschreibung)
 //   art 'auswahl'   : Antwort antippen. Item: { vor?, nach?, frage?, optionen:[...], antwort, zusammen?, punkte? }
 //   art 'zuordnung' : Aufklappliste.    Item: { frage, antwort, optionen? }  (optionen auch auf Abschnittsebene)
 //   art 'konjugation': Verbtabellen wie in den A2-Abschlusstests. Abschnitt: { gruppen: [{ verbs:[...], forms:{ verb:[6 Formen] } }] } (je Feld 0,5 Punkte)
 //   Item-Option manuell:true (bei 'eingabe'): Antwort wird NICHT automatisch bewertet — die Lehrkraft bewertet sie (zählt nicht in punkte_max).
+//   art 'verbtabelle': B1-Verbtabellen: pro Verb 6 Personen + Perfekt + Futur I. Abschnitt: { verben: [{ verb, praesens:[6 Listen], perfekt:[Liste], futur:[Liste], vorgegeben:{perfekt?,futur?} }], punkte (Standard 0,5 je Feld) }
 //   art 'uhr'       : Uhr-Bild + Eingabe. Item: { hour, minute, antwort: [gültige Schreibweisen] }
 // Die Feld-Schlüssel (g<Abschnitt>-<Item>) hängen an der REIHENFOLGE — bestehende Tests deshalb nicht umsortieren,
 // wenn schon Abgaben existieren.
@@ -686,7 +687,25 @@ function buildAbschlussGenerisch(t) {
   (t.abschnitte || []).forEach((ab, ai) => {
     html += `<h2 style="font-family:Georgia,serif; font-size:20px; color:var(--teal-dark); margin:${ai ? '26px' : '0'} 0 4px;">${escapeHtml(ab.titel || '')}</h2>`;
     if (ab.hinweis) html += `<p class="hint">${escapeHtml(ab.hinweis)}</p>`;
+    if (ab.bild) html += `<div class="gen-bild-gross-wrap"><img class="gen-bild-gross" src="${iconSrc(ab.bild)}" alt=""></div>`;   // großes Bild über dem ganzen Abschnitt (z. B. Karte)
     if (ab.beispiel) html += `<div style="margin-bottom:10px; color:var(--ink-soft); font-size:14px;">${escapeHtml(ab.beispiel)} <em>(Beispiel)</em></div>`;
+
+    if (ab.art === 'verbtabelle') {
+      const PERS = ['ich', 'du', 'er/sie/es', 'wir', 'ihr', 'sie/Sie'];
+      (ab.verben || []).forEach((v, vi) => {
+        let zeilen = '';
+        const zeile = (label, rowKey, liste, vorgabe) => {
+          if (vorgabe) return `<tr><th>${escapeHtml(label)}</th><td class="vt-vorgabe">${escapeHtml(vorgabe)}</td></tr>`;
+          const key = `vt${ai}-${vi}-${rowKey}`;
+          fieldMeta.push({ key, points: ab.punkte != null ? ab.punkte : 0.5, acceptable: liste, exakt: false, stem: '', label: `${v.verb} — ${label}` });
+          return `<tr><th>${escapeHtml(label)}</th><td><input type="text" class="text-input abschluss-field vt-input" data-key="${key}"></td></tr>`;
+        };
+        PERS.forEach((pn, pi) => { zeilen += zeile(pn, 'p' + pi, v.praesens[pi], null); });
+        zeilen += zeile('Perfekt', 'perfekt', v.perfekt, v.vorgegeben && v.vorgegeben.perfekt);
+        zeilen += zeile('Futur I', 'futur', v.futur, v.vorgegeben && v.vorgegeben.futur);
+        html += `<div class="vt-karte"><table class="vt"><caption>${escapeHtml(v.verb)}</caption>${zeilen}</table></div>`;
+      });
+    }
 
     if (ab.art === 'konjugation') {
       (ab.gruppen || []).forEach((gruppe, gk) => { html += renderKonjugationBlock(gruppe, `a${ai}g${gk}`, fieldMeta); });
@@ -722,7 +741,7 @@ function buildAbschlussGenerisch(t) {
       } else { // 'eingabe' (Standard)
         const bildHtml = it.bild ? `<img class="gen-bild" src="${iconSrc(it.bild)}" alt="">` : '';
         const frageHtml = it.frage ? `<span class="gen-frage">${escapeHtml(it.frage)}</span>` : '';
-        html += `<div class="gen-item">${nrHtml}${bildHtml}${frageHtml}<input type="text" class="text-input abschluss-field gen-input" data-key="${key}"></div>`;
+        html += `<div class="gen-item">${nrHtml}${bildHtml}${frageHtml}${it.lang ? `<textarea rows="7" class="text-input abschluss-field gen-input gen-lang" data-key="${key}"></textarea>` : `<input type="text" class="text-input abschluss-field gen-input" data-key="${key}">`}</div>`;
         fieldMeta.push({ key, points: punkte, acceptable: it.manuell ? undefined : it.antwort, manuell: !!it.manuell, exakt: !!it.exakt, stem: '', label: it.label || `${kurz}: ${it.frage || (it.bild ? 'Bild ' + it.bild.replace(/_/g, ' ') : '')}`.trim() });
       }
     });

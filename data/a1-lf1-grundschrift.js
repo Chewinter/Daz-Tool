@@ -21,9 +21,9 @@ registerTests({
     "word": "Kleinbuchstabe b",
     "icons": [
      "klein_h",
-     "klein_n",
+     "klein_m",
      "klein_b",
-     "klein_e"
+     "klein_k"
     ],
     "correct": 2
    },
@@ -53,7 +53,7 @@ registerTests({
     "num": 5,
     "word": "Kleinbuchstabe k",
     "icons": [
-     "klein_i",
+     "klein_m",
      "klein_h",
      "klein_k",
      "klein_n"
@@ -64,10 +64,10 @@ registerTests({
     "num": 6,
     "word": "Kleinbuchstabe e",
     "icons": [
-     "klein_n",
+     "klein_k",
      "klein_e",
      "klein_a",
-     "klein_b"
+     "klein_i"
     ],
     "correct": 1
    }
@@ -271,7 +271,7 @@ registerTests({
     "word": "Kleinbuchstabe p",
     "icons": [
      "klein_h",
-     "klein_k",
+     "klein_f",
      "klein_b",
      "klein_p"
     ],
@@ -292,8 +292,8 @@ registerTests({
     "num": 5,
     "word": "Großbuchstabe C",
     "icons": [
-     "Groß_N",
-     "Groß_H",
+     "Groß_F",
+     "Groß_E",
      "Groß_C",
      "Groß_O"
     ],
@@ -489,9 +489,9 @@ registerTests({
     "num": 1,
     "word": "Großbuchstabe S",
     "icons": [
-     "Groß_R",
-     "Groß_P",
-     "Groß_A",
+     "Groß_B",
+     "Groß_C",
+     "Groß_T",
      "Groß_S"
     ],
     "correct": 3
@@ -522,10 +522,10 @@ registerTests({
     "num": 4,
     "word": "Kleinbuchstabe g",
     "icons": [
-     "klein_e",
-     "klein_m",
+     "klein_h",
+     "klein_d",
      "klein_g",
-     "klein_c"
+     "klein_b"
     ],
     "correct": 2
    },
@@ -766,9 +766,9 @@ registerTests({
     "word": "Kleinbuchstabe z",
     "icons": [
      "klein_s",
-     "klein_h",
+     "klein_m",
      "klein_z",
-     "klein_c"
+     "klein_f"
     ],
     "correct": 2
    },
@@ -788,8 +788,8 @@ registerTests({
     "word": "Großbuchstabe Z",
     "icons": [
      "Groß_S",
-     "Groß_I",
-     "Groß_A",
+     "Groß_D",
+     "Groß_T",
      "Groß_Z"
     ],
     "correct": 3
@@ -798,9 +798,9 @@ registerTests({
     "num": 6,
     "word": "Großbuchstabe J",
     "icons": [
-     "Groß_W",
-     "Groß_K",
-     "Groß_S",
+     "Groß_U",
+     "Groß_A",
+     "Groß_G",
      "Groß_J"
     ],
     "correct": 3
@@ -1219,7 +1219,7 @@ registerTests({
  },
  "a1_lf1_abschlusstest": {
   "title": "Lernfeld-Test A1.1",
-  "sub": "A1.1 Grundschrift — Abschlusstest",
+  "sub": "A1.1 Grundschrift — Lernfeld-Test",
   "type": "abschlusstest_generisch",
   "abschnitte": [
    {
@@ -1854,7 +1854,7 @@ registerTests({
 registerActivities({
  "a1_lf1_memory": {
   "title": "Buchstaben-Memory",
-  "sub": "A1.1 Grundschrift — Übung (Groß- und Kleinbuchstaben, Schritt 1–3)",
+  "sub": "A1.1 Grundschrift — Spiel (Groß- und Kleinbuchstaben, Schritt 1–3)",
   "type": "memory",
   "anzahl": 8,
   "hinweis": "Decke zwei Karten auf. Finde den Großbuchstaben und den passenden Kleinbuchstaben!",
@@ -2015,7 +2015,7 @@ registerActivities({
  },
  "a1_lf1_wortbauen": {
   "title": "Wörter legen",
-  "sub": "A1.1 Grundschrift — Übung (Buchstaben ordnen)",
+  "sub": "A1.1 Grundschrift — Spiel (Buchstaben ordnen)",
   "type": "wortbauen",
   "hinweis": "Lege das Wort. Tippe die Buchstaben in der richtigen Reihenfolge.",
   "woerter": [
