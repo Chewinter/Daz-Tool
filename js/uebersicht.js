@@ -128,6 +128,8 @@ function zellStatus(s, id) {
 function spaltenLabel(id) {
   const kind = curriculumItemInfo(id).kind;
   if (kind === 'test-final') return 'LT';
+  if (kind === 'schreiben') return 'SA';
+  if (kind === 'lesen') return 'LA';
   if (kind === 'eingangstest') return 'E';
   if (kind === 'grammatik') { const m = /block(\d+)/.exec(id); return 'G' + (m ? m[1] : ''); }
   const l = schrittLabel(id);
@@ -151,7 +153,7 @@ function rendereMatrixHtml(schueler) {
   });
   return `<h2 class="ub-h">Schritt für Schritt</h2>
     <div class="mx-legende"><span class="mx-zelle leer"></span> nicht begonnen <span class="mx-zelle angefangen"></span> angefangen <span class="mx-zelle wartet"></span> wartet auf dich <span class="mx-zelle zettel"></span> Zettel offen <span class="mx-zelle wdh"></span> Wiederholung <span class="mx-zelle fertig"></span> fertig / gespielt
-      · S = Test zu Schritt · Sp = Spiel · G = Grammatik-Block · LT = Lernfeld-Test · E = Einstufungstest</div>
+      · S = Test zu Schritt · Sp = Spiel · G = Grammatik-Block · LT = Lernfeld-Test · SA = Schreibaufgabe · LA = Leseaufgabe · E = Einstufungstest</div>
     <div class="mx-wrap"><table class="mx"><thead>${kopf1}</tr>${kopf2}</tr></thead><tbody>${zeilen}</tbody></table></div>`;
 }
 

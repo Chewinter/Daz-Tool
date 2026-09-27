@@ -389,6 +389,7 @@ async function openActivity(actId) {
   else if (a.type === 'memory') buildMemory(a);
   else if (a.type === 'wortbauen') buildWortbauen(a);
   else if (a.type === 'dreier' || a.type === 'vierer') buildDreier(a);
+  else if (a.type === 'lesespur') buildLesespur(a);
   else if (a.type === 'grammatikblock') {
     document.getElementById('actBody').innerHTML = '<p class="hint">Lädt …</p>';
     const wiederholung = await ermittleGrammatikWiederholungsfilter(actId, currentActivityName, a);
@@ -2130,6 +2131,49 @@ function buildDreier(a) {
       }
     }
     render();
+  }
+  neuesSpiel();
+}
+
+// ---------------- SPIEL: LESESPURGESCHICHTE (Krimi-Lesespur, textbasiert statt mit Landkarte) ----------------
+// a.knoten: { id: { text, choices:[{label,next}] } }  ODER  { id: { sackgasse:true, text, zurueck } }  ODER  { id: { text, ende:true } }
+// Start ist a.start. Bei falscher Wahl: kurzer Sackgassen-Text + „Zurück“-Knopf zur letzten Station.
+function buildLesespur(a) {
+  const body = document.getElementById('actBody');
+  let pfad, aktuell, fehlversuche;
+  const karteHtml = a.karte ? `<div class="lesespur-karte-wrap"><img src="${iconSrc(a.karte)}" alt="Lesespurlandkarte" class="lesespur-karte"></div>` : '';
+  function neuesSpiel() { pfad = [a.start]; aktuell = a.start; fehlversuche = 0; render(); }
+  function render() {
+    const k = a.knoten[aktuell];
+    if (k.ende) {
+      markActivityDone(currentActivityId);
+      body.innerHTML = `<div class="lesespur-station"><p class="lesespur-text">${escapeHtml(k.text)}</p></div>
+        <div class="domino-done"><div class="big-icon">🕵️</div><h2 style="font-family:Georgia,serif;">Fall gelöst!</h2>
+        <p style="color:var(--ink-soft);">Du hast den richtigen Weg gefunden${fehlversuche ? ' — mit ' + fehlversuche + ' Umweg' + (fehlversuche === 1 ? '' : 'en') : ' ganz ohne Umweg'}.</p>
+        <button type="button" class="btn full" id="lsNeu">Noch einmal spielen</button></div>`;
+      document.getElementById('lsNeu').addEventListener('click', neuesSpiel);
+      return;
+    }
+    if (k.sackgasse) {
+      body.innerHTML = `<p class="hint">${escapeHtml(a.hinweis || '')}</p>
+        <div class="lesespur-fortschritt">Station ${pfad.length}</div>
+        ${karteHtml}
+        <div class="lesespur-station lesespur-sackgasse"><p class="lesespur-text">${escapeHtml(k.text)}</p></div>
+        <button type="button" class="btn full" id="lsZurueck">Noch einmal überlegen</button>`;
+      document.getElementById('lsZurueck').addEventListener('click', () => { fehlversuche++; aktuell = k.zurueck; pfad.pop(); render(); });
+      return;
+    }
+    body.innerHTML = `<p class="hint">${escapeHtml(a.hinweis || '')}</p>
+      <div class="lesespur-fortschritt">Station ${pfad.length}</div>
+      ${karteHtml}
+      <div class="lesespur-station"><p class="lesespur-text">${escapeHtml(k.text)}</p></div>
+      <p class="lesespur-frage">${escapeHtml(a.frage || 'Wohin geht die Spur? Wähle die richtige Ziffer.')}</p>
+      <div class="lesespur-choices lesespur-choices-ziffer">${k.choices.map((c, i) => `<button type="button" class="lesespur-choice lesespur-choice-ziffer" data-i="${i}">${escapeHtml(c.ziffer)}</button>`).join('')}</div>`;
+    body.querySelectorAll('.lesespur-choice').forEach(btn => btn.addEventListener('click', () => {
+      const c = k.choices[parseInt(btn.getAttribute('data-i'), 10)];
+      aktuell = c.next; pfad.push(aktuell); render();
+      document.querySelector('.lesespur-karte-wrap')?.scrollIntoView({ block: 'nearest' });
+    }));
   }
   neuesSpiel();
 }

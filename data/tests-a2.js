@@ -3589,7 +3589,7 @@ registerTests({
     "nach": ".",
     "options": [
      "hinauf",
-     "hinunter aus",
+     "hinunter",
      "um"
     ],
     "correct": 0

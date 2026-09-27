@@ -684,6 +684,8 @@ function buildAbschlussGenerisch(t) {
   let html = '';
   let nr = 0;
 
+  if (t.lesetext) html += `<div class="lesetext-box">${escapeHtml(t.lesetext).replace(/\n/g, '<br><br>')}</div>`;
+
   (t.abschnitte || []).forEach((ab, ai) => {
     html += `<h2 style="font-family:Georgia,serif; font-size:20px; color:var(--teal-dark); margin:${ai ? '26px' : '0'} 0 4px;">${escapeHtml(ab.titel || '')}</h2>`;
     if (ab.hinweis) html += `<p class="hint">${escapeHtml(ab.hinweis)}</p>`;

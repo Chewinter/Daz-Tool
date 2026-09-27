@@ -27,8 +27,19 @@ const CURRICULUM = [
   { id: "a2_lf3", name: "Lernfeld 3: Körper", niveau: "A2", items: ["lf3_schritt1", "lf3_schritt2", "lf3_schritt3", "lf3_schritt4", "lf3_schritt5", "lf3_schritt6", "lf3_schritt7", "lf3_schritt8_quiz", "lf3_abschlusstest"] },
   { id: "a2_lf4", name: "Lernfeld 4: Essen", niveau: "A2", items: ["lf4_schritt1", "lf4_schritt2", "lf4_schritt3", "lf4_schritt4", "lf4_schritt5_schlange", "lf4_abschlusstest"] },
   { id: "a2_lf5", name: "Lernfeld 5: Einkaufen", niveau: "A2", items: ["lf5_schritt1", "lf5_schritt2", "lf5_schritt3", "lf5_abschlusstest"] },
+  // ---- A2: Grammatik-Training ----
+  { id: "a2_grammatik", name: "Grammatik-Training", niveau: "A2", items: ["a2_grammatik_block1", "a2_grammatik_block2", "a2_grammatik_block3", "a2_grammatik_block4", "a2_grammatik_block5", "a2_grammatik_block6", "a2_grammatik_block7", "a2_grammatik_block8", "a2_grammatik_block9", "a2_grammatik_block10", "a2_grammatik_block11", "a2_grammatik_block12"] },
+  // ---- A2: Schreibanlässe (E-Mails und Brief) ----
+  { id: "a2_schreiben", name: "Schreibanlässe (E-Mails & Brief)", niveau: "A2", items: ["a2_schreiben_fahrrad", "a2_schreiben_restaurant", "a2_schreiben_ausflug", "a2_schreiben_bibliothek", "a2_schreiben_absage", "a2_schreiben_umzug", "a2_schreiben_feier", "a2_schreiben_weihnachtsmann"] },
   // ---- B1 (Fortgeschrittenenkurs) ----
   { id: "b1_lf1", name: "B1.1 Unterwegs", niveau: "B1", items: ["b1_lf1_schritt1", "b1_lf1_puzzle", "b1_lf1_schritt3", "b1_lf1_schritt4", "b1_lf1_schritt5", "b1_lf1_schritt6", "b1_lf1_abschlusstest"] },
   { id: "b1_lf2", name: "B1.2 Die Erde", niveau: "B1", items: ["b1_lf2_schritt1", "b1_lf2_schritt2", "b1_lf2_schritt3", "b1_lf2_schritt4", "b1_lf2_schritt5", "b1_lf2_abschlusstest"] },
+  { id: "b1_lf3", name: "B1.3 Feste", niveau: "B1", items: ["b1_lf3_schritt1", "b1_lf3_schritt2", "b1_lf3_schritt3", "b1_lf3_schritt4", "b1_lf3_schritt5", "b1_lf3_redelegen", "b1_lf3_abschlusstest"] },
+  { id: "b1_lf4", name: "B1.4 Geschichte", niveau: "B1", items: ["b1_lf4_schritt1", "b1_lf4_schritt2", "b1_lf4_schritt3", "b1_lf4_abschlusstest"] },
+  { id: "b1_lf5", name: "B1.5 Politik und Religion", niveau: "B1", items: ["b1_lf5_schritt1", "b1_lf5_schritt2", "b1_lf5_schritt3", "b1_lf5_abschlusstest"] },
+  // ---- Lesen (nach B1) ----
+  { id: "a2_lesen", name: "Lesen: Geschichten aus dem Alltag", niveau: "A2", items: ["a2_lesen_breakdance", "a2_lesen_cosplayer", "a2_lesen_burka", "a2_lesen_alim", "a2_lesen_praktikum", "a2_lesen_sprayer", "a2_lesen_amidou"] },
+  // ---- Lesespurgeschichten (nach B1) ----
+  { id: "a2_lesespur", name: "Lesespurgeschichten", niveau: "A2", items: ["a2_lesespur_bank"] },
 ];
 const NIVEAUS = ["A1", "A2", "B1"]; // B1 aktuell ohne Inhalte, aber schon vorgesehen

@@ -21,9 +21,9 @@ registerTests({
     "word": "Kleinbuchstabe b",
     "icons": [
      "klein_h",
-     "klein_m",
+     "klein_k",
      "klein_b",
-     "klein_k"
+     "klein_m"
     ],
     "correct": 2
    },
@@ -53,10 +53,10 @@ registerTests({
     "num": 5,
     "word": "Kleinbuchstabe k",
     "icons": [
-     "klein_m",
+     "klein_e",
      "klein_h",
      "klein_k",
-     "klein_n"
+     "klein_a"
     ],
     "correct": 2
    },
@@ -64,7 +64,7 @@ registerTests({
     "num": 6,
     "word": "Kleinbuchstabe e",
     "icons": [
-     "klein_k",
+     "klein_m",
      "klein_e",
      "klein_a",
      "klein_i"
@@ -292,8 +292,8 @@ registerTests({
     "num": 5,
     "word": "Großbuchstabe C",
     "icons": [
-     "Groß_F",
      "Groß_E",
+     "Groß_A",
      "Groß_C",
      "Groß_O"
     ],
@@ -490,8 +490,8 @@ registerTests({
     "word": "Großbuchstabe S",
     "icons": [
      "Groß_B",
-     "Groß_C",
-     "Groß_T",
+     "Groß_G",
+     "Groß_P",
      "Groß_S"
     ],
     "correct": 3
@@ -522,10 +522,10 @@ registerTests({
     "num": 4,
     "word": "Kleinbuchstabe g",
     "icons": [
-     "klein_h",
-     "klein_d",
+     "klein_e",
+     "klein_ß",
      "klein_g",
-     "klein_b"
+     "klein_a"
     ],
     "correct": 2
    },
@@ -766,9 +766,9 @@ registerTests({
     "word": "Kleinbuchstabe z",
     "icons": [
      "klein_s",
-     "klein_m",
+     "klein_v",
      "klein_z",
-     "klein_f"
+     "klein_a"
     ],
     "correct": 2
    },
@@ -788,8 +788,8 @@ registerTests({
     "word": "Großbuchstabe Z",
     "icons": [
      "Groß_S",
-     "Groß_D",
-     "Groß_T",
+     "Groß_U",
+     "Groß_V",
      "Groß_Z"
     ],
     "correct": 3
@@ -798,9 +798,9 @@ registerTests({
     "num": 6,
     "word": "Großbuchstabe J",
     "icons": [
-     "Groß_U",
-     "Groß_A",
-     "Groß_G",
+     "Groß_O",
+     "Groß_K",
+     "Groß_W",
      "Groß_J"
     ],
     "correct": 3
