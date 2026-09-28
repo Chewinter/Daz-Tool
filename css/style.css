@@ -496,6 +496,9 @@
   .lesespur-choices-ziffer { flex-direction: row; flex-wrap: wrap; justify-content: center; }
   .lesespur-choice-ziffer { flex: 0 0 auto; min-width: 56px; text-align: center; font-size: 20px; font-weight: 700; padding: 10px 0; }
 
+  /* Anzeige insgesamt etwas breiter (mehr Platz z. B. für die Lesespur-Karte) */
+  .wrap { max-width: 880px; }
+  .progress-track, .progress-label { max-width: 880px; }
 
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
