@@ -11,12 +11,45 @@ let currentStudentName = "";
 let testState = {};
 
 // ---------------- VIEW SWITCHING ----------------
-function showView(id) {
+// Jeder Ansichtswechsel wird in die Browser-History eingetragen. Dadurch geht "Zurück" — der Link im Tool genauso wie
+// die Zurück-Taste oder -Geste des Geräts — genau einen Schritt zurück (z. B. vom Wiederholen zum Ergebnis) statt
+// immer zur Startseite bzw. ganz aus dem Tool heraus.
+const SITZUNG = String(Date.now()); // nach einem Neuladen sind alte History-Einträge (Test-Ansicht ohne Inhalt) ungültig
+let aktuelleView = 'view-start';
+const ungueltigeViews = new Set();  // Ansichten, in die man nicht zurückspringen soll (z. B. der gerade abgegebene Test)
+function zeigeViewNur(id) {
   ['view-start','view-test','view-done','view-activity','view-ergebnis'].forEach(v => {
     document.getElementById(v).classList.toggle('hidden', v !== id);
   });
+  aktuelleView = id;
   window.scrollTo(0,0);
 }
+function showView(id, opt) {
+  if (id !== aktuelleView) {
+    try {
+      if (opt && opt.ersetzen) history.replaceState({ view: id, sitzung: SITZUNG }, '');
+      else history.pushState({ view: id, sitzung: SITZUNG }, '');
+    } catch (e) { /* History nicht verfügbar — Ansicht wechselt trotzdem */ }
+  }
+  ungueltigeViews.delete(id);
+  zeigeViewNur(id);
+}
+try { history.replaceState({ view: 'view-start', sitzung: SITZUNG }, ''); } catch (e) { /* egal */ }
+window.addEventListener('popstate', (ev) => {
+  const st = ev.state;
+  const ok = st && st.sitzung === SITZUNG && st.view !== 'view-done' && !ungueltigeViews.has(st.view);
+  const ziel = ok ? st.view : 'view-start';
+  if (aktuelleView === 'view-test') autosaveFallsGeplant();
+  if (ziel === 'view-start') refreshProgress();
+  zeigeViewNur(ziel);
+});
+function geheZurueck() {
+  const st = history.state;
+  if (st && st.sitzung === SITZUNG && st.view === aktuelleView && aktuelleView !== 'view-start') history.back();
+  else { refreshProgress(); zeigeViewNur('view-start'); }
+}
+// Nach einer Abgabe: weder in den abgegebenen Test noch in das alte Ergebnis zurückspringen.
+function nachAbgabe() { ungueltigeViews.add('view-test'); ungueltigeViews.add('view-activity'); ungueltigeViews.add('view-ergebnis'); }
 
 // ---------------- FORTSCHRITT (gemeinsam für Übersicht + Listen) ----------------
 let progressCache = { name: null, doneTests: new Set(), doneActs: new Set(), unlocked: new Set(), loaded: false };
@@ -379,7 +412,7 @@ document.getElementById('lernfeldSelect').addEventListener('change', (e) => {
   renderLernfeldItems(selectedLernfeldIdx, document.getElementById('startName').value.trim());
 });
 
-document.getElementById('actBack').addEventListener('click', () => { refreshProgress(); showView('view-start'); });
+document.getElementById('actBack').addEventListener('click', geheZurueck);
 
 refreshProgress();
 
@@ -400,6 +433,7 @@ async function openActivity(actId) {
   currentActivityName = document.getElementById('startName').value.trim();
   document.getElementById('actTitle').textContent = a.title;
   document.getElementById('actSub').textContent = a.sub;
+  setzeKopfzeile('view-activity', actId);
   showView('view-activity');
   if (a.type === 'domino') buildDomino(a);
   else if (a.type === 'quartett') buildQuartett(a);
@@ -650,7 +684,7 @@ async function submitGrammatikblock(a) {
     await speichereMitRetry(`status:${currentActivityId}:${slug(currentActivityName)}`, JSON.stringify({ status: 'offen' }), true);
     try { await window.storage.delete(`testprogress:${currentActivityId}:${slug(currentActivityName)}`, true); } catch (e) { /* unkritisch */ }
     document.getElementById('doneName').textContent = currentActivityName;
-    showView('view-done');
+    nachAbgabe(); showView('view-done', { ersetzen: true });
   } catch (e) {
     alert('Der Block konnte nicht gespeichert werden (' + (e && e.message ? e.message : 'Speicherfehler') + '). Bitte kurz warten und nochmal auf „Block abgeben" tippen — deine Antworten sind noch da.');
     btn.disabled = false;
@@ -1271,7 +1305,7 @@ function buildVerbenBestimmen(a) {
   });
 }
 
-document.getElementById('backToStart').addEventListener('click', () => { autosaveFallsGeplant(); refreshProgress(); showView('view-start'); });
+document.getElementById('backToStart').addEventListener('click', () => { autosaveFallsGeplant(); geheZurueck(); });
 document.getElementById('toStartAgain').addEventListener('click', () => { refreshProgress(); showView('view-start'); });
 
 // ---------------- WIEDERHOLUNG NUR AUSGEWÄHLTER TEILE ----------------
@@ -1365,6 +1399,7 @@ async function startTest(testId, name) {
   const t = TESTS[testId];
   document.getElementById('testTitle').textContent = anzeigeTitel(testId, t.title);
   document.getElementById('testSub').textContent = t.sub;
+  setzeKopfzeile('view-test', testId);
 
   const isAbschluss = istAbschlusstest(t); // alle Abschlusstest-Typen (siehe ABSCHLUSS_BUILDER in tests-common.js)
   const isEingangstest = t.type === 'eingangstest';
@@ -2084,7 +2119,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     const entwurfKey = progressKeyFor(currentTestId, currentStudentName);
     autosaveLaufend.catch(() => {}).then(() => window.storage.delete(entwurfKey, true)).catch(() => {});
     document.getElementById('doneName').textContent = currentStudentName;
-    showView('view-done');
+    nachAbgabe(); showView('view-done', { ersetzen: true });
   } catch (e) {
     console.error('Speichern fehlgeschlagen', e);
     alert('Der Test konnte nicht gespeichert werden (' + (e && e.message ? e.message : 'Speicherfehler') + '). Bitte kurz warten und nochmal auf „Test abschicken" tippen — deine Antworten sind noch da.');
@@ -2306,6 +2341,7 @@ async function zeigeErgebnis(id, name) {
   document.getElementById('ergTitel').textContent = 'Ergebnis';
   document.getElementById('ergSub').textContent = '';
   body.innerHTML = '<p>Wird geladen …</p>';
+  setzeKopfzeile('view-ergebnis', id);
   showView('view-ergebnis');
   let rv;
   try { const r = await window.storage.get(si.reviewKey, true); rv = JSON.parse(r.value); }
@@ -2338,7 +2374,8 @@ async function zeigeErgebnis(id, name) {
     let letzterTeil = null;
     rv.fehler.forEach(f => {
       if (f.teil !== letzterTeil) { h += `<div class="erg-teil">${escapeHtml(f.teil || '')}</div>`; letzterTeil = f.teil; }
-      h += `<div class="erg-fehler"><div>${escapeHtml(f.frage)}</div><div class="erg-deine">Deine Antwort: „${escapeHtml(f.antwort)}“</div>${(f.loesung || f.korrektAntwort) ? `<div class="erg-richtig">Richtig: „${escapeHtml(f.loesung || f.korrektAntwort)}“</div>` : ''}${f.hinweis ? `<div class="erg-hinweis">Hinweis: ${escapeHtml(f.hinweis)}</div>` : ''}</div>`;
+      const b = bilderFuerFehler(id, f); // ohne die Bilder ist bei Bild-Aufgaben weder die Frage noch die Lösung verständlich
+      h += `<div class="erg-fehler"><div>${escapeHtml(f.frage)}</div>${b.aufgabe}<div class="erg-deine">Deine Antwort: ${b.deine || `„${escapeHtml(f.antwort)}“`}</div>${(f.loesung || f.korrektAntwort) ? `<div class="erg-richtig">Richtig: ${b.richtig}„${escapeHtml(f.loesung || f.korrektAntwort)}“</div>` : ''}${f.hinweis ? `<div class="erg-hinweis">Hinweis: ${escapeHtml(f.hinweis)}</div>` : ''}</div>`;
     });
   }
   if (rv.saetze && rv.saetze.length) {
@@ -2355,7 +2392,44 @@ async function zeigeErgebnis(id, name) {
     if (info.kind === 'grammatik') openActivity(id); else startTest(id, name || currentStudentName || document.getElementById('startName').value);
   });
 }
-document.getElementById('ergebnisBack').addEventListener('click', () => { refreshProgress(); showView('view-start'); });
+document.getElementById('ergebnisBack').addEventListener('click', geheZurueck);
+
+// Bilder zu einer falschen Aufgabe eines Vokabeltests: Teil 1 (Bildzuordnung) = gewähltes + richtiges Bild,
+// Teil 4 mit Bild-Aufgabe = das Aufgabenbild. Neue Bewertungen bringen teilId+num mit; ältere werden über den
+// Fragetext zugeordnet. Findet sich nichts, bleibt es beim reinen Text.
+function bilderFuerFehler(id, f) {
+  const out = { aufgabe: '', deine: '', richtig: '' };
+  const t = TESTS[id];
+  if (!t || !Array.isArray(t.teil1)) return out;
+  const img = n => (n && ICONS[n]) ? `<img class="erg-bild" src="${iconSrc(n)}" alt="">` : '';
+  const frage4 = i => t.teil4Frage ? t.teil4Frage.replace('{word}', i.label || i.word) : `Gegenteil von „${i.word}"`;
+  const perNum = (teil) => (f.teilId === teil && f.num != null) ? (t[teil] || []).find(i => i.num === f.num) : null;
+  const i1 = perNum('teil1') || (f.teilId ? null : t.teil1.find(i => `Bildzuordnung: ${i.word}` === f.frage));
+  if (i1) {
+    out.richtig = img(i1.icons[i1.correct]);
+    out.deine = img(i1.icons.find(n => n.replace(/_/g, ' ') === f.antwort));
+    return out;
+  }
+  const i4 = perNum('teil4') || (f.teilId ? null : (t.teil4 || []).find(i => frage4(i) === f.frage));
+  if (i4 && i4.bild) out.aufgabe = img(i4.bild);
+  return out;
+}
+
+// ---------------- KOPFZEILE: NIVEAU + LERNFELD ----------------
+// "B1.1 Unterwegs" -> "B1 · Lernfeld 1: Unterwegs"; "Lernfeld 1: Freizeit" (A2) -> "A2 · Lernfeld 1: Freizeit"
+function lernfeldZeile(id) {
+  const lf = CURRICULUM.find(s => s.items.indexOf(id) >= 0);
+  if (!lf) return 'Werkstattarbeit DaZ';
+  const m = /^([AB]\d)\.(\d+)\s+(.*)$/.exec(lf.name);
+  return m ? `${m[1]} · Lernfeld ${m[2]}: ${m[3]}` : `${lf.niveau} · ${lf.name}`;
+}
+function setzeKopfzeile(viewId, id) {
+  const e = document.querySelector('#' + viewId + ' .eyebrow');
+  if (e) { e.textContent = lernfeldZeile(id); e.classList.add('eyebrow-lernfeld'); }
+}
+
+// ---------------- ZURÜCK = EIN SCHRITT ZURÜCK ----------------
+['backToStart', 'actBack', 'ergebnisBack'].forEach(bid => { document.getElementById(bid).textContent = '← Zurück'; });
 
 // ---------------- GEZIELTE WIEDERHOLUNG EINZELNER ABSCHLUSSTEST-TEILE ----------------
 // Bei „Wiederholen nötig“ mit ausgewählten Teilen: alle ANDEREN Teile werden aus der letzten Abgabe vorausgefüllt und gesperrt;
