@@ -4,44 +4,27 @@
    Ladereihenfolge (steht als "Lader" am Ende beider HTML-Dateien):
      shared.js → data/*.js (Inhalte) → data/curriculum.js → tests-common.js → student.js | teacher.js
 
-   Hier drin: PIN, Schülerliste, Inhalts-Register, Speicher-Anbindung (Google Apps Script),
+   Hier drin: Schülerliste (kommt vom Backend), Inhalts-Register, Speicher-Anbindung (Google Apps Script),
    Hilfsfunktionen und die Lernfeld-Logik, die beide Seiten brauchen.
    ========================================================================== */
 
-const DASH_PIN = "1234"; // Vorläufiger PIN, in Canva/Notion-Version durch echten Login ersetzen
-
 // ---------------- SCHÜLERLISTE ----------------
-// EINZIGE Stelle, an der Namen gepflegt werden (Schüler-Auswahl UND Lehrkraft-Ansicht füllen sich daraus).
+// Die Namen stehen NICHT in dieser Datei (sie ist öffentlich abrufbar). Sie werden im Tabellenblatt "Schueler" der
+// Google-Tabelle gepflegt und kommen erst nach der Anmeldung (Klassen-Code bzw. Lehrkraft-PIN) vom Apps Script.
 // WICHTIG: Namen NIE ändern, wenn schon Abgaben existieren — der Speicher-Schlüssel wird aus dem Namen
 // gebildet (slug). Neue Schüler einfach unten anhängen.
-const STUDENTS = [
-  "Anas Anis Adam",
-  "Amar Ahmad",
-  "Abdikafi Ahmed Dahir",
-  "Amer Alhardan",
-  "Samuel Alejandro Castro Ortiz",
-  "Juliana Eibech",
-  "Meryem A. Hassen",
-  "Awab Hussin Barba",
-  "Arber Karaj",
-  "Amir Maimouni El Marzgioui",
-  "Anna Myronenko",
-  "Nazar Nakonechnyi",
-  "Georgi Pashov",
-  "Eyleen d. l. Canidad Romero Febles",
-  "Dmytro Sizhko",
-  "Judi Younis",
-  "Abdelrahman Elhady",
-  "TEst"
-];
+let STUDENTS = [];
 function fillStudentSelect(selectEl, valueMode) {
   // valueMode "slug": value = slug(Name) (Lehrkraft-Filter), sonst value = voller Name
+  const vorher = selectEl.value;
+  [...selectEl.querySelectorAll('option')].forEach(o => { if (o.value) o.remove(); }); // erneutes Füllen ohne Doppelte
   STUDENTS.forEach(name => {
     const o = document.createElement('option');
     o.value = valueMode === 'slug' ? slug(name) : name;
     o.textContent = name;
     selectEl.appendChild(o);
   });
+  if (vorher && [...selectEl.options].some(o => o.value === vorher)) selectEl.value = vorher;
 }
 
 // ---------------- INHALTS-REGISTER ----------------
@@ -63,13 +46,17 @@ function iconSrc(name) { return ICONS[name] ? "data:image/png;base64," + ICONS[n
 function normalize(s) { return (s || "").trim().toLowerCase().replace(/ß/g, "ss"); }
 
 // ==================== SPEICHER-BACKEND (Google Apps Script) ====================
-// Auf GitHub Pages gibt es kein window.storage mehr (das war eine Claude-Artifact-Funktion).
-// Diese Schicht bildet dieselbe Schlüssel/Wert-API (get/set/delete/list) über ein kleines
-// Google-Apps-Script nach, damit der komplette restliche Code unverändert weiterläuft.
+// Auf GitHub Pages gibt es kein window.storage (das war eine Claude-Artifact-Funktion). Diese Schicht bildet
+// dieselbe Schlüssel/Wert-API (get/set/delete/list) über ein kleines Google-Apps-Script nach.
 //
-// WICHTIG: Trage hier nach dem Deployment des Apps Scripts die Web-App-URL ein
-// (Format: https://script.google.com/macros/s/AKfycb.../exec):
+// Web-App-URL des Apps Scripts (Format: https://script.google.com/macros/s/AKfycb.../exec). Die URL allein gibt
+// keinen Zugriff mehr: Das Script beantwortet nur Anfragen, die den Klassen-Code bzw. den Lehrkraft-PIN mitschicken.
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbzhm6rkABGSotUfnubSLGAdgS7yPArfe6_9xvTicuDA-D6l9E91KNbACuqkDJDjKN/exec";
+
+// Zugangscode: auf der Schüler-Seite der Klassen-Code (einmal eingegeben, bleibt auf dem Gerät gespeichert),
+// auf der Lehrkraft-Seite der PIN (nur für die Dauer der Sitzung im Speicher). Geht mit JEDER Anfrage mit.
+let ZUGANGS_CODE = '';
+try { ZUGANGS_CODE = localStorage.getItem('daz_code') || ''; } catch (e) { /* kein localStorage */ }
 
 async function ascAnfrage(url, options) {
   let res;
@@ -80,58 +67,65 @@ async function ascAnfrage(url, options) {
   }
   if (!res.ok) throw new Error('Speicher-Server-Fehler: ' + res.status);
   const data = await res.json();
-  if (data && data.error) throw new Error(data.error);
+  if (data && data.error) {
+    // Code fehlt/falsch/geändert: die Seite fragt neu nach (Schüler-Seite: Klassen-Code-Abfrage)
+    if (data.error === 'zugang_verweigert' && typeof beiZugangVerweigert === 'function') beiZugangVerweigert();
+    throw new Error(data.error);
+  }
   return data;
 }
 
+// Alle Anfragen gehen per POST (dann steht weder Code noch Schlüssel in einer URL); "text/plain" vermeidet den
+// CORS-Preflight bei Apps Script.
+function api(payload) {
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('HIER_DEINE') === 0) {
+    return Promise.reject(new Error('Speicher-Backend noch nicht eingerichtet (APPS_SCRIPT_URL fehlt).'));
+  }
+  return ascAnfrage(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(Object.assign({ code: ZUGANGS_CODE }, payload)),
+  });
+}
+
+// Prüft einen Code und liefert { rolle, lehrkraft, geschuetzt, namen }. Wirft 'zugang_verweigert', wenn er nicht stimmt.
+function anmelden(code) { return api({ action: 'anmelden', code: code || '' }); }
+
 window.storage = {
   async get(key /*, shared */) {
-    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('HIER_DEINE') === 0) {
-      throw new Error('Speicher-Backend noch nicht eingerichtet (APPS_SCRIPT_URL fehlt).');
-    }
-    const data = await ascAnfrage(`${APPS_SCRIPT_URL}?action=get&key=${encodeURIComponent(key)}`);
+    const data = await api({ action: 'get', key });   // fehlender Schlüssel -> Fehler "not_found" (wie bisher)
     return { key, value: data.value };
   },
   async set(key, value /*, shared */) {
-    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('HIER_DEINE') === 0) {
-      throw new Error('Speicher-Backend noch nicht eingerichtet (APPS_SCRIPT_URL fehlt).');
-    }
-    await ascAnfrage(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // vermeidet CORS-Preflight bei Apps Script
-      body: JSON.stringify({ action: 'set', key, value }),
-    });
+    await api({ action: 'set', key, value });
     return { key, value };
   },
+  // Mehrere Einträge in EINEM Aufruf schreiben: items = [{ key, value }, …]
+  async setMany(items /*, shared */) {
+    await api({ action: 'setMany', items });
+    return { anzahl: items.length };
+  },
   async delete(key /*, shared */) {
-    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('HIER_DEINE') === 0) {
-      throw new Error('Speicher-Backend noch nicht eingerichtet (APPS_SCRIPT_URL fehlt).');
-    }
-    await ascAnfrage(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'delete', key }),
-    });
+    await api({ action: 'delete', key });
     return { key, deleted: true };
   },
   async list(prefix /*, shared */) {
-    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('HIER_DEINE') === 0) {
-      throw new Error('Speicher-Backend noch nicht eingerichtet (APPS_SCRIPT_URL fehlt).');
-    }
-    const data = await ascAnfrage(`${APPS_SCRIPT_URL}?action=list&prefix=${encodeURIComponent(prefix || '')}`);
+    const data = await api({ action: 'list', prefix: prefix || '' });
     return { keys: data.keys || [], prefix };
   },
-    // NEU: liefert Schlüssel+Wert aller Einträge, die auf "suffix" enden, in EINEM Aufruf
-  // (spart bei der Fortschrittsübersicht viele einzelne get()-Aufrufe für den Lehrkraft-Status).
+  // Schlüssel+Wert aller Einträge, die auf "suffix" enden, in EINEM Aufruf
   async listBySuffix(suffix /*, shared */) {
-    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('HIER_DEINE') === 0) {
-      throw new Error('Speicher-Backend noch nicht eingerichtet (APPS_SCRIPT_URL fehlt).');
-    }
-    const data = await ascAnfrage(`${APPS_SCRIPT_URL}?action=listBySuffix&suffix=${encodeURIComponent(suffix || '')}`);
+    const data = await api({ action: 'listBySuffix', suffix: suffix || '' });
+    return { items: data.items || [] };
+  },
+  // Schlüssel+Wert aller Einträge, die mit einem der Präfixe beginnen, in EINEM Aufruf
+  async listByPrefix(prefixes /*, shared */) {
+    const data = await api({ action: 'listByPrefix', prefixes });
     return { items: data.items || [] };
   },
 };
 // ==================== ENDE SPEICHER-BACKEND ====================
+
 
 // Unterdrückt Autokorrektur/Autovervollständigung/Großschreib-Automatik des Browsers auf ALLEN
 // Text-Eingabefeldern und Textareas im Tool (Vokabeltests, Übungen, Abschlusstests, Lehreransicht).
@@ -249,6 +243,23 @@ function anzeigeTitel(id, title) {
   return title;
 }
 
+// ---------------- SAMMEL-SPEICHERN ----------------
+// Mehrere Einträge zusammen speichern (EINE Anfrage statt mehrerer nacheinander), mit Wiederholversuchen wie
+// speichereMitRetry. items = [{ key, value }, …]
+async function speichereVieleMitRetry(items, versuche) {
+  versuche = versuche || 4;
+  let letzterFehler;
+  for (let i = 1; i <= versuche; i++) {
+    try {
+      return await window.storage.setMany(items, true);
+    } catch (e) {
+      letzterFehler = e;
+      if (i < versuche) await new Promise(r => setTimeout(r, 500 * i));
+    }
+  }
+  throw letzterFehler;
+}
+
 // ---------------- SAMMEL-ABFRAGE ----------------
 // Holt viele Schlüssel auf einmal und liefert { schlüssel: wert | null }. Jede einzelne Anfrage ans Apps Script kostet
 // 2–3 s (unter Last deutlich mehr), deshalb zuerst EINE Sammel-Anfrage ("getMany") versuchen. Kennt das Apps Script die
@@ -260,11 +271,7 @@ async function holeViele(keys) {
   if (!keys.length) return out;
   if (getManyVerfuegbar !== false) {
     try {
-      const data = await ascAnfrage(APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'getMany', keys }),
-      });
+      const data = await api({ action: 'getMany', keys });
       if (data && data.values && typeof data.values === 'object') {
         getManyVerfuegbar = true;
         keys.forEach(k => { out[k] = data.values[k] != null ? data.values[k] : null; });

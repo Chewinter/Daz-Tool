@@ -336,9 +336,12 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
       status.wiederholenTeile = gewaehlt; // weiterhin gespeichert: zeigt der Lehrkraft-Ansicht, welche Teile betroffen sind
     }
     try {
-      await window.storage.set(reviewKeyFuer(sub), JSON.stringify(review), true);
-      await window.storage.set(statusKey, JSON.stringify(status), true);
-      await window.storage.set(draftKeyFuer(sub), JSON.stringify({ overrides: ov, fb, teilWdh: gewaehlt, kommentar, savedAt: review.reviewedAt }), true);
+      // Bewertung, Status und Entwurf in EINER Anfrage (vorher drei nacheinander, je 2–3 s)
+      await window.storage.setMany([
+        { key: reviewKeyFuer(sub), value: JSON.stringify(review) },
+        { key: statusKey, value: JSON.stringify(status) },
+        { key: draftKeyFuer(sub), value: JSON.stringify({ overrides: ov, fb, teilWdh: gewaehlt, kommentar, savedAt: review.reviewedAt }) },
+      ], true);
     } catch (e) { alert('Konnte die Bewertung nicht speichern (' + (e && e.message ? e.message : 'Speicherfehler') + '). Bitte nochmal versuchen.'); return; }
     loadSubmissions(false);
   }

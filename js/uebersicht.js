@@ -39,7 +39,14 @@ async function setzeZettel(testId, slugName, wert) {
 
 async function ladeUebersichtsdaten() {
   const erlaubt = new Set(alleAbgabeIds());
-  const [subRes, actRes] = await Promise.all([window.storage.list('submission:', true), window.storage.list('activitydone:', true)]);
+  // ZWEI Anfragen für die ganze Klasse (vorher 2 + eine je Schüler:in, in Vierergruppen nacheinander):
+  // die Abgabe-Schlüssel und — samt Wert — alles, was mit status:/testprogress:/manualaccess:/activitydone: beginnt.
+  const [subRes, sammel] = await Promise.all([
+    window.storage.list('submission:', true),
+    window.storage.listByPrefix(['status:', 'testprogress:', 'manualaccess:', 'activitydone:'], true).catch(() => null),
+  ]);
+  const sammelItems = sammel && Array.isArray(sammel.items) ? sammel.items : null;
+  const actRes = sammelItems ? { keys: sammelItems.map(x => x.key).filter(k => k.indexOf('activitydone:') === 0) } : await window.storage.list('activitydone:', true);
   const schueler = STUDENTS.map(n => ({ name: n, slug: slug(n), done: new Set(), doneActs: new Set(), latest: {}, status: {}, pausiert: {}, manualIdx: -1 }));
   const bySlug = {}; schueler.forEach(s => { bySlug[s.slug] = s; });
   ((subRes && subRes.keys) || []).forEach(k => {
@@ -49,22 +56,32 @@ async function ladeUebersichtsdaten() {
     if (!s.latest[p[1]] || Number(p[3]) > Number(s.latest[p[1]])) s.latest[p[1]] = p[3];
   });
   ((actRes && actRes.keys) || []).forEach(k => { const p = k.split(':'); const s = bySlug[p[2]]; if (s) s.doneActs.add(p[1]); });
-  // Status, pausierte Entwürfe, manuelle Freischaltung: eine Abfrage pro Schüler (in Gruppen)
-  const GRUPPE = 4;
-  for (let i = 0; i < schueler.length; i += GRUPPE) {
-    await Promise.all(schueler.slice(i, i + GRUPPE).map(async (s) => {
-      try {
-        const res = await window.storage.listBySuffix(':' + s.slug, true);
-        ((res && res.items) || []).forEach(({ key, value }) => {
-          const p = key.split(':');
-          try {
-            if (p[0] === 'status' && p[2] === s.slug) s.status[p[1]] = JSON.parse(value);
-            else if (p[0] === 'testprogress' && p[2] === s.slug) { const o = JSON.parse(value); s.pausiert[p[1]] = o && o.gespeichertAm ? new Date(o.gespeichertAm).getTime() : null; }
-            else if (p[0] === 'manualaccess') s.manualIdx = aufloeseManualAccessIndex(JSON.parse(value));
-          } catch (e) { /* kaputter Eintrag */ }
-        });
-      } catch (e) { s.fehler = true; }
-    }));
+  // Status, pausierte Entwürfe, manuelle Freischaltung
+  const uebernimm = (s, key, value) => {
+    const p = key.split(':');
+    try {
+      if (p[0] === 'status' && p[2] === s.slug) s.status[p[1]] = JSON.parse(value);
+      else if (p[0] === 'testprogress' && p[2] === s.slug) { const o = JSON.parse(value); s.pausiert[p[1]] = o && o.gespeichertAm ? new Date(o.gespeichertAm).getTime() : null; }
+      else if (p[0] === 'manualaccess' && p[1] === s.slug) s.manualIdx = aufloeseManualAccessIndex(JSON.parse(value));
+    } catch (e) { /* kaputter Eintrag */ }
+  };
+  if (sammelItems) {
+    sammelItems.forEach(({ key, value }) => {
+      const p = key.split(':');
+      const s = bySlug[p[0] === 'manualaccess' ? p[1] : p[2]];
+      if (s) uebernimm(s, key, value);
+    });
+  } else {
+    // Ersatzweg, falls die Sammel-Abfrage scheitert: eine Abfrage pro Schüler (in Gruppen)
+    const GRUPPE = 4;
+    for (let i = 0; i < schueler.length; i += GRUPPE) {
+      await Promise.all(schueler.slice(i, i + GRUPPE).map(async (s) => {
+        try {
+          const res = await window.storage.listBySuffix(':' + s.slug, true);
+          ((res && res.items) || []).forEach(({ key, value }) => uebernimm(s, key, value));
+        } catch (e) { s.fehler = true; }
+      }));
+    }
   }
   schueler.forEach(s => { s.pos = berechnePosition(s); });
   return schueler;

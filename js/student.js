@@ -3,7 +3,7 @@
    Geteilte Teile: shared.js, data/*.js, tests-common.js. Lehrkraft-Ansicht: lehrkraft.html + teacher.js.
    ========================================================================== */
 
-fillStudentSelect(document.getElementById('startName'));
+// Die Namensliste kommt nach der Anmeldung vom Backend — siehe starteZugang() am Ende dieser Datei.
 
 // Die Abschlusstest-Bausteine (tests-common.js) rufen updateProgress() auf — hier die echte Fortschrittsanzeige.
 let currentTestId = null;
@@ -49,7 +49,12 @@ function geheZurueck() {
   else { refreshProgress(); zeigeViewNur('view-start'); }
 }
 // Nach einer Abgabe: weder in den abgegebenen Test noch in das alte Ergebnis zurückspringen.
-function nachAbgabe() { ungueltigeViews.add('view-test'); ungueltigeViews.add('view-activity'); ungueltigeViews.add('view-ergebnis'); }
+function nachAbgabe() {
+  ungueltigeViews.add('view-test'); ungueltigeViews.add('view-activity'); ungueltigeViews.add('view-ergebnis');
+  // Fortschritts-Cache sofort nachziehen: Der Test gilt jetzt als abgegeben, sein alter Status (z. B. "wiederholen") ist überholt.
+  const id = aktuelleView === 'view-activity' ? currentActivityId : currentTestId;
+  if (id && progressCache.doneTests) { progressCache.doneTests.add(id); if (progressCache.statusInfo) delete progressCache.statusInfo[id]; }
+}
 
 // ---------------- FORTSCHRITT (gemeinsam für Übersicht + Listen) ----------------
 let progressCache = { name: null, doneTests: new Set(), doneActs: new Set(), unlocked: new Set(), loaded: false };
@@ -465,7 +470,7 @@ async function openActivity(actId) {
 async function ermittleGrammatikWiederholungsfilter(id, name, a) {
   const leer = { gesperrt: {}, daten: {}, hinweis: '', teilweise: false };
   try {
-    const statusRes = await window.storage.get(`status:${id}:${slug(name)}`, true);
+    const statusRes = await holeStatus(id, name);
     if (!statusRes || !statusRes.value) return leer;
     const statusObj = JSON.parse(statusRes.value);
     if (statusObj.status !== 'wiederholen') return leer;
@@ -680,9 +685,8 @@ async function submitGrammatikblock(a) {
 
   try {
     const key = `submission:${currentActivityId}:${slug(currentActivityName)}:${Date.now()}`;
-    await speichereMitRetry(key, JSON.stringify(submission), true);
-    await speichereMitRetry(`status:${currentActivityId}:${slug(currentActivityName)}`, JSON.stringify({ status: 'offen' }), true);
-    try { await window.storage.delete(`testprogress:${currentActivityId}:${slug(currentActivityName)}`, true); } catch (e) { /* unkritisch */ }
+    await speichereVieleMitRetry([{ key, value: JSON.stringify(submission) }, { key: `status:${currentActivityId}:${slug(currentActivityName)}`, value: JSON.stringify({ status: 'offen' }) }]);
+    window.storage.delete(`testprogress:${currentActivityId}:${slug(currentActivityName)}`, true).catch(() => {}); // im Hintergrund
     document.getElementById('doneName').textContent = currentActivityName;
     nachAbgabe(); showView('view-done', { ersetzen: true });
   } catch (e) {
@@ -1316,7 +1320,7 @@ function istGesperrt(g, num) { return g === true || (g && typeof g.has === 'func
 async function ermittleWiederholungsfilter(testId, name, t) {
   const leer = { gesperrt: { teil1: false, teil2: false, teil3: false, teil4: false }, daten: {}, hinweis: '' };
   try {
-    const statusRes = await window.storage.get(`status:${testId}:${slug(name)}`, true);
+    const statusRes = await holeStatus(testId, name);
     if (!statusRes || !statusRes.value) return leer;
     const statusObj = JSON.parse(statusRes.value);
     if (statusObj.status !== 'wiederholen') return leer;
@@ -1720,11 +1724,7 @@ async function bewerteSatz(pronomen, vokabel, satz, versuch) {
     throw new Error('Speicher-Backend noch nicht eingerichtet (APPS_SCRIPT_URL fehlt).');
   }
   try {
-    const data = await ascAnfrage(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'bewerteSatz', pronomen, vokabel, satz }),
-    });
+    const data = await api({ action: 'bewerteSatz', pronomen, vokabel, satz });
     return { korrekt: !!data.korrekt, feedback: data.feedback || '', verbesserung: data.verbesserung || '' };
   } catch (err) {
     if (versuch < 3) {
@@ -2113,8 +2113,8 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     const key = `submission:${currentTestId}:${slug(currentStudentName)}:${Date.now()}`;
     // Mit Wiederholversuchen speichern — bei gleichzeitiger Nutzung durch viele Schüler:innen kann
     // ein einzelner Speicherversuch am gemeinsamen Ratenlimit scheitern ("Message rate limit exceeded").
-    await speichereMitRetry(key, JSON.stringify(submission), true);
-    await speichereMitRetry(`status:${currentTestId}:${slug(currentStudentName)}`, JSON.stringify({ status: 'offen' }), true);
+    // Abgabe + Status in EINER Anfrage (setMany) statt zwei nacheinander — halbiert die Wartezeit beim Abschicken.
+    await speichereVieleMitRetry([{ key, value: JSON.stringify(submission) }, { key: `status:${currentTestId}:${slug(currentStudentName)}`, value: JSON.stringify({ status: 'offen' }) }]);
     // Entwurf im Hintergrund löschen (nicht darauf warten) — aber erst, wenn ein evtl. noch laufendes Autosave durch ist.
     const entwurfKey = progressKeyFor(currentTestId, currentStudentName);
     autosaveLaufend.catch(() => {}).then(() => window.storage.delete(entwurfKey, true)).catch(() => {});
@@ -2437,7 +2437,7 @@ function setzeKopfzeile(viewId, id) {
 async function wendeAbschlussWiederholungAn(t, testId, name) {
   const sl = slug(name);
   let status = null;
-  try { const r = await window.storage.get(`status:${testId}:${sl}`, true); status = (r && r.value) ? JSON.parse(r.value) : null; } catch (e) { return false; }
+  try { const r = await holeStatus(testId, name); status = (r && r.value) ? JSON.parse(r.value) : null; } catch (e) { return false; }
   const neuFelder = Array.isArray(status && status.wiederholenFelder) ? status.wiederholenFelder : null;
   const altTeile = Array.isArray(status && status.wiederholenTeile) ? status.wiederholenTeile : null;
   const hatAngabe = (neuFelder && neuFelder.length) || (!neuFelder && altTeile && altTeile.length);
@@ -2499,3 +2499,85 @@ function offeneVokabelAufgaben() {
   return [...document.querySelectorAll('#teil1items .item, #teil2items .item, #teil3items .item, #teil4items .gegenteil-row')]
     .filter(el => !el.querySelector('.locked-tag') && !el.closest('.teil.hidden'));
 }
+
+// ---------------- STATUS EINES TESTS BEIM ÖFFNEN ----------------
+// Liefert { value: '<Status-JSON>' } wie window.storage.get — aber ohne Backend-Anfrage, wenn der gerade geladene
+// Fortschritt der Startseite die Antwort schon eindeutig kennt (jede Anfrage kostet 2–3 s):
+//   · Test wurde noch nie abgegeben  -> es gibt nichts zu wiederholen
+//   · Status ist "wiederholen"       -> steht vollständig im Cache (samt der zu wiederholenden Aufgaben)
+// In allen anderen Fällen (abgegeben, aber noch "offen"/"weiter") wird frisch gefragt — die Lehrkraft könnte den
+// Test inzwischen auf "Wiederholen nötig" gesetzt haben.
+async function holeStatus(id, name) {
+  const c = progressCache;
+  if (c && c.loaded && c.name === name) {
+    const si = (c.statusInfo || {})[id];
+    if (!si && !(c.doneTests && c.doneTests.has(id))) return null;
+    if (si && si.status === 'wiederholen') return { value: JSON.stringify(si) };
+  }
+  return window.storage.get(`status:${id}:${slug(name)}`, true);
+}
+
+// ---------------- ZUGANG: KLASSEN-CODE + NAMENSLISTE VOM BACKEND ----------------
+// Die Namen der Klasse stehen nicht mehr im (öffentlich abrufbaren) Seiten-Code. Sie kommen vom Apps Script — und das
+// antwortet nur, wenn der Klassen-Code stimmt. Der Code wird einmal pro Gerät eingegeben und dort gespeichert; die
+// zuletzt geladene Namensliste ebenfalls, damit die Auswahl beim nächsten Öffnen sofort da ist.
+function zeigeNamen(namen) {
+  STUDENTS = namen || [];
+  fillStudentSelect(document.getElementById('startName'));
+}
+function setzeNamenPlatzhalter(text) {
+  const o = document.querySelector('#startName option[value=""]'); if (o) o.textContent = text;
+}
+async function starteZugang() {
+  let cache = null;
+  try { cache = JSON.parse(localStorage.getItem('daz_namen') || 'null'); } catch (e) { /* kein Cache */ }
+  if (Array.isArray(cache) && cache.length) zeigeNamen(cache); else setzeNamenPlatzhalter('Namen werden geladen …');
+  try {
+    const d = await anmelden(ZUGANGS_CODE);
+    zeigeNamen(d.namen);
+    setzeNamenPlatzhalter('— Bitte wählen —');
+    try { localStorage.setItem('daz_namen', JSON.stringify(d.namen || [])); } catch (e) { /* egal */ }
+  } catch (e) {
+    if (e && e.message === 'zugang_verweigert') beiZugangVerweigert();
+    else if (!(Array.isArray(cache) && cache.length)) setzeNamenPlatzhalter('Keine Verbindung — bitte Seite neu laden');
+  }
+}
+// Wird auch von ascAnfrage() aufgerufen, sobald IRGENDEINE Anfrage mit "zugang_verweigert" zurückkommt
+// (z. B. wenn die Lehrkraft den Klassen-Code geändert hat).
+function beiZugangVerweigert() {
+  if (document.getElementById('codeGate')) return;
+  try { localStorage.removeItem('daz_namen'); } catch (e) { /* egal */ }
+  zeigeNamen([]);
+  const gate = document.createElement('div');
+  gate.id = 'codeGate';
+  gate.innerHTML = `<div class="code-gate-box">
+      <p class="eyebrow" style="color:var(--ink-soft);">Werkstattarbeit DaZ</p>
+      <h2>Klassen-Code</h2>
+      <p>Bitte gib den Code deiner Klasse ein. Deine Lehrkraft sagt ihn dir.</p>
+      <input type="text" id="codeInput" placeholder="Klassen-Code" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="btn full" id="codeSubmit" style="margin-top:12px;">Weiter</button>
+      <p id="codeError" class="code-gate-fehler"></p>
+    </div>`;
+  document.body.appendChild(gate);
+  const input = document.getElementById('codeInput'), btn = document.getElementById('codeSubmit'), err = document.getElementById('codeError');
+  async function pruefen() {
+    const code = input.value.trim();
+    if (!code) return;
+    btn.disabled = true; btn.textContent = 'Prüfe …'; err.textContent = '';
+    try {
+      const d = await anmelden(code);
+      ZUGANGS_CODE = code;
+      try { localStorage.setItem('daz_code', code); localStorage.setItem('daz_namen', JSON.stringify(d.namen || [])); } catch (e) { /* egal */ }
+      gate.remove();
+      zeigeNamen(d.namen);
+      setzeNamenPlatzhalter('— Bitte wählen —');
+    } catch (e) {
+      err.textContent = (e && e.message === 'zugang_verweigert') ? 'Der Code stimmt nicht. Bitte noch einmal versuchen.' : 'Keine Verbindung. Bitte noch einmal versuchen.';
+      btn.disabled = false; btn.textContent = 'Weiter';
+    }
+  }
+  btn.addEventListener('click', pruefen);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') pruefen(); });
+  input.focus();
+}
+starteZugang();

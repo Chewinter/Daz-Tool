@@ -20,17 +20,29 @@ async function listeAlleAbgabeKeys() {
 }
 
 // ---------------- DASHBOARD ----------------
-document.getElementById('pinSubmit').addEventListener('click', () => {
+document.getElementById('pinSubmit').addEventListener('click', async () => {
   const val = document.getElementById('pinInput').value;
-  if (val === DASH_PIN) {
+  const btn = document.getElementById('pinSubmit'), err = document.getElementById('pinError');
+  if (err.dataset.standard === undefined) err.dataset.standard = err.textContent;
+  err.style.display = 'none';
+  btn.disabled = true;
+  let d = null, netzfehler = false;
+  try { d = await anmelden(val); } catch (e) { netzfehler = !(e && e.message === 'zugang_verweigert'); }
+  btn.disabled = false;
+  if (d && d.lehrkraft) {
+    ZUGANGS_CODE = val;          // geht ab jetzt mit jeder Anfrage mit (nur im Speicher dieser Seite, nicht auf dem Gerät)
+    STUDENTS = d.namen || [];
+    fillStudentSelect(document.getElementById('manualStudentSelect'));
     document.getElementById('pinGate').classList.add('hidden');
     document.getElementById('dashContent').classList.remove('hidden');
     initDashStudentFilter();
     zeigeUebersicht();
   } else {
-    document.getElementById('pinError').style.display = 'block';
+    err.textContent = netzfehler ? 'Keine Verbindung zum Speicher — bitte noch einmal versuchen.' : err.dataset.standard;
+    err.style.display = 'block';
   }
 });
+document.getElementById('pinInput').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('pinSubmit').click(); });
 document.getElementById('refreshBtn').addEventListener('click', () => aktualisiereAnsicht());
 
 function initDashStudentFilter() {

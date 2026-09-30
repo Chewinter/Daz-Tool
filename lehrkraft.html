@@ -7,7 +7,7 @@
 <script>
   // ==== VERSION — nach JEDER Änderung an css/js/data hier hochzählen (z. B. 20260924b), damit Browser die neuen
   //      Dateien sofort laden und nicht mit alten mischen. In index.html UND lehrkraft.html gleich halten. ====
-  var APP_V = '20261102a';
+  var APP_V = '20261103a';
   document.write('<link rel="stylesheet" href="css/style.css?v=' + APP_V + '">');
 </script>
 </head>
@@ -24,7 +24,7 @@
   <div class="wrap">
     <div id="pinGate" class="pin-gate">
       <p>PIN eingeben, um die Ergebnisse zu sehen.</p>
-      <input type="password" inputmode="numeric" id="pinInput" maxlength="4" placeholder="••••">
+      <input type="password" id="pinInput" maxlength="64" placeholder="PIN" autocomplete="off">
       <button class="btn full" id="pinSubmit">Öffnen</button>
       <p id="pinError" style="color: var(--bad); font-size: 13px; display:none;">Falscher PIN.</p>
     </div>

@@ -521,6 +521,12 @@ input.wdh-offen, select.wdh-offen, textarea.wdh-offen { box-shadow: 0 0 0 2px #E
 .erg-bild { display: block; max-width: 110px; max-height: 96px; margin: 6px 0; padding: 4px; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
 /* Kopfzeile: Niveau + Lernfeld über dem Titel */
 .eyebrow-lernfeld { font-weight: 700; opacity: 1; letter-spacing: .02em; text-transform: none; font-size: 14.5px; }
+/* Klassen-Code-Abfrage (liegt über der ganzen Seite, bis der Code stimmt) */
+#codeGate { position: fixed; inset: 0; z-index: 1000; background: var(--bg, #FAF6EE); display: flex; align-items: flex-start; justify-content: center; padding: 60px 16px; overflow: auto; }
+.code-gate-box { width: 100%; max-width: 380px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 24px; }
+.code-gate-box h2 { font-family: Georgia, serif; margin: 4px 0 8px; }
+.code-gate-box input { width: 100%; box-sizing: border-box; font-size: 18px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; margin-top: 10px; }
+.code-gate-fehler { color: var(--bad); min-height: 1.4em; margin: 10px 0 0; font-size: 14.5px; }
 
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
