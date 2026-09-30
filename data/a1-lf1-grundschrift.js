@@ -21,9 +21,9 @@ registerTests({
     "word": "Kleinbuchstabe b",
     "icons": [
      "klein_h",
-     "klein_e",
+     "klein_m",
      "klein_b",
-     "klein_n"
+     "klein_e"
     ],
     "correct": 2
    },
@@ -53,10 +53,10 @@ registerTests({
     "num": 5,
     "word": "Kleinbuchstabe k",
     "icons": [
-     "klein_a",
+     "klein_n",
      "klein_h",
      "klein_k",
-     "klein_b"
+     "klein_m"
     ],
     "correct": 2
    },
@@ -64,10 +64,10 @@ registerTests({
     "num": 6,
     "word": "Kleinbuchstabe e",
     "icons": [
-     "klein_n",
+     "klein_m",
      "klein_e",
      "klein_a",
-     "klein_k"
+     "klein_i"
     ],
     "correct": 1
    }
@@ -271,7 +271,7 @@ registerTests({
     "word": "Kleinbuchstabe p",
     "icons": [
      "klein_h",
-     "klein_l",
+     "klein_k",
      "klein_b",
      "klein_p"
     ],
@@ -292,8 +292,8 @@ registerTests({
     "num": 5,
     "word": "Großbuchstabe C",
     "icons": [
-     "Groß_E",
-     "Groß_L",
+     "Groß_F",
+     "Groß_U",
      "Groß_C",
      "Groß_O"
     ],
@@ -489,9 +489,9 @@ registerTests({
     "num": 1,
     "word": "Großbuchstabe S",
     "icons": [
-     "Groß_H",
-     "Groß_C",
      "Groß_U",
+     "Groß_F",
+     "Groß_B",
      "Groß_S"
     ],
     "correct": 3
@@ -522,10 +522,10 @@ registerTests({
     "num": 4,
     "word": "Kleinbuchstabe g",
     "icons": [
-     "klein_c",
-     "klein_ß",
+     "klein_o",
+     "klein_u",
      "klein_g",
-     "klein_e"
+     "klein_f"
     ],
     "correct": 2
    },
@@ -766,9 +766,9 @@ registerTests({
     "word": "Kleinbuchstabe z",
     "icons": [
      "klein_s",
-     "klein_y",
+     "klein_j",
      "klein_z",
-     "klein_e"
+     "klein_v"
     ],
     "correct": 2
    },
@@ -788,8 +788,8 @@ registerTests({
     "word": "Großbuchstabe Z",
     "icons": [
      "Groß_S",
-     "Groß_G",
-     "Groß_F",
+     "Groß_M",
+     "Groß_B",
      "Groß_Z"
     ],
     "correct": 3
@@ -798,9 +798,9 @@ registerTests({
     "num": 6,
     "word": "Großbuchstabe J",
     "icons": [
-     "Groß_V",
+     "Groß_G",
      "Groß_N",
-     "Groß_P",
+     "Groß_R",
      "Groß_J"
     ],
     "correct": 3

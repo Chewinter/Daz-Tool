@@ -31,7 +31,8 @@ const STUDENTS = [
   "Eyleen d. l. Canidad Romero Febles",
   "Dmytro Sizhko",
   "Judi Younis",
-  "Abdelrahman Elhady"
+  "Abdelrahman Elhady",
+  "TEst"
 ];
 function fillStudentSelect(selectEl, valueMode) {
   // valueMode "slug": value = slug(Name) (Lehrkraft-Filter), sonst value = voller Name

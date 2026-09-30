@@ -322,12 +322,16 @@ registerTests({
    },
    {
     "num": 34,
-    "word": "der Hut",
+    "word": "Bild Hut (Mehrzahl)",
+    "label": "Bild Hut (Mehrzahl)",
+    "bild": "Kleidung_Hut",
     "correct": "die Hüte"
    },
    {
     "num": 35,
-    "word": "der Mantel",
+    "word": "Bild Mantel (Mehrzahl)",
+    "label": "Bild Mantel (Mehrzahl)",
+    "bild": "Kleidung_Mantel",
     "correct": "die Mäntel"
    }
   ],

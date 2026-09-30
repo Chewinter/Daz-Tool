@@ -253,8 +253,9 @@ async function oeffneSchueler(slugName, testId) {
   window.scrollTo(0, 0);
   await loadSubmissions(false);
   if (testId) {
+    kartenOffen.add(testId);
     const karte = [...document.querySelectorAll('#submissionList .submission')].find(c => c.dataset.test === testId);
-    if (karte) karte.scrollIntoView({ block: 'start' });
+    if (karte) { karte.classList.remove('collapsed'); karte.scrollIntoView({ block: 'start' }); }
   }
 }
 document.getElementById('zurUebersicht').addEventListener('click', () => zeigeUebersicht());

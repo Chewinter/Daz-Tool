@@ -212,6 +212,7 @@ function buildAbschlusstest(t) {
   let selectedWordKey = null;
   mount.querySelectorAll('.quartett-card').forEach(el => {
     el.addEventListener('click', () => {
+      if (el.classList.contains('abschluss-gesperrt')) return;
       mount.querySelectorAll('.quartett-card').forEach(c => c.classList.remove('selected'));
       selectedWordKey = el.getAttribute('data-key');
       el.classList.add('selected');
@@ -221,6 +222,7 @@ function buildAbschlusstest(t) {
   mount.querySelectorAll('[data-farbwahl]').forEach(btn => {
     btn.addEventListener('click', () => {
       if (!selectedWordKey) return;
+      if (mount.querySelector(`.quartett-card[data-key="${selectedWordKey}"]`)?.classList.contains('abschluss-gesperrt')) return;
       const meta = fieldMeta.find(f => f.key === selectedWordKey);
       const chosen = btn.getAttribute('data-farbwahl');
       const correct = chosen === meta.kategorie;

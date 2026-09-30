@@ -499,6 +499,14 @@
   /* Anzeige insgesamt etwas breiter (mehr Platz z. B. für die Lesespur-Karte) */
   .wrap { max-width: 880px; }
   .progress-track, .progress-label { max-width: 880px; }
+  .bw-fb .bw-fb-preset { flex: 0 1 190px; padding: 6px 6px; border: 1.5px solid var(--line); border-radius: 6px; font-size: 13.5px; background: #fff; }
+  /* Bewertungskarten in der Lehrkraft-Ansicht: eingeklappt, per Klick aufklappen (weniger unübersichtlich bei mehreren offenen Abgaben) */
+  .submission .head { cursor: pointer; }
+  .submission .status-tag { cursor: pointer; }
+  .submission .bw-chevron { display: inline-block; margin-left: 6px; font-size: 12px; color: var(--ink-soft); transition: transform .15s; }
+  .submission.collapsed .bw-chevron { transform: rotate(-90deg); }
+  .submission .bw-details { margin-top: 10px; }
+  .submission.collapsed .bw-details { display: none; }
 
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }

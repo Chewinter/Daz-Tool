@@ -45,6 +45,7 @@ async function refreshProgress() {
   const testApproval = {}; // testId -> 'weiter' | 'wiederholen' | 'offen'
   const statusComments = {}; // testId -> Kommentartext der Lehrkraft
   const statusInfo = {}; // testId -> komplettes Status-Objekt (u. a. reviewKey für "Ergebnis ansehen")
+  const statusReviewedAt = {}; // testId -> Zeitstempel (Zahl) der letzten Lehrkraft-Bewertung
   const pausierteTests = new Set(); // testIds mit einem pausierten Entwurf (testprogress:)
 
   // Die vier unabhängigen Abfragen GLEICHZEITIG starten statt nacheinander — das ist der
@@ -57,12 +58,15 @@ async function refreshProgress() {
     window.storage.listBySuffix(`:${sl}`, true),
   ]);
 
+  const letzteAbgabeAm = {}; // testId -> Zeitstempel (Zahl) der neuesten Abgabe dieses Schülers
   if (subRes.status === 'fulfilled') {
     (subRes.value && subRes.value.keys ? subRes.value.keys : []).forEach(k => {
       const parts = k.split(':');
       if (parts.length < 3 || parts[2] !== sl) return;
       if (k.endsWith('_manuell')) return;
       doneTests.add(parts[1]);
+      const ts = Number(parts[3]);
+      if (!Number.isNaN(ts) && (!letzteAbgabeAm[parts[1]] || ts > letzteAbgabeAm[parts[1]])) letzteAbgabeAm[parts[1]] = ts;
     });
   }
 
@@ -88,6 +92,7 @@ async function refreshProgress() {
           if (doneTests.has(parts[1])) testApproval[parts[1]] = obj.status || 'offen';
           if (obj.comment) statusComments[parts[1]] = obj.comment;
           statusInfo[parts[1]] = obj;
+          if (obj.reviewedAt) statusReviewedAt[parts[1]] = Date.parse(obj.reviewedAt) || 0;
         } catch (e) { /* skip */ }
       } else if (parts[0] === 'testprogress' && parts.length >= 3 && parts[2] === sl && value) {
         pausierteTests.add(parts[1]);
@@ -108,7 +113,14 @@ async function refreshProgress() {
   // Für die ANZEIGE ("erledigt" grün) zählt zusätzlich die Freigabe durch die Lehrkraft (siehe getDisplayStatus).
   const unlocked = new Set();
   let activeLernfeldFound = false;
-  function isDoneLocal(id, kind) { return kind === 'activity' ? doneActs.has(id) : doneTests.has(id); }
+  function isDoneLocal(id, kind) {
+    if (kind === 'activity') return doneActs.has(id);
+    if (!doneTests.has(id)) return false;
+    if (testApproval[id] !== 'wiederholen') return true;
+    // "Muss wiederholt werden": zählt erst wieder als erledigt (schaltet den nächsten Schritt frei),
+    // wenn seit der Bewertung neu abgegeben wurde.
+    return !!(letzteAbgabeAm[id] && statusReviewedAt[id] && letzteAbgabeAm[id] > statusReviewedAt[id]);
+  }
 
   // Bestandsschutz: Wer in einem SPÄTEREN Lernfeld schon etwas abgegeben hat, ist an den früheren
   // Lernfeldern faktisch vorbeigekommen (die Reihenfolge ist sequenziell). Sonst würden Schüler, die schon
@@ -413,16 +425,46 @@ async function ermittleGrammatikWiederholungsfilter(id, name, a) {
     const statusRes = await window.storage.get(`status:${id}:${slug(name)}`, true);
     if (!statusRes || !statusRes.value) return leer;
     const statusObj = JSON.parse(statusRes.value);
-    if (statusObj.status !== 'wiederholen' || !Array.isArray(statusObj.punkteWiederholen) || !statusObj.punkteWiederholen.length) return leer;
-
+    if (statusObj.status !== 'wiederholen') return leer;
     const alleNummern = a.punkte.map(p => p.nr);
+
+    if (statusObj.wiederholenGrammatik && typeof statusObj.wiederholenGrammatik === 'object') {
+      const wg = statusObj.wiederholenGrammatik;
+      const wrongCount = alleNummern.reduce((s, nr) => s + ((wg[nr] || []).length), 0);
+      if (!wrongCount) return leer;
+      const totalCount = a.punkte.reduce((s, p) => s + p.uebung.items.length, 0);
+      if (wrongCount >= totalCount) return leer;
+
+      const listRes2 = await window.storage.list(`submission:${id}:${slug(name)}:`, true);
+      const keys2 = (listRes2 && listRes2.keys) || [];
+      if (!keys2.length) return leer;
+      const letzterKey2 = keys2.slice().sort().slice(-1)[0];
+      const subRes2 = await window.storage.get(letzterKey2, true);
+      if (!subRes2 || !subRes2.value) return leer;
+      const sub2 = JSON.parse(subRes2.value);
+      const raState2 = sub2.raState || {};
+
+      const gesperrt2 = {}, daten2 = {};
+      a.punkte.forEach(p => {
+        const wrongIdx = new Set((wg[p.nr] || []).map(Number));
+        daten2[p.nr] = raState2[p.nr] || [];
+        if (!wrongIdx.size) { gesperrt2[p.nr] = true; return; }
+        gesperrt2[p.nr] = new Set(p.uebung.items.map((_, ii) => ii).filter(ii => !wrongIdx.has(ii)));
+      });
+      return {
+        gesperrt: gesperrt2, daten: daten2, teilweise: true,
+        hinweis: `<p style="color:var(--warn); font-size:14px;">Deine Lehrkraft möchte, dass du nur die ${wrongCount} markierte${wrongCount === 1 ? '' : 'n'} Aufgabe${wrongCount === 1 ? '' : 'n'} wiederholst — der Rest ist schon eingetragen.</p>`,
+      };
+    }
+
+    if (!Array.isArray(statusObj.punkteWiederholen) || !statusObj.punkteWiederholen.length) return leer;
     const ausgewaehlt = new Set(statusObj.punkteWiederholen);
-    if (alleNummern.every(nr => ausgewaehlt.has(nr))) return leer; // effektiv alle Punkte -> normales Verhalten
+    if (alleNummern.every(nr => ausgewaehlt.has(nr))) return leer;
 
     const listRes = await window.storage.list(`submission:${id}:${slug(name)}:`, true);
     const keys = (listRes && listRes.keys) || [];
     if (!keys.length) return leer;
-    const letzterKey = keys.slice().sort().slice(-1)[0]; // Zeitstempel im Key -> alphabetisch = chronologisch
+    const letzterKey = keys.slice().sort().slice(-1)[0];
     const subRes = await window.storage.get(letzterKey, true);
     if (!subRes || !subRes.value) return leer;
     const sub = JSON.parse(subRes.value);
@@ -439,7 +481,7 @@ async function ermittleGrammatikWiederholungsfilter(id, name, a) {
       hinweis: `<p style="color:var(--warn); font-size:14px;">Deine Lehrkraft möchte, dass du diesmal nur Aufgabe ${nurDiese} wiederholst — der Rest ist schon eingetragen.</p>`,
     };
   } catch (e) {
-    return leer; // im Zweifel: normales Verhalten (ganzer Block wird abgefragt)
+    return leer;
   }
 }
 
@@ -458,7 +500,8 @@ function buildGrammatikblock(a, wiederholung) {
   html += wiederholung.hinweis || '';
 
   a.punkte.forEach((p, pi) => {
-    const gesperrt = !!currentGrammatikGesperrt[p.nr];
+    const gesperrtInfo = currentGrammatikGesperrt[p.nr];
+    const gesperrtGanz = gesperrtInfo === true;
     const vorherige = currentGrammatikVorherigeDaten[p.nr] || [];
     html += `
       <div class="grammatik-erklaerung">
@@ -469,12 +512,12 @@ function buildGrammatikblock(a, wiederholung) {
         </div>
       </div>
       <div class="grammatik-uebung">
-        <div class="grammatik-uebung-titel">✎ Aufgabe ${p.nr}${gesperrt ? ' <span class="locked-tag">bereits erledigt</span>' : ''}</div>
+        <div class="grammatik-uebung-titel">✎ Aufgabe ${p.nr}${gesperrtGanz ? ' <span class="locked-tag">bereits erledigt</span>' : ''}</div>
         <p class="hint" style="margin-top:0;">${escapeHtml(p.uebung.anleitung)}</p>
     `;
     p.uebung.items.forEach((item, ii) => {
       const key = `gb-${pi}-${ii}`;
-      if (gesperrt) {
+      if (istGesperrt(gesperrtInfo, ii)) {
         html += `
           <div class="grammatik-item">
             <div class="grammatik-frage">${escapeHtml(item.frage)}</div>
@@ -572,7 +615,7 @@ async function submitGrammatikblock(a) {
         // Unverändert aus der letzten Abgabe übernehmen — dieser Punkt wurde nicht neu bearbeitet
         const wert = vorherige[ii] || '';
         antworten.push(wert);
-        teilDetails.push({ frage: item.frage, antwort: wert, korrekt: true, korrektAntwort: korrektAnzeige, punktNr: p.nr });
+        teilDetails.push({ frage: item.frage, antwort: wert, korrekt: true, korrektAntwort: korrektAnzeige, punktNr: p.nr, itemIdx: ii });
         autoCorrect++;
       } else {
         const input = document.querySelector(`#actBody .gb-input[data-key="gb-${pi}-${ii}"]`);
@@ -580,7 +623,7 @@ async function submitGrammatikblock(a) {
         antworten.push(wert);
         const korrekt = wert !== '' && checkAcceptable(wert, item.antwort);
         if (korrekt) autoCorrect++;
-        teilDetails.push({ frage: item.frage, antwort: wert || '(keine Antwort)', korrekt, korrektAntwort: korrektAnzeige, punktNr: p.nr });
+        teilDetails.push({ frage: item.frage, antwort: wert || '(keine Antwort)', korrekt, korrektAntwort: korrektAnzeige, punktNr: p.nr, itemIdx: ii });
       }
     });
     raState[p.nr] = antworten;
@@ -1226,23 +1269,55 @@ document.getElementById('toStartAgain').addEventListener('click', () => { refres
 // Prüft, ob die Lehrkraft bei der letzten Kontrolle nur bestimmte Teile (Bereiche) zur Wiederholung
 // markiert hat. Falls ja: die übrigen Teile werden aus der letzten Einreichung vorausgefüllt und
 // nicht nochmal abgefragt; nur die markierten Teile sind beim erneuten Öffnen aktiv/eingabefähig.
+function istGesperrt(g, num) { return g === true || (g && typeof g.has === 'function' && g.has(num)); }
 async function ermittleWiederholungsfilter(testId, name, t) {
   const leer = { gesperrt: { teil1: false, teil2: false, teil3: false, teil4: false }, daten: {}, hinweis: '' };
   try {
     const statusRes = await window.storage.get(`status:${testId}:${slug(name)}`, true);
     if (!statusRes || !statusRes.value) return leer;
     const statusObj = JSON.parse(statusRes.value);
-    if (statusObj.status !== 'wiederholen' || !Array.isArray(statusObj.wiederholenTeile) || !statusObj.wiederholenTeile.length) return leer;
-
+    if (statusObj.status !== 'wiederholen') return leer;
     const vorhandeneTeile = ['teil1','teil2','teil3','teil4'].filter(tn => t[tn] && t[tn].length);
+
+    // NEU (praezise): genau die Aufgaben, die als Kreuz markiert waren -- Rest wird automatisch gesperrt.
+    if (statusObj.wiederholenVokabel && typeof statusObj.wiederholenVokabel === 'object') {
+      const wv = statusObj.wiederholenVokabel;
+      const wrongCount = vorhandeneTeile.reduce((s, tn) => s + ((wv[tn] || []).length), 0);
+      if (!wrongCount) return leer;
+      const totalCount = vorhandeneTeile.reduce((s, tn) => s + t[tn].length, 0);
+      if (wrongCount >= totalCount) return leer;
+
+      const listRes2 = await window.storage.list(`submission:${testId}:${slug(name)}:`, true);
+      const keys2 = (listRes2 && listRes2.keys) || [];
+      if (!keys2.length) return leer;
+      const letzterKey2 = keys2.slice().sort().slice(-1)[0];
+      const subRes2 = await window.storage.get(letzterKey2, true);
+      if (!subRes2 || !subRes2.value) return leer;
+      const sub2 = JSON.parse(subRes2.value);
+      const raState2 = sub2.raState || {};
+
+      const gesperrt2 = {}, daten2 = {};
+      vorhandeneTeile.forEach(tn => {
+        const wrongNums = new Set((wv[tn] || []).map(Number));
+        daten2[tn] = raState2[tn] || {};
+        if (!wrongNums.size) { gesperrt2[tn] = true; return; }
+        gesperrt2[tn] = new Set(t[tn].map(i => i.num).filter(n => !wrongNums.has(n)));
+      });
+      return {
+        gesperrt: gesperrt2, daten: daten2,
+        hinweis: `<p style="color:var(--warn); font-size:14px;">Deine Lehrkraft möchte, dass du nur die ${wrongCount} markierte${wrongCount === 1 ? '' : 'n'} Aufgabe${wrongCount === 1 ? '' : 'n'} wiederholst — der Rest ist schon eingetragen.</p>`,
+      };
+    }
+
+    // ALT (Bestandsschutz fuer bereits gespeicherte Bewertungen von vor diesem Update): ganze Teile
+    if (!Array.isArray(statusObj.wiederholenTeile) || !statusObj.wiederholenTeile.length) return leer;
     const ausgewaehlt = new Set(statusObj.wiederholenTeile);
-    // Wenn alle vorhandenen Teile ausgewählt sind, ist es effektiv eine volle Wiederholung -> normales Verhalten.
     if (vorhandeneTeile.every(tn => ausgewaehlt.has(tn))) return leer;
 
     const listRes = await window.storage.list(`submission:${testId}:${slug(name)}:`, true);
     const keys = (listRes && listRes.keys) || [];
     if (!keys.length) return leer;
-    const letzterKey = keys.slice().sort().slice(-1)[0]; // Zeitstempel im Key -> alphabetisch = chronologisch
+    const letzterKey = keys.slice().sort().slice(-1)[0];
     const subRes = await window.storage.get(letzterKey, true);
     if (!subRes || !subRes.value) return leer;
     const sub = JSON.parse(subRes.value);
@@ -1261,7 +1336,7 @@ async function ermittleWiederholungsfilter(testId, name, t) {
       hinweis: `<p style="color:var(--warn); font-size:14px;">Deine Lehrkraft möchte, dass du diesmal nur ${nurDiese} wiederholst — der Rest ist schon eingetragen.</p>`,
     };
   } catch (e) {
-    return leer; // im Zweifel: normales Verhalten (ganzer Test wird abgefragt)
+    return leer;
   }
 }
 
@@ -1453,7 +1528,7 @@ function buildTeil1(items, gesperrt, vorherigeDaten) {
   items.forEach(item => {
     const div = document.createElement('div');
     div.className = 'item';
-    if (gesperrt) {
+    if (istGesperrt(gesperrt, item.num)) {
       const alt = (vorherigeDaten || {})[item.num];
       testState.teil1[item.num] = alt || null;
       div.innerHTML = `<div class="item-label"><span class="item-num">${item.num}.</span>${item.word} <span class="locked-tag">bereits erledigt</span></div>`;
@@ -1491,7 +1566,7 @@ function buildTeil2(items, gesperrt, vorherigeDaten) {
   items.forEach(item => {
     const div = document.createElement('div');
     div.className = 'item';
-    if (gesperrt) {
+    if (istGesperrt(gesperrt, item.num)) {
       const alt = (vorherigeDaten || {})[item.num];
       testState.teil2[item.num] = alt || null;
       div.innerHTML = `<div class="mc-row"><span class="item-num">${item.num}.</span>${item.vor} <strong>${(alt && alt.gewaehlt) || '…'}</strong> ${item.nach} <span class="locked-tag">bereits erledigt</span></div>`;
@@ -1533,7 +1608,7 @@ function buildTeil3(items, gesperrt, vorherigeDaten) {
   items.forEach(item => {
     const div = document.createElement('div');
     div.className = 'item';
-    if (gesperrt) {
+    if (istGesperrt(gesperrt, item.num)) {
       const alt = (vorherigeDaten || {})[item.num];
       testState.teil3[item.num] = alt || null;
       div.innerHTML = `<div class="item-label"><span class="item-num">${item.num}.</span>${item.word} <span style="font-weight:400; color:var(--ink-soft); font-size:14px;">(${item.pronomen} …)</span> <span class="locked-tag">bereits erledigt</span></div><div style="color:var(--ink-soft); font-size:14.5px;">„${escapeHtml((alt && alt.satz) || '')}"</div>`;
@@ -1627,7 +1702,7 @@ function buildTeil4(items, labelOverride, hintOverride, gesperrt, vorherigeDaten
   items.forEach(item => {
     const row = document.createElement('div');
     row.className = 'gegenteil-row';
-    if (gesperrt) {
+    if (istGesperrt(gesperrt, item.num)) {
       const alt = (vorherigeDaten || {})[item.num];
       testState.teil4[item.num] = alt || null;
       row.innerHTML = `<span class="item-num">${item.num}.</span>${item.bild ? `<img class="teil4-bild" src="${iconSrc(item.bild)}" alt="">` : `<span class="word">${item.word}</span>`}<span class="arrow">→</span><span style="color:var(--ink-soft);">${escapeHtml((alt && alt.given) || '')}</span><span class="locked-tag">bereits erledigt</span>`;
@@ -1929,21 +2004,21 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
       const v = testState.teil1[item.num];
       if (!v) return;
       if (v.correct) autoCorrect++;
-      teilDetails.push({ teil: 'teil1', frage: `Bildzuordnung: ${item.word}`, antwort: v.correct ? item.word : (v.chosen || '').replace(/_/g, ' '), korrekt: v.correct, korrektAntwort: item.word });
+      teilDetails.push({ teil: 'teil1', num: item.num, frage: `Bildzuordnung: ${item.word}`, antwort: v.correct ? item.word : (v.chosen || '').replace(/_/g, ' '), korrekt: v.correct, korrektAntwort: item.word });
     });
     t.teil2.forEach(item => {
       const v = testState.teil2[item.num];
       if (!v) return;
       if (v.correct) autoCorrect++;
-      teilDetails.push({ teil: 'teil2', frage: `${item.vor} ___ ${item.nach}`, antwort: v.gewaehlt || '', korrekt: v.correct, korrektAntwort: v.korrektAntwort });
+      teilDetails.push({ teil: 'teil2', num: item.num, frage: `${item.vor} ___ ${item.nach}`, antwort: v.gewaehlt || '', korrekt: v.correct, korrektAntwort: v.korrektAntwort });
     });
     t.teil4.forEach(item => {
       const v = testState.teil4[item.num];
       if (!v) return;
       if (v.korrekt) autoCorrect++;
-      teilDetails.push({ teil: 'teil4', frage: t.teil4Frage ? t.teil4Frage.replace('{word}', item.label || item.word) : `Gegenteil von „${item.word}"`, antwort: v.given || '', korrekt: v.korrekt, korrektAntwort: v.korrektAntwort });
+      teilDetails.push({ teil: 'teil4', num: item.num, frage: t.teil4Frage ? t.teil4Frage.replace('{word}', item.label || item.word) : `Gegenteil von „${item.word}"`, antwort: v.given || '', korrekt: v.korrekt, korrektAntwort: v.korrektAntwort });
     });
-    const teil3List = Object.values(testState.teil3).filter(Boolean);
+    const teil3List = Object.entries(testState.teil3).filter(([k,v])=>v).map(([k,v])=>({ ...v, num: Number(k) }));
     submission = {
       name: currentStudentName,
       testId: currentTestId,
@@ -2205,7 +2280,7 @@ async function zeigeErgebnis(id, name) {
     h += `<div class="erg-box schlecht"><strong>Das musst du wiederholen.</strong>` +
       (rv.teile || []).filter(x => x.wiederholen).map(x => `<div>• ${escapeHtml(x.titel)}</div>`).join('') + `</div>`;
   } else if (rv.fehler && rv.fehler.length || (rv.saetze && rv.saetze.length)) {
-    h += `<div class="erg-box gut"><strong>Bestanden — aber bitte korrigieren:</strong> Schreibe alle falschen Aufgaben unten richtig auf einen Zettel (mit der Hand).</div>`;
+    h += `<div class="erg-box gut"><strong>Korrigiere die folgenden Aufgaben auf einem Blatt.</strong> Schreib zu jeder Aufgabe unten die richtige Lösung mit der Hand auf.</div>`;
   } else {
     h += `<div class="erg-box gut"><strong>Alles richtig. Gut gemacht!</strong> Du kannst weitermachen.</div>`;
   }
@@ -2242,7 +2317,10 @@ async function wendeAbschlussWiederholungAn(t, testId, name) {
   const sl = slug(name);
   let status = null;
   try { const r = await window.storage.get(`status:${testId}:${sl}`, true); status = (r && r.value) ? JSON.parse(r.value) : null; } catch (e) { return false; }
-  if (!status || status.status !== 'wiederholen' || !Array.isArray(status.wiederholenTeile) || !status.wiederholenTeile.length) return false;
+  const neuFelder = Array.isArray(status && status.wiederholenFelder) ? status.wiederholenFelder : null;
+  const altTeile = Array.isArray(status && status.wiederholenTeile) ? status.wiederholenTeile : null;
+  const hatAngabe = (neuFelder && neuFelder.length) || (!neuFelder && altTeile && altTeile.length);
+  if (!status || status.status !== 'wiederholen' || !hatAngabe) return false;
   let keys = [];
   try { const r = await window.storage.list(`submission:${testId}:${sl}:`, true); keys = (r && r.keys) || []; } catch (e) { return false; }
   if (!keys.length) return false;
@@ -2257,13 +2335,21 @@ async function wendeAbschlussWiederholungAn(t, testId, name) {
   else (sub.felderDetails || []).forEach(d => { if (d.key) eff[d.key] = d.korrekt === true; });
 
   const info = abschlussTeileInfo();
-  const wdh = new Set(status.wiederholenTeile.map(Number));
-  const gesperrt = info.teile.filter(x => !wdh.has(x.nr));
-  if (!gesperrt.length) return false;
+  const alleKeys = Object.keys(info.keyTeil);
+  // mussWiederholen = Menge der Feld-Schlüssel, die offen bleiben (neu beantwortet werden müssen).
+  let mussWiederholen;
+  if (neuFelder) {
+    mussWiederholen = new Set(neuFelder); // präzise: genau diese Aufgaben waren als ✗ markiert
+  } else {
+    const wdh = new Set(altTeile.map(Number)); // Bestandsschutz für ältere, noch teilbasierte Bewertungen
+    mussWiederholen = new Set(alleKeys.filter(k => wdh.has(info.keyTeil[k])));
+  }
+  const gesperrtAnzahl = alleKeys.length - mussWiederholen.size;
+  if (gesperrtAnzahl <= 0 || !mussWiederholen.size) return false; // nichts zu sperren -> normale volle Wiederholung
   abschlussState.uebernommen = {};
   document.querySelectorAll('#abschlussBody [data-key]').forEach(el => {
     const key = el.getAttribute('data-key');
-    if (wdh.has(info.keyTeil[key])) return;                 // dieser Teil wird wiederholt
+    if (mussWiederholen.has(key)) return;                    // diese Aufgabe wird wiederholt
     const alt = sub.felderAntworten[key];
     if (alt !== undefined) {
       el.value = alt; el.dispatchEvent(new Event('blur'));
@@ -2272,7 +2358,9 @@ async function wendeAbschlussWiederholungAn(t, testId, name) {
     el.disabled = true; el.classList.add('abschluss-gesperrt');
     const chips = el.closest('.gen-chip-gruppe'); if (chips) chips.classList.add('abschluss-gesperrt');
   });
-  const namen = info.teile.filter(x => wdh.has(x.nr)).map(x => `Teil ${x.nr}${x.titel ? ' — ' + escapeHtml(x.titel) : ''}`);
-  document.getElementById('progressRestoredNotice').innerHTML = `<div class="repeat-badge">Du musst nur noch wiederholen:<br>${namen.join('<br>')}<br><span style="font-weight:400;">Die anderen Teile hast du schon — sie sind grau und bleiben so.</span></div>`;
+  const anzeige = neuFelder
+    ? `Du musst nur noch ${mussWiederholen.size} einzelne Aufgabe${mussWiederholen.size === 1 ? '' : 'n'} wiederholen — der Rest ist schon eingetragen.`
+    : `Du musst nur noch wiederholen:<br>${info.teile.filter(x => altTeile.map(Number).includes(x.nr)).map(x => `Teil ${x.nr}${x.titel ? ' — ' + escapeHtml(x.titel) : ''}`).join('<br>')}`;
+  document.getElementById('progressRestoredNotice').innerHTML = `<div class="repeat-badge">${anzeige}<br><span style="font-weight:400;">Die anderen Aufgaben hast du schon — sie sind grau und bleiben so.</span></div>`;
   return true;
 }

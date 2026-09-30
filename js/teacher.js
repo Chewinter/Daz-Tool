@@ -108,6 +108,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 let lastLoadedSubmissions = [];
+const kartenOffen = new Set(); // Test-IDs, die der/die Lehrkraft manuell aufgeklappt hat (bleibt über Neuaufbauten hinweg erhalten)
 
 // Ordnet jedem Eingangstest-Bereich das passende A1-Lernfeld + die konkreten Schritte zu,
 // damit die Lehrkraft direkt weiß, was der Schüler im Original-Material wiederholen sollte.
@@ -373,6 +374,7 @@ async function loadSubmissions(isBackgroundRefresh) {
 
     if (!sub.bereichsErgebnisse) {
       await baueBewertung(div, sub, statusObj, statusKey);
+      if (kartenOffen.has(sub.testId) && sub._neueste !== false) div.classList.remove('collapsed');
     } else {
     // Auswahl, welche Teile/Punkte bei "Wiederholen nötig" erneut abgefragt werden sollen — der
     // Rest wird beim nächsten Öffnen aus dieser Einreichung vorausgefüllt und nicht nochmal verlangt.

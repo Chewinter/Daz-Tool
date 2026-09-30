@@ -70,7 +70,7 @@ function analysiereAbgabe(sub) {
     (sub.teilDetails || []).forEach(d => { if (nrs.indexOf(d.punktNr) < 0) nrs.push(d.punktNr); });
     A.teile = nrs.map(nr => { const p = def && def.punkte ? def.punkte.find(x => x.nr === nr) : null; return { id: 'p' + nr, nr, titel: `Aufgabe ${nr}${p && p.titel ? ' — ' + p.titel : ''}` }; });
     (sub.teilDetails || []).forEach((d, i) => {
-      A.items.push({ id: 'd' + i, teil: 'p' + d.punktNr, frage: d.frage, antwort: d.antwort, auto: d.korrekt === undefined ? null : d.korrekt, korrektAntwort: d.korrektAntwort, punkte: 1 });
+      A.items.push({ id: 'd' + i, teil: 'p' + d.punktNr, itemIdx: d.itemIdx, frage: d.frage, antwort: d.antwort, auto: d.korrekt === undefined ? null : d.korrekt, korrektAntwort: d.korrektAntwort, punkte: 1 });
     });
     return A;
   }
@@ -82,10 +82,10 @@ function analysiereAbgabe(sub) {
   };
   const teilVon = d => d.teil || (String(d.frage).indexOf('Bildzuordnung') === 0 ? 'teil1' : String(d.frage).indexOf('___') >= 0 ? 'teil2' : 'teil4');
   (sub.teilDetails || []).forEach((d, i) => {
-    A.items.push({ id: 'd' + i, teil: teilVon(d), frage: d.frage, antwort: d.antwort, auto: d.korrekt === undefined ? null : d.korrekt, korrektAntwort: d.korrektAntwort, punkte: 1 });
+    A.items.push({ id: 'd' + i, teil: teilVon(d), num: d.num, frage: d.frage, antwort: d.antwort, auto: d.korrekt === undefined ? null : d.korrekt, korrektAntwort: d.korrektAntwort, punkte: 1 });
   });
   (sub.teil3 || []).forEach((s, i) => {
-    A.items.push({ id: 's' + i, teil: 'teil3', satz: true, frage: s.word + (s.pronomen ? ' (' + s.pronomen + ' …)' : ''), antwort: s.satz,
+    A.items.push({ id: 's' + i, teil: 'teil3', num: s.num, satz: true, frage: s.word + (s.pronomen ? ' (' + s.pronomen + ' …)' : ''), antwort: s.satz,
       auto: s.korrekt === undefined ? null : s.korrekt, korrektAntwort: s.verbesserung || '', feedback: s.feedback || '', punkte: 1 });
   });
   ['teil1', 'teil2', 'teil3', 'teil4'].forEach(k => { if (A.items.some(it => it.teil === k)) A.teile.push({ id: k, nr: k, titel: teilTitel[k] }); });
@@ -135,10 +135,10 @@ function zeileHtml(it, ov, fb, fbOffen) {
       </div></div>`;
   // Hinweis für den Schüler (richtige Lösung + Fehler) — bei Sätzen/eigenen Antworten sofort offen, sonst per Link
   const f = (fb && fb[it.id]) || null;
-  const offen = e === false && (it.satz || it.manuell || f || (fbOffen && fbOffen.has(it.id)));
+  const offen = e === false;
   let fbHtml = '';
   if (offen) {
-    fbHtml = `<div class="bw-fb" data-id="${it.id}"><input type="text" class="bw-fb-loesung" placeholder="So heißt es richtig …" value="${escapeHtml(f ? f.loesung || '' : '')}"><input type="text" class="bw-fb-fehler" placeholder="Wo war der Fehler? (z. B. Verb an Position 2)" value="${escapeHtml(f ? f.fehler || '' : '')}"></div>`;
+    fbHtml = `<div class="bw-fb" data-id="${it.id}"><input type="text" class="bw-fb-loesung" placeholder="So heißt es richtig …" value="${escapeHtml(f ? f.loesung || '' : '')}"><select class="bw-fb-preset" title="Fehlerart wählen"><option value="">Fehlerart …</option><option>Groß- und Kleinschreibung</option><option>Falsche Verbform</option><option>Falscher Satzbau</option></select><input type="text" class="bw-fb-fehler" placeholder="Wo war der Fehler? Auswahl links oder eigener Text" value="${escapeHtml(f ? f.fehler || '' : '')}"></div>`;
   } else if (e === false) {
     fbHtml = `<div class="bw-fb-zu"><button type="button" class="bw-fb-link" data-id="${it.id}">+ Hinweis für den Schüler</button></div>`;
   }
@@ -167,16 +167,22 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
     return ids;
   }
 
+  div.classList.add('collapsed');
   div.innerHTML = `
     <div class="head"><h3>${escapeHtml(sub.name)}</h3><span class="meta">${escapeHtml(titelAnzeige)} · ${dateStr}</span></div>
-    <span class="status-tag ${statusObj.status}">${statusText}</span>
+    <span class="status-tag ${statusObj.status}">${statusText}</span><span class="bw-chevron">▾</span>
+    <div class="bw-details">
     ${(statusObj.korrektur && sub._neueste !== false) ? `<label class="bw-zettel"><input type="checkbox" class="bw-zettel-cb" ${statusObj.zettel ? 'checked' : ''}> Zettel kontrolliert ✓ (Korrektur auf Papier)</label>` : ''}
     <div class="bw-summe"></div>
     <div class="bw-teile"></div>
-    <label class="bw-label">Kommentar für den Schüler <span class="bw-pflicht"></span></label>
-    <textarea class="comment-input" placeholder="z. B. was noch intensiv geübt werden muss"></textarea>
+    <label class="bw-label">Kommentar für den Schüler (optional) <span class="bw-pflicht"></span></label>
+    <textarea class="comment-input" placeholder="optional – z. B. was noch intensiv geübt werden muss"></textarea>
     <div class="bw-vorschau"></div>
-    <div class="bw-aktion"></div>`;
+    <div class="bw-aktion"></div>
+    </div>`;
+  const toggleKarte = () => { div.classList.toggle('collapsed'); if (div.classList.contains('collapsed')) kartenOffen.delete(sub.testId); else kartenOffen.add(sub.testId); };
+  div.querySelector('.head').addEventListener('click', toggleKarte);
+  div.querySelector('.status-tag').addEventListener('click', toggleKarte);
   const summeEl = div.querySelector('.bw-summe');
   const teileEl = div.querySelector('.bw-teile');
   const kommentarEl = div.querySelector('.comment-input');
@@ -198,7 +204,7 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
       return `<div class="bw-teil" data-teil="${tl.id}">
         <h4>${escapeHtml(tl.titel)} <span class="bw-teilzahl ${te.falsch ? 'hat-fehler' : ''}">${zahl}</span></h4>
         ${its.length ? its.map(it => zeileHtml(it, ov, fb, fbOffen)).join('') : '<div class="bw-leer">Keine Antworten in diesem Teil.</div>'}
-        <label class="bw-wdh"><input type="checkbox" class="teil-wdh-cb" value="${tl.id}" ${teilWdh.indexOf(tl.id) >= 0 ? 'checked' : ''}> ${istAbschluss ? 'Diesen Teil wiederholen lassen' : 'Diesen Teil wiederholen lassen (nur bei „Wiederholen nötig“)'}</label>
+        ${te.falsch ? '<div class="bw-wdh-hinweis">Bei „Wiederholen nötig“ bekommt der Schüler genau die ✗-Aufgaben hier noch einmal — automatisch, keine Auswahl nötig.</div>' : ''}
       </div>`;
     }).join('');
     // Summe
@@ -211,7 +217,7 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
     const auto = istAbschluss ? (erg.note && noteMussWiederholt(erg.note) ? 'wiederholen' : 'weiter') : 'weiter';
     if (istAbschluss) {
       vorschauEl.innerHTML = auto === 'wiederholen'
-        ? `<div class="bw-hinweis schlecht">Note ${erg.note}: <strong>muss wiederholt werden</strong> (ab 3− und schlechter). Bitte Teile wählen und im Kommentar schreiben, was intensiv geübt werden muss.</div>`
+        ? `<div class="bw-hinweis schlecht">Note ${erg.note}: <strong>muss wiederholt werden</strong> (ab 3− und schlechter). Der Schüler bekommt genau die ✗-Aufgaben noch einmal (ein Kommentar ist optional).</div>`
         : `<div class="bw-hinweis gut">Note ${erg.note || '–'}: <strong>bestanden</strong>${erg.falsch ? ' — der Schüler schreibt alle falschen Aufgaben auf Papier ab (Korrektur).' : '.'}</div>`;
       aktionEl.innerHTML = `
         <div class="bw-modusbox">Ergebnis: <select class="bw-modus"><option value="auto">automatisch nach Note (Standard)</option><option value="weiter">trotzdem: kann weitermachen</option><option value="wiederholen">trotzdem: Wiederholen nötig</option></select></div>
@@ -222,7 +228,7 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
         : `<div class="bw-hinweis gut">Alles richtig — der Schüler kann weitermachen.</div>`;
       aktionEl.innerHTML = `<div class="status-controls">
         <button type="button" class="btn ok small bw-abschliessen">${erg.falsch ? 'Korrigiert — freigeben' : 'Alles richtig — freigeben'}</button>
-        <button type="button" class="btn danger small bw-wiederholen">Wiederholen nötig (angehakte Teile)</button></div>`;
+        <button type="button" class="btn danger small bw-wiederholen">Wiederholen nötig (die ✗-Aufgaben)</button></div>`;
     }
     pflichtEl.textContent = '';
     if (sub._neueste === false) { aktionEl.innerHTML = '<div class="bw-hinweis">Ältere Abgabe — nur zum Ansehen. Bewertet wird immer die neueste Abgabe dieses Tests.</div>'; vorschauEl.innerHTML = ''; }
@@ -260,6 +266,15 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
     teilWdh = [...teileEl.querySelectorAll('.teil-wdh-cb:checked')].map(cb => cb.value);
     speichereEntwurf();
   });
+  teileEl.addEventListener('change', (ev) => {
+    if (!ev.target.classList.contains('bw-fb-preset') || nurAnsicht) return;
+    const box = ev.target.closest('.bw-fb'); const feld = box.querySelector('.bw-fb-fehler');
+    const wahl = ev.target.value; if (!wahl) return;
+    const alt = feld.value.trim();
+    feld.value = alt && alt.indexOf(wahl) < 0 ? (wahl + ' – ' + alt) : (alt || wahl);
+    ev.target.value = '';
+    feld.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   teileEl.addEventListener('input', (ev) => {
     const box = ev.target.closest('.bw-fb');
     if (!box || nurAnsicht) return;
@@ -286,11 +301,12 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
       ergebnis = modus === 'auto' ? auto : modus;
     }
     const kommentar = kommentarEl.value.trim();
-    const gewaehlt = [...teileEl.querySelectorAll('.teil-wdh-cb:checked')].map(cb => cb.value);
+    // Wird nicht mehr von Hand ausgewählt: "Wiederholen" heißt automatisch "alles, was gerade als ✗ markiert ist".
+    const falscheItems = A.items.filter(it => effektiv(it, ov) === false);
     if (ergebnis === 'wiederholen') {
-      if (!gewaehlt.length) { alert('Bitte mindestens einen Teil zum Wiederholen ankreuzen (Kästchen unter dem jeweiligen Teil).'); return; }
-      if (!kommentar) { pflichtEl.textContent = '(Pflicht bei „Wiederholen“)'; kommentarEl.focus(); alert('Bitte im Kommentarfeld schreiben, was noch intensiv geübt werden muss.'); return; }
+      if (!falscheItems.length) { alert('Es ist gerade keine Antwort als ✗ markiert — „Wiederholen nötig“ ergibt so keinen Sinn.'); return; }
     }
+    const gewaehlt = [...new Set(falscheItems.map(it => it.teil))];
     const korrektur = ergebnis === 'weiter' && erg.falsch > 0;
     const teileErg = erg.teile.map(x => ({ id: x.id, titel: x.titel, richtig: x.richtig, gesamt: x.gesamt, punkte: x.punkte, max: x.max, wiederholen: ergebnis === 'wiederholen' && gewaehlt.indexOf(x.id) >= 0 }));
     const hinw = it => { const f = fb[it.id]; return f ? { loesung: (f.loesung || '').trim(), hinweis: (f.fehler || '').trim() } : { loesung: '', hinweis: '' }; };
@@ -303,12 +319,21 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
       teile: teileErg, fehler, saetze, felder };
     const status = { status: ergebnis === 'wiederholen' ? 'wiederholen' : 'weiter', comment: kommentar, reviewedAt: review.reviewedAt, reviewKey: reviewKeyFuer(sub), ergebnis, korrektur, note: erg.note || null };
     if (ergebnis === 'wiederholen') {
-      if (A.art === 'grammatik') status.punkteWiederholen = gewaehlt.map(id => Number(String(id).slice(1)));
-      else if (A.art === 'abschluss') status.wiederholenTeile = gewaehlt.map(id => Number(String(id).slice(1)));
-      else status.wiederholenTeile = gewaehlt;
-      // Nur speichern, wenn NICHT alle Teile gewählt sind — sonst ist es eine normale volle Wiederholung
-      const feld = A.art === 'grammatik' ? 'punkteWiederholen' : 'wiederholenTeile';
-      if (status[feld].length >= A.teile.length) delete status[feld];
+      // Genaue Einzelaufgaben merken statt ganzer Teile — beim Wiederholen wird dann nur noch genau
+      // das abgefragt, was hier gerade als ✗ markiert ist. (Alte Abgaben mit den alten teilbasierten
+      // Feldern lesen die Redo-Funktionen weiterhin, siehe dort.)
+      if (A.art === 'grammatik') {
+        const g = {};
+        falscheItems.forEach(it => { const nr = Number(String(it.teil).slice(1)); (g[nr] = g[nr] || []).push(it.itemIdx); });
+        status.wiederholenGrammatik = g;
+      } else if (A.art === 'abschluss') {
+        status.wiederholenFelder = falscheItems.map(it => it.key).filter(Boolean);
+      } else {
+        const v = {};
+        falscheItems.forEach(it => { (v[it.teil] = v[it.teil] || []).push(it.num); });
+        status.wiederholenVokabel = v;
+      }
+      status.wiederholenTeile = gewaehlt; // weiterhin gespeichert: zeigt der Lehrkraft-Ansicht, welche Teile betroffen sind
     }
     try {
       await window.storage.set(reviewKeyFuer(sub), JSON.stringify(review), true);
