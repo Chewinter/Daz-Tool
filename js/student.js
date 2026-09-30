@@ -51,12 +51,22 @@ async function refreshProgress() {
   // Die vier unabhängigen Abfragen GLEICHZEITIG starten statt nacheinander — das ist der
   // entscheidende Geschwindigkeitsgewinn, weil jeder Aufruf ans Apps-Script-Backend spürbare
   // eigene Latenz hat.
-  const [subRes, actRes, maRes, statusRes] = await Promise.allSettled([
+  // ZWEI Anfragen statt vier: listBySuffix(":<schüler>") liefert samt Wert alles, was auf den Schüler endet — neben
+  // status:/testprogress: auch activitydone:<id>:<schüler> und manualaccess:<schüler>. Jede Anfrage ans Apps Script
+  // kostet 2–3 s (unter Last deutlich mehr), und alle Schüler:innen teilen sich dasselbe Backend.
+  const [subRes, statusRes] = await Promise.allSettled([
     window.storage.list('submission:', true),
-    window.storage.list('activitydone:', true),
-    window.storage.get(`manualaccess:${sl}`, true),
     window.storage.listBySuffix(`:${sl}`, true),
   ]);
+  let actRes, maRes;
+  if (statusRes.status === 'fulfilled') {
+    const eigene = (statusRes.value && statusRes.value.items) || [];
+    const ma = eigene.find(x => x.key === `manualaccess:${sl}`);
+    actRes = { status: 'fulfilled', value: { keys: eigene.map(x => x.key).filter(k => k.indexOf('activitydone:') === 0) } };
+    maRes = { status: 'fulfilled', value: { value: ma ? ma.value : null } };
+  } else { // Sammelabfrage gescheitert -> alter Weg mit Einzelabfragen
+    [actRes, maRes] = await Promise.allSettled([window.storage.list('activitydone:', true), window.storage.get(`manualaccess:${sl}`, true)]);
+  }
 
   const letzteAbgabeAm = {}; // testId -> Zeitstempel (Zahl) der neuesten Abgabe dieses Schülers
   if (subRes.status === 'fulfilled') {
@@ -182,7 +192,6 @@ function renderAll() {
   renderItemBrowser();
 }
 
-document.getElementById('startName').addEventListener('input', refreshProgress);
 document.getElementById('startName').addEventListener('change', refreshProgress);
 
 function renderProgressOverview() {
@@ -1262,7 +1271,7 @@ function buildVerbenBestimmen(a) {
   });
 }
 
-document.getElementById('backToStart').addEventListener('click', () => { refreshProgress(); showView('view-start'); });
+document.getElementById('backToStart').addEventListener('click', () => { autosaveFallsGeplant(); refreshProgress(); showView('view-start'); });
 document.getElementById('toStartAgain').addEventListener('click', () => { refreshProgress(); showView('view-start'); });
 
 // ---------------- WIEDERHOLUNG NUR AUSGEWÄHLTER TEILE ----------------
@@ -1300,9 +1309,11 @@ async function ermittleWiederholungsfilter(testId, name, t) {
       vorhandeneTeile.forEach(tn => {
         const wrongNums = new Set((wv[tn] || []).map(Number));
         daten2[tn] = raState2[tn] || {};
-        if (!wrongNums.size) { gesperrt2[tn] = true; return; }
-        gesperrt2[tn] = new Set(t[tn].map(i => i.num).filter(n => !wrongNums.has(n)));
+        // Nur sperren, was beim letzten Mal wirklich beantwortet wurde — leer gelassene Aufgaben bleiben offen
+        // (sonst stehen sie leer und gesperrt als "bereits erledigt" da).
+        gesperrt2[tn] = new Set(t[tn].map(i => i.num).filter(n => !wrongNums.has(n) && daten2[tn][n]));
       });
+      if (!vorhandeneTeile.some(tn => gesperrt2[tn].size)) return leer; // nichts zum Sperren -> ganz normal neu machen
       return {
         gesperrt: gesperrt2, daten: daten2,
         hinweis: `<p style="color:var(--warn); font-size:14px;">Deine Lehrkraft möchte, dass du nur die ${wrongCount} markierte${wrongCount === 1 ? '' : 'n'} Aufgabe${wrongCount === 1 ? '' : 'n'} wiederholst — der Rest ist schon eingetragen.</p>`,
@@ -1348,6 +1359,7 @@ function setzeTeilHinweis(secId, text) {
   p.textContent = text || p.dataset.standard;
 }
 async function startTest(testId, name) {
+  autosaveAbbrechen(); autosaveZuletzt = 0; autosaveNutzerAktiv = false;
   currentTestId = testId;
   currentStudentName = name;
   const t = TESTS[testId];
@@ -1361,6 +1373,7 @@ async function startTest(testId, name) {
   document.getElementById('submitBtn').classList.toggle('hidden', isEingangstest);
   document.querySelector('.progress-bar').classList.toggle('hidden', isEingangstest);
   document.getElementById('progressRestoredNotice').innerHTML = '';
+  document.getElementById('repeatNotice').innerHTML = '';
   let teilweiseGesperrt = false;
 
   if (isAbschluss) {
@@ -1376,8 +1389,8 @@ async function startTest(testId, name) {
     buildTeil2(t.teil2, wiederholung.gesperrt.teil2, wiederholung.daten.teil2);
     buildTeil3(t.teil3, wiederholung.gesperrt.teil3, wiederholung.daten.teil3);
     buildTeil4(t.teil4, t.teil4Label, t.teil4Hint, wiederholung.gesperrt.teil4, wiederholung.daten.teil4, !!t.teil4OhneWortbank);
-    if (wiederholung.hinweis) document.getElementById('progressRestoredNotice').innerHTML = wiederholung.hinweis;
-    teilweiseGesperrt = Object.values(wiederholung.gesperrt).some(Boolean);
+    teilweiseGesperrt = !!wiederholung.hinweis;
+    if (teilweiseGesperrt) zeigeWiederholungsHinweis(offeneVokabelAufgaben()); // oben im Test, nicht mehr unter dem Abschicken-Knopf
     if (teilweiseGesperrt) {
       // Bei gezielter Teil-Wiederholung KEIN altes "später fortsetzen"-Draft laden — das würde die
       // vorausgefüllten/gesperrten Teile wieder überschreiben. Ein evtl. alter Draft wird verworfen.
@@ -1768,9 +1781,26 @@ function updateProgress() {
 let autosaveTimer = null;
 function autosaveTestProgressDebounced() {
   if (!currentTestId || !currentStudentName) return;
-  clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(() => { saveTestProgressNow(true); }, 1200);
+  if (!autosaveNutzerAktiv) return; // bloßes Öffnen eines Tests schreibt noch keinen Entwurf
+  if (autosaveTimer) return;        // es ist schon ein Speichern geplant
+  autosaveTimer = setTimeout(autosaveJetzt, Math.max(1200, AUTOSAVE_ABSTAND_MS - (Date.now() - autosaveZuletzt)));
 }
+// Höchstens alle AUTOSAVE_ABSTAND_MS ans Apps Script schreiben (vorher: 1,2 s nach JEDER Antwort). Bei einer ganzen
+// Klasse waren das Hunderte Schreibzugriffe pro Stunde auf ein Backend, das für jede Anfrage 2–3 s braucht.
+const AUTOSAVE_ABSTAND_MS = 20000;
+let autosaveZuletzt = 0;
+let autosaveLaufend = Promise.resolve();
+let autosaveNutzerAktiv = false;
+function autosaveJetzt() {
+  clearTimeout(autosaveTimer); autosaveTimer = null;
+  autosaveZuletzt = Date.now();
+  autosaveLaufend = saveTestProgressNow(true);
+  return autosaveLaufend;
+}
+function autosaveFallsGeplant() { if (autosaveTimer) autosaveJetzt(); }        // beim Verlassen: nichts verlieren
+function autosaveAbbrechen() { clearTimeout(autosaveTimer); autosaveTimer = null; }
+['click', 'input', 'change', 'keydown', 'blur'].forEach(ev => document.getElementById('view-test').addEventListener(ev, () => { autosaveNutzerAktiv = true; }, true));
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') autosaveFallsGeplant(); });
 
 // ---------------- EINGANGSTEST A1 (mehrstufig, pro Bereich mit Wiederholung) ----------------
 let eingangsState = null;
@@ -1948,6 +1978,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
   btn.textContent = 'Wird gesendet …';
+  autosaveAbbrechen(); // sonst schreibt ein Nachzügler den Entwurf NACH der Abgabe wieder hin
 
   const t = TESTS[currentTestId];
   let submission;
@@ -2002,23 +2033,33 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     const teilDetails = [];
     t.teil1.forEach(item => {
       const v = testState.teil1[item.num];
-      if (!v) return;
+      if (!v) { teilDetails.push({ teil: 'teil1', num: item.num, frage: `Bildzuordnung: ${item.word}`, antwort: '(keine Antwort)', korrekt: false, korrektAntwort: item.word }); return; }
       if (v.correct) autoCorrect++;
       teilDetails.push({ teil: 'teil1', num: item.num, frage: `Bildzuordnung: ${item.word}`, antwort: v.correct ? item.word : (v.chosen || '').replace(/_/g, ' '), korrekt: v.correct, korrektAntwort: item.word });
     });
     t.teil2.forEach(item => {
       const v = testState.teil2[item.num];
-      if (!v) return;
+      if (!v) { teilDetails.push({ teil: 'teil2', num: item.num, frage: `${item.vor} ___ ${item.nach}`, antwort: '(keine Antwort)', korrekt: false, korrektAntwort: item.options[item.correct] }); return; }
       if (v.correct) autoCorrect++;
       teilDetails.push({ teil: 'teil2', num: item.num, frage: `${item.vor} ___ ${item.nach}`, antwort: v.gewaehlt || '', korrekt: v.correct, korrektAntwort: v.korrektAntwort });
     });
     t.teil4.forEach(item => {
       const v = testState.teil4[item.num];
-      if (!v) return;
+      if (!v) { teilDetails.push({ teil: 'teil4', num: item.num, frage: t.teil4Frage ? t.teil4Frage.replace('{word}', item.label || item.word) : `Gegenteil von „${item.word}"`, antwort: '(keine Antwort)', korrekt: false, korrektAntwort: item.correct }); return; }
       if (v.korrekt) autoCorrect++;
       teilDetails.push({ teil: 'teil4', num: item.num, frage: t.teil4Frage ? t.teil4Frage.replace('{word}', item.label || item.word) : `Gegenteil von „${item.word}"`, antwort: v.given || '', korrekt: v.korrekt, korrektAntwort: v.korrektAntwort });
     });
-    const teil3List = Object.entries(testState.teil3).filter(([k,v])=>v).map(([k,v])=>({ ...v, num: Number(k) }));
+    // Sätze, deren KI-Bewertung beim Abschicken noch läuft, nicht verlieren: Text direkt aus dem Feld nehmen
+    // (korrekt: null -> die Lehrkraft bewertet von Hand).
+    t.teil3.forEach((item, i) => {
+      if (testState.teil3[item.num]) return;
+      const itemEl = document.querySelectorAll('#teil3items .item')[i];
+      const ta = itemEl && itemEl.querySelector('.satz-input');
+      if (ta && ta.value.trim()) testState.teil3[item.num] = { checked: true, word: item.word, pronomen: item.pronomen, satz: `${item.pronomen} ${ta.value.trim()}`, korrekt: null, feedback: '', verbesserung: '' };
+    });
+    const teil3List = t.teil3.map(item => testState.teil3[item.num]
+      ? { ...testState.teil3[item.num], num: item.num }
+      : { num: item.num, word: item.word, pronomen: item.pronomen, satz: '(kein Satz geschrieben)', korrekt: false, feedback: '', verbesserung: '', leer: true });
     submission = {
       name: currentStudentName,
       testId: currentTestId,
@@ -2039,7 +2080,9 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     // ein einzelner Speicherversuch am gemeinsamen Ratenlimit scheitern ("Message rate limit exceeded").
     await speichereMitRetry(key, JSON.stringify(submission), true);
     await speichereMitRetry(`status:${currentTestId}:${slug(currentStudentName)}`, JSON.stringify({ status: 'offen' }), true);
-    try { await window.storage.delete(progressKeyFor(currentTestId, currentStudentName), true); } catch (e) { /* unkritisch */ }
+    // Entwurf im Hintergrund löschen (nicht darauf warten) — aber erst, wenn ein evtl. noch laufendes Autosave durch ist.
+    const entwurfKey = progressKeyFor(currentTestId, currentStudentName);
+    autosaveLaufend.catch(() => {}).then(() => window.storage.delete(entwurfKey, true)).catch(() => {});
     document.getElementById('doneName').textContent = currentStudentName;
     showView('view-done');
   } catch (e) {
@@ -2279,6 +2322,10 @@ async function zeigeErgebnis(id, name) {
   if (rv.ergebnis === 'wiederholen') {
     h += `<div class="erg-box schlecht"><strong>Das musst du wiederholen.</strong>` +
       (rv.teile || []).filter(x => x.wiederholen).map(x => `<div>• ${escapeHtml(x.titel)}</div>`).join('') + `</div>`;
+    // Reihenfolge klar ansagen: erst die Korrektur auf Papier, dann die falschen Aufgaben digital noch einmal.
+    h += `<div class="erg-box erg-schritte"><strong>So geht es weiter:</strong>
+      <div><span class="erg-schritt-nr">1</span> Korrigiere deine Fehler <strong>handschriftlich auf einem Blatt</strong> (die Liste steht unten). Gib das Blatt deiner Lehrkraft.</div>
+      <div><span class="erg-schritt-nr">2</span> Danach tippst du unten auf <strong>„Jetzt wiederholen“</strong> und machst die falschen Aufgaben noch einmal am Gerät.</div></div>`;
   } else if (rv.fehler && rv.fehler.length || (rv.saetze && rv.saetze.length)) {
     h += `<div class="erg-box gut"><strong>Korrigiere die folgenden Aufgaben auf einem Blatt.</strong> Schreib zu jeder Aufgabe unten die richtige Lösung mit der Hand auf.</div>`;
   } else {
@@ -2351,16 +2398,30 @@ async function wendeAbschlussWiederholungAn(t, testId, name) {
     const key = el.getAttribute('data-key');
     if (mussWiederholen.has(key)) return;                    // diese Aufgabe wird wiederholt
     const alt = sub.felderAntworten[key];
-    if (alt !== undefined) {
-      el.value = alt; el.dispatchEvent(new Event('blur'));
-      if (eff[key] !== undefined) abschlussState.uebernommen[key] = eff[key];
-    }
+    if (alt === undefined) return;                           // beim letzten Mal leer gelassen -> bleibt offen (nicht leer sperren)
+    el.value = alt; el.dispatchEvent(new Event('blur'));
+    if (eff[key] !== undefined) abschlussState.uebernommen[key] = eff[key];
     el.disabled = true; el.classList.add('abschluss-gesperrt');
     const chips = el.closest('.gen-chip-gruppe'); if (chips) chips.classList.add('abschluss-gesperrt');
   });
-  const anzeige = neuFelder
-    ? `Du musst nur noch ${mussWiederholen.size} einzelne Aufgabe${mussWiederholen.size === 1 ? '' : 'n'} wiederholen — der Rest ist schon eingetragen.`
-    : `Du musst nur noch wiederholen:<br>${info.teile.filter(x => altTeile.map(Number).includes(x.nr)).map(x => `Teil ${x.nr}${x.titel ? ' — ' + escapeHtml(x.titel) : ''}`).join('<br>')}`;
-  document.getElementById('progressRestoredNotice').innerHTML = `<div class="repeat-badge">${anzeige}<br><span style="font-weight:400;">Die anderen Aufgaben hast du schon — sie sind grau und bleiben so.</span></div>`;
+  const offene = [...document.querySelectorAll('#abschlussBody [data-key]:not(.abschluss-gesperrt)')];
+  if (!document.querySelector('#abschlussBody .abschluss-gesperrt[data-key]')) return false; // nichts gesperrt -> normale volle Wiederholung
+  zeigeWiederholungsHinweis(offene.map(el => el.closest('.gen-chip-gruppe') || el), offene.length);
   return true;
+}
+
+// ---------------- WIEDERHOLUNG: HINWEIS OBEN + OFFENE AUFGABEN MARKIEREN ----------------
+// Beim gezielten Wiederholen ist fast alles schon eingetragen und grau. Damit niemand denkt, es gäbe nichts zu tun:
+// OBEN steht, wie viele Aufgaben neu zu machen sind, die offenen sind gelb markiert, und ein Knopf springt zur ersten.
+function zeigeWiederholungsHinweis(offeneElemente, anzahl) {
+  const n = anzahl === undefined ? offeneElemente.length : anzahl;
+  offeneElemente.forEach(el => el.classList.add('wdh-offen'));
+  document.querySelectorAll('#view-test .locked-tag').forEach(tag => { const r = tag.closest('.item, .gegenteil-row'); if (r) r.classList.add('wdh-fertig'); });
+  document.getElementById('repeatNotice').innerHTML = `<div class="repeat-badge repeat-hinweis-oben"><strong>Wiederholung:</strong> Du musst nur noch ${n} Aufgabe${n === 1 ? '' : 'n'} neu machen. ${n === 1 ? 'Sie ist' : 'Sie sind'} gelb markiert.<br><span style="font-weight:400;">Alle anderen Aufgaben sind schon fertig — sie sind grau und bleiben so.</span><br><button type="button" class="btn small" id="wdhSprung" style="margin-top:8px;">Zur ersten offenen Aufgabe</button></div>`;
+  document.getElementById('wdhSprung').addEventListener('click', () => { if (offeneElemente[0]) offeneElemente[0].scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+}
+// Offene (nicht gesperrte) Aufgaben eines Vokabeltests — ohne Reste in ausgeblendeten Teilen
+function offeneVokabelAufgaben() {
+  return [...document.querySelectorAll('#teil1items .item, #teil2items .item, #teil3items .item, #teil4items .gegenteil-row')]
+    .filter(el => !el.querySelector('.locked-tag') && !el.closest('.teil.hidden'));
 }

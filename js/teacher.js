@@ -215,6 +215,7 @@ async function loadSubmissions(isBackgroundRefresh) {
   // ("Message rate limit exceeded").
   // NEU: erst EINE Abfrage für alle Abgaben-Schlüssel (schnell, unabhängig von der Zahl der Tests).
   // Nur wenn die scheitert, gilt der alte Weg (eine kleine Abfrage pro Test).
+  const eigeneP = window.storage.listBySuffix(':' + filterVal, true).catch(() => null); // Status aller Tests dieses Schülers, läuft parallel
   const alleKeys = await listeAlleAbgabeKeys();
   if (alleKeys) {
     const erlaubt = new Set(alleTestIds);
@@ -245,24 +246,24 @@ async function loadSubmissions(isBackgroundRefresh) {
     return;
   }
 
+  const draftKeyVon = k => { const p = k.split(':'); return `reviewdraft:${p[1]}:${p[2]}:${p[3]}`; };
+  const [werte, eigene] = await Promise.all([holeViele(keys.concat(keys.map(draftKeyVon))), eigeneP]);
   const submissions = [];
-  const submissionResults = await Promise.allSettled(keys.map(k => window.storage.get(k, true)));
-  submissionResults.forEach((res, i) => {
-    if (res.status === 'fulfilled' && res.value && res.value.value) {
-      try { submissions.push({ _key: keys[i], ...JSON.parse(res.value.value) }); } catch (e) { /* korrupter Eintrag, überspringen */ }
-    }
+  keys.forEach(k => {
+    if (!werte[k]) return;
+    try { submissions.push({ _key: k, ...JSON.parse(werte[k]) }); } catch (e) { /* korrupter Eintrag, überspringen */ }
   });
   submissions.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-  // Lehrkraft-Freigabestatus für diese Einreichungen laden (parallel)
-  const statusKeys = submissions.map(sub => `status:${sub.testId}:${slug(sub.name)}`);
-  const statusResults = await Promise.allSettled(statusKeys.map(k => window.storage.get(k, true)));
-  const gefiltert = submissions.map((sub, i) => {
+  // Lehrkraft-Freigabestatus: aus der einen listBySuffix-Abfrage; nur wenn die gescheitert ist, einzeln nachladen
+  const statusKeyVon = sub => `status:${sub.testId}:${slug(sub.name)}`;
+  const statusWerte = {};
+  if (eigene && Array.isArray(eigene.items)) eigene.items.forEach(x => { if (x.key.indexOf('status:') === 0) statusWerte[x.key] = x.value; });
+  else Object.assign(statusWerte, await holeViele(submissions.map(statusKeyVon)));
+  const gefiltert = submissions.map((sub) => {
     let sObj = { status: 'offen' };
-    const res = statusResults[i];
-    if (res.status === 'fulfilled' && res.value && res.value.value) {
-      try { sObj = JSON.parse(res.value.value); } catch (e) { /* offen */ }
-    }
+    const roh = statusWerte[statusKeyVon(sub)];
+    if (roh) { try { sObj = JSON.parse(roh); } catch (e) { /* offen */ } }
     return { ...sub, lehrkraftStatus: sObj.status, lehrkraftKommentar: sObj.comment || '', bewertetAm: sObj.reviewedAt || null, lehrkraftKorrektur: !!sObj.korrektur, lehrkraftZettel: !!sObj.zettel };
   });
   lastLoadedSubmissions = gefiltert; // für Export DIESES Schülers (Export lädt bei Bedarf zusätzlich alle anderen)
@@ -270,14 +271,12 @@ async function loadSubmissions(isBackgroundRefresh) {
   const gesehenTests = {};
   gefiltert.forEach(sub => { sub._neueste = !gesehenTests[sub.testId]; gesehenTests[sub.testId] = true; }); // Liste ist neueste-zuerst
 
-  // Entwürfe der Bewertung (deine Schalter, Teil-Wiederholung, Kommentar) parallel laden — pro Abgabe eine Abfrage
-  await Promise.all(gefiltert.map(async (sub) => {
+  // Entwürfe der Bewertung (deine Schalter, Kommentar) — kamen oben in derselben Sammel-Anfrage mit
+  gefiltert.forEach(sub => {
     if (sub.bereichsErgebnisse) return;
-    try {
-      const r = await window.storage.get(`reviewdraft:${sub.testId}:${slug(sub.name)}:${String(sub._key).split(':')[3]}`, true);
-      if (r && r.value) sub._draft = JSON.parse(r.value);
-    } catch (e) { /* kein Entwurf vorhanden */ }
-  }));
+    const roh = werte[draftKeyVon(sub._key)];
+    if (roh) { try { sub._draft = JSON.parse(roh); } catch (e) { /* kein Entwurf vorhanden */ } }
+  });
 
   listEl.innerHTML = '';
   for (const sub of gefiltert) {

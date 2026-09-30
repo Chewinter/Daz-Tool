@@ -248,3 +248,37 @@ function anzeigeTitel(id, title) {
   if (info.kind === 'activity') return l ? `Spiel zu ${l}: ${title}` : `Spiel: ${title}`;
   return title;
 }
+
+// ---------------- SAMMEL-ABFRAGE ----------------
+// Holt viele Schlüssel auf einmal und liefert { schlüssel: wert | null }. Jede einzelne Anfrage ans Apps Script kostet
+// 2–3 s (unter Last deutlich mehr), deshalb zuerst EINE Sammel-Anfrage ("getMany") versuchen. Kennt das Apps Script die
+// Aktion noch nicht (Antwort "unknown_action"), gilt der alte Weg: einzelne get()-Aufrufe, alle gleichzeitig.
+let getManyVerfuegbar = null; // null = noch nicht probiert, true/false = Ergebnis des ersten Versuchs
+async function holeViele(keys) {
+  keys = [...new Set(keys)];
+  const out = {};
+  if (!keys.length) return out;
+  if (getManyVerfuegbar !== false) {
+    try {
+      const data = await ascAnfrage(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'getMany', keys }),
+      });
+      if (data && data.values && typeof data.values === 'object') {
+        getManyVerfuegbar = true;
+        keys.forEach(k => { out[k] = data.values[k] != null ? data.values[k] : null; });
+        return out;
+      }
+      getManyVerfuegbar = false; // Antwort ohne "values" -> Backend kennt die Aktion nicht
+    } catch (e) {
+      if (/unknown|unbekannt|\?/i.test(String(e && e.message))) getManyVerfuegbar = false;
+      // sonst (Netzwerk o. Ä.): nur für diesen Aufruf auf Einzelabfragen ausweichen
+    }
+  }
+  await Promise.all(keys.map(async (k) => {
+    try { const r = await window.storage.get(k, true); out[k] = (r && r.value != null) ? r.value : null; }
+    catch (e) { out[k] = null; }
+  }));
+  return out;
+}
