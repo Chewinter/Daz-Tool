@@ -149,6 +149,8 @@ async function refreshProgress() {
   // Arbeitsblätter zählen erst als erledigt, wenn die Lehrkraft „Heft ok“ gesetzt hat (oder das Blatt noch auf Papier
   // gemacht wurde: der Test zu diesem Schritt ist schon abgegeben)
   CURRICULUM.forEach(lf => lf.items.forEach(id => { if (istArbeitsblatt(id) && blattZustand(id, statusInfo[id], doneTests) === 'erledigt') doneTests.add(id); }));
+  // Abgaben, die noch im Postausgang auf Internet warten, zählen hier schon als abgegeben (sonst würde der Test wieder angeboten)
+  postausgangIds(sl).forEach(id => { if (!istArbeitsblatt(id)) doneTests.add(id); });
 
   if (myRequestId !== progressRequestId) return;
 
@@ -725,8 +727,8 @@ async function submitGrammatikblock(a) {
     const key = `submission:${currentActivityId}:${slug(currentActivityName)}:${Date.now()}`;
     const entwurfKey = `testprogress:${currentActivityId}:${slug(currentActivityName)}`;
     await grammatikAutosaveBeenden();
-    await speichereVieleMitRetry([{ key, value: JSON.stringify(submission) }, { key: `status:${currentActivityId}:${slug(currentActivityName)}`, value: JSON.stringify(neuerStatusNachAbgabe()) }, { key: entwurfKey, loeschen: true }]);
-    lokalLoeschen(entwurfKey);
+    const wie = await abgabeSichernUndSenden([{ key, value: JSON.stringify(submission) }, { key: `status:${currentActivityId}:${slug(currentActivityName)}`, value: JSON.stringify(neuerStatusNachAbgabe()) }, { key: entwurfKey, loeschen: true }], entwurfKey);
+    zeigeAbgabeHinweis(wie);   // lokal geloescht wird erst nach dem Senden
     document.getElementById('doneName').textContent = currentActivityName;
     nachAbgabe(); showView('view-done', { ersetzen: true });
   } catch (e) {
@@ -2175,8 +2177,8 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     // Abgabe + Status in EINER Anfrage (setMany) statt zwei nacheinander — halbiert die Wartezeit beim Abschicken.
     const entwurfKey = progressKeyFor(currentTestId, currentStudentName);
     await autosaveLaufend.catch(() => {});   // ein gerade laufendes Autosave darf den Entwurf nicht nach dem Löschen wieder anlegen
-    await speichereVieleMitRetry([{ key, value: JSON.stringify(submission) }, { key: `status:${currentTestId}:${slug(currentStudentName)}`, value: JSON.stringify(neuerStatusNachAbgabe()) }, { key: entwurfKey, loeschen: true }]);
-    lokalLoeschen(entwurfKey);
+    const wie = await abgabeSichernUndSenden([{ key, value: JSON.stringify(submission) }, { key: `status:${currentTestId}:${slug(currentStudentName)}`, value: JSON.stringify(neuerStatusNachAbgabe()) }, { key: entwurfKey, loeschen: true }], entwurfKey);
+    zeigeAbgabeHinweis(wie);   // lokal geloescht wird erst nach dem Senden
     document.getElementById('doneName').textContent = currentStudentName;
     nachAbgabe(); showView('view-done', { ersetzen: true });
   } catch (e) {
@@ -2910,22 +2912,28 @@ function ladeSkript(pfad) {
 }
 function ladeSchrittBilder(id) {
   const g = schrittBildGruppe(id);
-  if (!g || typeof SCHRITT_BILD_GRUPPEN === 'undefined' || SCHRITT_BILD_GRUPPEN.indexOf(g) < 0) return basisBilder();
+  if (!g || typeof SCHRITT_BILD_GRUPPEN === 'undefined' || SCHRITT_BILD_GRUPPEN.indexOf(g) < 0) return basisBilder(id);
   if (!schrittBilderGeladen[g]) schrittBilderGeladen[g] = ladeSkript('data/icons-schritte-' + g + '.js');
-  return Promise.all([basisBilder(), schrittBilderGeladen[g]]);
+  return Promise.all([basisBilder(id), schrittBilderGeladen[g]]);
 }
 
-// Die großen Bilddateien (zusammen gut 3 MB) blockieren den Seitenstart nicht mehr (Auftrag 11.10.2026, H.6): Sie werden
-// geladen, sobald die Startseite steht, und jeder Test, jedes Spiel und jedes Ergebnis wartet vor dem Aufbau darauf.
+// Bilder je Lernfeld (31.10.2026, Lukas: Schul-WLAN schwach): Statt ALLER Bilder (~3 MB) lädt ein Test, ein Spiel oder ein
+// Ergebnis nur die Bilddatei seines Lernfelds (data/icons-gruppe-<stufe>.js, erzeugt von gen_bildgruppen.js; BILD_GRUPPEN
+// aus data/icons-gruppen.js). Die „Jetzt dran“-Karte lädt die Bilder der nächsten Aufgabe schon im Hintergrund vor.
+// Nur für IDs außerhalb des Lernpfads gilt der alte Weg (alle Bilder).
 const BASIS_BILDER = ['data/icons-a1.js', 'data/icons-a2.js', 'data/icons-lesespur.js'];
 let basisBilderVersprechen = null, basisBilderFertig = false;
-function basisBilder() {
+const gruppenBilderGeladen = {};
+function basisBilder(id) {
+  const st = id && typeof BILD_GRUPPEN !== 'undefined' ? CURRICULUM.find(s => s.items.indexOf(id) >= 0) : null;
+  if (st && Object.prototype.hasOwnProperty.call(BILD_GRUPPEN, st.id)) {
+    if (!BILD_GRUPPEN[st.id]) return Promise.resolve();   // dieses Lernfeld hat keine Bilder
+    return gruppenBilderGeladen[st.id] || (gruppenBilderGeladen[st.id] = ladeSkript('data/icons-gruppe-' + st.id + '.js'));
+  }
   if (!basisBilderVersprechen) basisBilderVersprechen = Promise.all(BASIS_BILDER.map(ladeSkript)).then(() => { basisBilderFertig = true; });
   return basisBilderVersprechen;
 }
 function basisBilderDa() { return basisBilderFertig; }
-if (document.readyState === 'complete') setTimeout(basisBilder, 300);
-else window.addEventListener('load', () => setTimeout(basisBilder, 300));
 
 // ---------------- ZWISCHENSPEICHERN AUF DEM GERÄT (Auftrag 11.10.2026, H.5) ----------------
 // Jede Antwort wird sofort im Browser gesichert (localStorage), zusätzlich wie bisher höchstens alle 20 s ans Apps Script.
@@ -3212,10 +3220,13 @@ function renderJetztDran() {
   A.heft.filter(x => x !== haupt).forEach(x => extra.push(`Zeig deiner Lehrkraft dein Heft: ${escapeHtml(anzeigeTitel(x.id, curriculumItemInfo(x.id).title))}`));
   A.zettel.forEach(x => extra.push(`Korrigiere auf deinem Blatt: ${escapeHtml(anzeigeTitel(x.id, curriculumItemInfo(x.id).title))} <button type="button" class="btn small secondary jetzt-ergebnis" data-id="${x.id}">Ergebnis ansehen</button>`));
   if (extra.length) html += `<div class="jetzt-extra"><div class="jetzt-extra-kopf">Außerdem noch offen</div>${extra.map(t => `<div class="jetzt-extra-zeile">${t}</div>`).join('')}</div>`;
+  const wartend = postausgang().length;
+  if (wartend) html = `<div class="jetzt-post">📤 ${wartend === 1 ? 'Eine Abgabe wartet' : wartend + ' Abgaben warten'} auf Internet und ${wartend === 1 ? 'wird' : 'werden'} automatisch gesendet.</div>` + html;
   const alles = document.getElementById('allesBereich');
   html += `<button type="button" class="jetzt-alles" id="jetztAlles">${alles && !alles.classList.contains('hidden') ? 'Liste wieder ausblenden' : 'Alle Lerninhalte ansehen'}</button>`;
   el.innerHTML = html;
   const los = el.querySelector('.jetzt-los'); if (los && haupt) los.addEventListener('click', () => jetztOeffnen(haupt));
+  if (haupt) setTimeout(() => ladeSchrittBilder(haupt.id), 400);   // Bilder der nächsten Aufgabe schon vorladen (klein, nur dieses Lernfeld)
   el.querySelectorAll('.jetzt-ergebnis').forEach(b => b.addEventListener('click', () => zeigeErgebnis(b.getAttribute('data-id'), name)));
   document.getElementById('jetztAlles').addEventListener('click', () => {
     const zu = alles.classList.toggle('hidden');
@@ -3319,7 +3330,7 @@ async function zeigeArbeitsblatt(a, id) {
       fb.disabled = true;
       const st2 = { status: 'offen', heft: true, am: new Date().toISOString(), runde: ((st && st.runde) || 0) + 1 };
       try {
-        await window.storage.set(`status:${id}:${slug(currentActivityName)}`, JSON.stringify(st2), true);
+        const wie = await abgabeSichernUndSenden([{ key: `status:${id}:${slug(currentActivityName)}`, value: JSON.stringify(st2) }], null);
         if (progressCache.statusInfo) progressCache.statusInfo[id] = st2;
         zeichne();
       } catch (e) { fb.disabled = false; alert('Das hat nicht geklappt (keine Verbindung). Bitte noch einmal auf „Fertig“ tippen.'); }
@@ -3346,17 +3357,83 @@ function zeigeVokabel(b, stichwort) {
   if (!box) { box = document.createElement('div'); box.id = 'vokBox'; document.body.appendChild(box); }
   const zeichne = () => {
     const sp = meineSprache(), ueb = sp && v.sp && v.sp[sp];
+    const zweit = { uk: 'ru', ru: 'uk' }[sp], ueb2 = zweit && v.sp && v.sp[zweit];   // Ukrainisch und Russisch zusammen zeigen
     box.innerHTML = `<div class="vok-karte" role="dialog" aria-label="Vokabel">
       <button type="button" class="vok-zu" aria-label="Schließen">×</button>
       <div class="vok-wort">${escapeHtml(stichwort)}</div>${v.pl ? `<div class="vok-pl">Mehrzahl: ${escapeHtml(v.pl)}</div>` : ''}
       ${v.erkl ? `<div class="vok-zeile"><span class="vok-lab">Einfach erklärt</span>${escapeHtml(v.erkl)}</div>` : ''}
       <div class="vok-zeile"><span class="vok-lab">Englisch</span>${escapeHtml(v.en)}</div>
       <div class="vok-zeile"><span class="vok-lab">Meine Sprache <select id="vokSprache"><option value="">— wählen —</option>${Object.keys(SPRACHEN).map(k => `<option value="${k}" ${k === sp ? 'selected' : ''}>${SPRACHEN[k]}</option>`).join('')}</select></span>
-        ${sp ? (ueb ? `<span dir="auto">${escapeHtml(ueb)}</span>` : '<span class="vok-fehlt">Noch keine Übersetzung — frag deine Lehrkraft.</span>') : ''}</div>
+        ${sp ? (ueb ? `<span dir="auto" class="vok-ueb">${escapeHtml(ueb)}</span>${ueb2 ? `<span dir="auto" class="vok-ueb2">${SPRACHEN[zweit]}: ${escapeHtml(ueb2)}</span>` : ''}<span class="vok-fehlt">Stimmt etwas nicht? Sag es deiner Lehrkraft.</span>` : '<span class="vok-fehlt">Noch keine Übersetzung — frag deine Lehrkraft.</span>') : ''}</div>
     </div>`;
     box.querySelector('.vok-zu').addEventListener('click', () => box.remove());
     box.querySelector('#vokSprache').addEventListener('change', e => { try { localStorage.setItem('daz_sprache', e.target.value); } catch (x) { /* egal */ } zeichne(); });
   };
   box.onclick = e => { if (e.target === box) box.remove(); };
   zeichne();
+}
+
+// ---------------- POSTAUSGANG: KEINE ABGABE GEHT VERLOREN (Lukas 31.10.2026: Schul-WLAN reißt oft ab) ----------------
+// Jede Abgabe (Test, Grammatik-Block, „Fertig“ beim Arbeitsblatt) liegt ZUERST auf dem Gerät (localStorage) und wird dann
+// gesendet. Klappt das Senden nicht, bleibt sie im Postausgang und wird automatisch nachgeschickt: sobald das Gerät wieder
+// online ist, alle 20 s und bei jedem Öffnen der Seite. Derselbe Schlüssel bei jedem Versuch -> nie doppelt gespeichert.
+const POSTAUSGANG = 'daz_postausgang';
+function postausgang() { try { return JSON.parse(localStorage.getItem(POSTAUSGANG) || '[]') || []; } catch (e) { return []; } }
+function postausgangSetzen(l) { try { localStorage.setItem(POSTAUSGANG, JSON.stringify(l)); return true; } catch (e) { return false; } }
+function postausgangIds(sl) {   // Tests/Blätter dieses Kindes, die noch im Postausgang liegen
+  const ids = new Set();
+  postausgang().forEach(x => x.items.forEach(it => { const t = String(it.key).split(':'); if ((t[0] === 'submission' || t[0] === 'status') && t[2] === sl) ids.add(t[1]); }));
+  return ids;
+}
+// Unter Last dauert das Senden bis zu ~14 s (Messung 12.10.2026). Liegt die Abgabe sicher auf dem Gerät, wartet das Kind
+// höchstens ABGABE_WARTEN_MS; danach erscheint „Danke“ und das Senden läuft im Hintergrund weiter („wird gesendet …“).
+const ABGABE_WARTEN_MS = 2500;
+const unterwegs = new Set();   // Postausgang-Einträge, die gerade gesendet werden (nicht doppelt anstoßen)
+async function abgabeSichernUndSenden(items, entwurfKey) {
+  const id = String(Date.now()) + Math.random().toString(36).slice(2, 6);
+  const gemerkt = postausgangSetzen(postausgang().concat([{ id, items, entwurfKey, am: Date.now() }]));
+  if (!gemerkt) {                     // Gerät kann nichts speichern (z. B. privates Fenster): wie bisher warten und melden
+    await speichereVieleMitRetry(items, 3);
+    if (entwurfKey) lokalLoeschen(entwurfKey);
+    return 'gesendet';
+  }
+  unterwegs.add(id);
+  const senden = speichereVieleMitRetry(items, 3).then(() => {
+    postausgangSetzen(postausgang().filter(x => x.id !== id));
+    if (entwurfKey) lokalLoeschen(entwurfKey);
+    return 'gesendet';
+  }, () => { nachsendenPlanen(20000); return 'wartet'; }).finally(() => unterwegs.delete(id));
+  const ergebnis = await Promise.race([senden, new Promise(r => setTimeout(() => r('unterwegs'), ABGABE_WARTEN_MS))]);
+  if (ergebnis === 'unterwegs') senden.then(w => { zeigeAbgabeHinweis(w); if (typeof renderJetztDran === 'function' && aktuelleView === 'view-start') renderJetztDran(); });
+  return ergebnis;
+}
+let nachsendenTimer = null, nachsendenLaeuft = false;
+function nachsendenPlanen(ms) { clearTimeout(nachsendenTimer); if (postausgang().length) nachsendenTimer = setTimeout(nachsenden, ms); }
+async function nachsenden() {
+  if (nachsendenLaeuft || typeof zugangGeprueft !== 'undefined' && !zugangGeprueft) { nachsendenPlanen(5000); return; }
+  nachsendenLaeuft = true;
+  let geschickt = 0;
+  for (const x of postausgang()) {
+    if (unterwegs.has(x.id)) continue;   // wird gerade schon gesendet
+    try {
+      await speichereVieleMitRetry(x.items, 1);
+      postausgangSetzen(postausgang().filter(y => y.id !== x.id));
+      if (x.entwurfKey) lokalLoeschen(x.entwurfKey);
+      geschickt++;
+    } catch (e) { break; }   // immer noch kein Netz: später weiter (Reihenfolge bleibt erhalten)
+  }
+  nachsendenLaeuft = false;
+  if (geschickt && document.getElementById('startName').value) refreshProgress();
+  else if (typeof renderJetztDran === 'function') renderJetztDran();
+  nachsendenPlanen(20000);
+}
+window.addEventListener('online', () => nachsendenPlanen(500));
+if (zugangGeprueft) nachsendenPlanen(1500); else zugangWarten.push(() => nachsendenPlanen(1500));   // nach dem Seitenstart liegengebliebene Abgaben schicken
+function zeigeAbgabeHinweis(wie) {
+  let el = document.getElementById('doneHinweis');
+  if (!el) { el = document.createElement('p'); el.id = 'doneHinweis'; document.querySelector('#view-done .summary').appendChild(el); }
+  el.className = wie === 'wartet' ? 'done-wartet' : wie === 'unterwegs' ? 'done-unterwegs' : wie === 'gesendet' && el.textContent ? 'done-angekommen' : 'hidden';
+  el.textContent = wie === 'wartet' ? 'Das Internet ist gerade weg. Deine Abgabe ist sicher auf diesem Gerät gespeichert und wird automatisch gesendet, sobald das Internet wieder da ist. Öffne die Seite dafür einfach später wieder.'
+    : wie === 'unterwegs' ? 'Deine Abgabe ist auf diesem Gerät gespeichert und wird gerade gesendet …'
+    : wie === 'gesendet' && el.textContent ? '✓ Angekommen.' : '';
 }

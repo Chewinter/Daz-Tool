@@ -1,0 +1,2 @@
+/* Welche Stufen eine eigene Bilddatei haben (Zahl = Anzahl Bilder; 0 = braucht keine). Erzeugt von gen_bildgruppen.js. */
+const BILD_GRUPPEN = {"a1_lf1":73,"a1_lf2":7,"a1_lf3":24,"a1_lf4":42,"a1_lf5":88,"a1_grammatik":3,"a1_check":0,"a2_lf1":20,"a2_lf2":6,"a2_lf3":4,"a2_lf4":26,"a2_lf5":16,"a2_grammatik":3,"a2_schreiben":0,"b1_lf1":76,"b1_lf2":24,"b1_lf3":22,"b1_lf4":1,"b1_lf5":1,"b1_grammatik":1,"b1_wdh":2,"b1_modelltest":3,"a2_lesen":2,"a2_lesespur":1};
