@@ -3179,15 +3179,16 @@ function jetztOeffnen(x) {
   const name = document.getElementById('startName').value.trim();
   if (x.kind === 'activity' || x.kind === 'grammatik' || x.kind === 'blatt') openActivity(x.id); else startTest(x.id, name);
 }
+// kopf = Zustand („Zeig dein Heft“ …): steht als fetter erster Satz im Text, nicht als Etikett über der Überschrift
 function jetztKarteHtml(x, kopf, text, knopf) {
   const info = curriculumItemInfo(x.id);
-  return `<div class="jetzt-karte">
-    <div class="jetzt-kopf">${escapeHtml(kopf)}</div>
-    <div class="jetzt-wo">${escapeHtml(x.lf.name)} · ${x.nr} von ${x.lf.items.length} · ${escapeHtml(typBezeichnung(info.kind))}</div>
+  const zustand = kopf && kopf !== 'Jetzt dran' ? `<strong class="jetzt-zustand">${escapeHtml(kopf)}.</strong> ` : '';
+  return `<section class="jetzt-karte" aria-label="Jetzt dran">
     <h2 class="jetzt-titel">${escapeHtml(anzeigeTitel(x.id, info.title))}</h2>
-    ${text ? `<p class="jetzt-text">${text}</p>` : ''}
+    <div class="jetzt-wo">${escapeHtml(x.lf.name)} · ${x.nr} von ${x.lf.items.length} · ${escapeHtml(typBezeichnung(info.kind))}</div>
+    ${text || zustand ? `<p class="jetzt-text">${zustand}${text}</p>` : ''}
     ${knopf ? `<button type="button" class="btn jetzt-los">${escapeHtml(knopf)}</button>` : ''}
-  </div>`;
+  </section>`;
 }
 function renderJetztDran() {
   const el = jetztDranBereich();
@@ -3202,7 +3203,7 @@ function renderJetztDran() {
     html = jetztKarteHtml(haupt, 'Überarbeite dein Heft', (k ? `Deine Lehrkraft sagt: „${escapeHtml(k)}“<br>` : '') + 'Verbessere es im Heft und tippe dann wieder auf „Fertig“.', 'Arbeitsblatt öffnen');
   } else if (A.wdh.length) {
     haupt = A.wdh[0];
-    html = jetztKarteHtml(haupt, 'Jetzt dran: Wiederholung', 'Mache nur die falschen Aufgaben noch einmal.', 'Wiederholen');
+    html = jetztKarteHtml(haupt, 'Wiederholung', 'Mache nur die falschen Aufgaben noch einmal.', 'Wiederholen');
   } else if (A.naechste) {
     haupt = A.naechste;
     const p = progressCache.pausierteTests && progressCache.pausierteTests.has(haupt.id);
@@ -3213,7 +3214,7 @@ function renderJetztDran() {
     haupt = A.heft[0];
     html = jetztKarteHtml(haupt, 'Zeig dein Heft', 'Geh mit deinem Heft und deinem Vokabelheft zu deiner Lehrkraft. Danach geht es weiter.', 'Arbeitsblatt noch einmal ansehen');
   } else {
-    html = '<div class="jetzt-karte jetzt-leer"><div class="jetzt-kopf">Gerade nichts zu tun</div><p class="jetzt-text">Deine Lehrkraft schaut sich deine Arbeit an. Danach geht es weiter.</p></div>';
+    html = '<section class="jetzt-karte jetzt-leer" aria-label="Jetzt dran"><h2 class="jetzt-titel">Gerade nichts zu tun</h2><p class="jetzt-text">Deine Lehrkraft schaut sich deine Arbeit an. Danach geht es weiter.</p></section>';
   }
   // Was sonst noch offen ist, aber nicht die Hauptaufgabe: kurze Erinnerungen
   const extra = [];
@@ -3221,7 +3222,7 @@ function renderJetztDran() {
   A.zettel.forEach(x => extra.push(`Korrigiere auf deinem Blatt: ${escapeHtml(anzeigeTitel(x.id, curriculumItemInfo(x.id).title))} <button type="button" class="btn small secondary jetzt-ergebnis" data-id="${x.id}">Ergebnis ansehen</button>`));
   if (extra.length) html += `<div class="jetzt-extra"><div class="jetzt-extra-kopf">Außerdem noch offen</div>${extra.map(t => `<div class="jetzt-extra-zeile">${t}</div>`).join('')}</div>`;
   const wartend = postausgang().length;
-  if (wartend) html = `<div class="jetzt-post">📤 ${wartend === 1 ? 'Eine Abgabe wartet' : wartend + ' Abgaben warten'} auf Internet und ${wartend === 1 ? 'wird' : 'werden'} automatisch gesendet.</div>` + html;
+  if (wartend) html = `<div class="jetzt-post">${WO_SYMBOL.post}<span>${wartend === 1 ? 'Eine Abgabe wartet' : wartend + ' Abgaben warten'} auf Internet und ${wartend === 1 ? 'wird' : 'werden'} automatisch gesendet.</span></div>` + html;
   const alles = document.getElementById('allesBereich');
   html += `<button type="button" class="jetzt-alles" id="jetztAlles">${alles && !alles.classList.contains('hidden') ? 'Liste wieder ausblenden' : 'Alle Lerninhalte ansehen'}</button>`;
   el.innerHTML = html;
@@ -3261,14 +3262,20 @@ function blattVokKnopf(text, stichwort) {
   const t = escapeHtml(text).replace(/\n/g, '<br>');
   return stichwort ? `<button type="button" class="vok" data-vok="${escapeHtml(stichwort)}">${t}</button>` : `<span>${t}</span>`;
 }
-const WO_SYMBOL = { heft: '✏️', vokabelheft: '📒', lesen: '📖' };
+const SYM = p => `<svg class="sym" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const WO_SYMBOL = {
+  heft: SYM('<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/>'),
+  vokabelheft: SYM('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v18"/><path d="M12.5 8h3.5M12.5 12h3.5"/>'),
+  lesen: SYM('<path d="M3 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H3z"/><path d="M21 5h-6a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h7z"/>'),
+  post: SYM('<path d="M12 15V4"/><path d="M7 9l5-5 5 5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/>'),
+};
 const WO_TEXT = { heft: 'Ins Heft', vokabelheft: 'Ins Vokabelheft', lesen: 'Lesen' };
 function blattTabelleHtml(t) {
   return `<div class="blatt-tab-wrap"><table class="blatt-tab"><thead><tr>${t.kopf.map(k => `<th>${blattInline(k)}</th>`).join('')}</tr></thead>
     <tbody>${t.zeilen.map(z => `<tr>${z.map((c, i) => i ? `<td>${blattInline(c)}</td>` : `<th>${blattInline(c)}</th>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 function blattBlockHtml(b) {
-  if (b.art === 'auftrag') return `<div class="blatt-auftrag wo-${b.wo}"><span class="blatt-wo">${WO_SYMBOL[b.wo] || ''} ${WO_TEXT[b.wo] || ''}</span>${blattInline(b.text)}</div>`;
+  if (b.art === 'auftrag') return `<div class="blatt-auftrag wo-${b.wo}">${WO_SYMBOL[b.wo] || ''}<p><strong class="blatt-wo">${WO_TEXT[b.wo] || ''}:</strong> ${blattInline(b.text)}</p></div>`;
   if (b.art === 'text') return `<div class="blatt-text">${b.absaetze.map(a => `<p>${blattInline(a)}</p>`).join('')}</div>`;
   if (b.art === 'blasen') return `<div class="blatt-blasen">${b.blasen.map(x => `<span class="blatt-blase">${blattInline(x)}</span>`).join('')}</div>`;
   if (b.art === 'merk') return `<div class="blatt-merk"><div class="blatt-merk-kopf">ⓘ ${blattInline(b.titel)}</div>${(b.zeilen || []).map(z => `<p>${blattInline(z)}</p>`).join('')}${(b.tabellen || []).map(blattTabelleHtml).join('')}</div>`;
@@ -3304,7 +3311,7 @@ async function zeigeArbeitsblatt(a, id) {
     const s = b.seiten[seite], letzte = seite === b.seiten.length - 1;
     const st = (progressCache.statusInfo || {})[id];
     const z = blattZustand(id, st, progressCache.doneTests);
-    const hinweisOben = z === 'nochmal' && st.comment ? `<div class="blatt-auftrag wo-heft"><span class="blatt-wo">Deine Lehrkraft</span>„${escapeHtml(st.comment)}“</div>` : '';
+    const hinweisOben = z === 'nochmal' && st.comment ? `<div class="blatt-auftrag wo-heft">${WO_SYMBOL.heft}<p><strong class="blatt-wo">Deine Lehrkraft:</strong> „${escapeHtml(st.comment)}“</p></div>` : '';
     let fertigHtml = '';
     if (letzte) fertigHtml = z === 'heft_zeigen' ? '<p class="blatt-status">✓ Du hast auf „Fertig“ getippt. Zeig dein Heft und dein Vokabelheft deiner Lehrkraft.</p>'
       : z === 'erledigt' ? '<p class="blatt-status">✓ Dieses Arbeitsblatt ist erledigt.</p>'

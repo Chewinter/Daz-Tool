@@ -675,26 +675,28 @@ select.gb-auswahl:focus { outline: none; border-color: var(--teal); }
 /* ---------- „Jetzt dran“ + Arbeitsblatt im Heft (31.10.2026) ---------- */
 .jetzt-karte { background: var(--paper); border: 2px solid var(--teal); border-radius: var(--radius); padding: 18px; margin: 14px 0 10px; }
 .jetzt-karte.jetzt-leer { border-color: var(--line); }
-.jetzt-kopf { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--teal-dark); }
-.jetzt-wo { font-size: 13px; color: var(--ink-soft); margin-top: 4px; }
-.jetzt-titel { font-family: Georgia, serif; font-size: 22px; margin: 6px 0 8px; }
+.jetzt-wo { font-size: 14px; color: var(--ink-soft); margin: 0 0 10px; }
+.jetzt-zustand { color: var(--teal-dark); }
+.jetzt-titel { font-family: Georgia, serif; font-size: 22px; line-height: 1.25; margin: 0 0 4px; text-wrap: balance; }
 .jetzt-text { margin: 0 0 12px; color: var(--ink); }
 .jetzt-los { width: 100%; }
-.jetzt-extra { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 10px; font-size: 14px; }
+.jetzt-extra { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 10px; font-size: 15px; }
 .jetzt-extra-kopf { font-weight: 700; margin-bottom: 4px; }
 .jetzt-extra-zeile { padding: 4px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.jetzt-alles { background: none; border: none; color: var(--teal-dark); text-decoration: underline; font: inherit; font-size: 14px; padding: 6px 0 14px; cursor: pointer; }
+.jetzt-alles { background: none; border: none; color: var(--teal-dark); text-decoration: underline; text-underline-offset: 3px; font: inherit; font-size: 15px; min-height: 44px; padding: 0 0 6px; cursor: pointer; }
 .blatt-punkte { display: flex; gap: 6px; margin-bottom: 6px; }
 .blatt-punkte span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
 .blatt-punkte span.vorbei { background: var(--teal); opacity: .5; }
 .blatt-punkte span.an { background: var(--teal); }
-.blatt-seitenkopf { font-size: 13px; color: var(--ink-soft); }
+.blatt-seitenkopf { font-size: 14px; color: var(--ink-soft); }
 .blatt-h2 { font-family: Georgia, serif; margin: 4px 0 12px; }
 .blatt-h3 { margin: 12px 0 6px; font-size: 16px; }
-.blatt-auftrag { border-left: 5px solid var(--teal); background: var(--good-bg); padding: 10px 12px; border-radius: 6px; margin: 10px 0; }
-.blatt-auftrag.wo-vokabelheft { border-left-color: var(--amber); background: var(--warn-bg); }
-.blatt-auftrag.wo-lesen { border-left-color: var(--line); background: transparent; }
-.blatt-wo { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-soft); margin-bottom: 2px; }
+.blatt-auftrag { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; background: var(--good-bg); border: 1px solid rgba(31, 92, 84, .18); padding: 12px 14px; border-radius: 12px; margin: 12px 0; color: var(--teal-dark); }
+.blatt-auftrag p { margin: 0; color: var(--ink); line-height: 1.5; }
+.blatt-auftrag.wo-vokabelheft { background: var(--warn-bg); border-color: rgba(160, 110, 20, .22); color: var(--warn); }
+.blatt-auftrag.wo-lesen { background: transparent; border-color: transparent; padding: 4px 0; color: var(--ink-soft); }
+.blatt-wo { font-weight: 700; }
+.sym { display: block; margin-top: 1px; }
 .blatt-text p { line-height: 1.6; font-size: 17px; margin: 0 0 10px; }
 .blatt-blasen { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
 .blatt-blase { border: 1.5px solid var(--ink-soft); border-radius: 18px; padding: 6px 12px; background: var(--paper); }
@@ -702,11 +704,11 @@ select.gb-auswahl:focus { outline: none; border-color: var(--teal); }
 .blatt-merk-kopf { font-weight: 700; margin-bottom: 4px; }
 .blatt-merk p { margin: 4px 0; }
 .blatt-tab-wrap { overflow-x: auto; margin: 8px 0; }
-.blatt-tab { border-collapse: collapse; font-size: 14px; min-width: 100%; }
+.blatt-tab { border-collapse: collapse; font-size: 15px; min-width: 100%; }
 .blatt-tab th, .blatt-tab td { border: 1px solid var(--line); padding: 5px 7px; text-align: left; vertical-align: top; }
 .blatt-tab thead th { background: var(--bg); }
 .blatt-saetze { padding-left: 26px; line-height: 1.8; font-size: 17px; }
-.blatt-hinweis { color: var(--ink-soft); font-size: 14px; }
+.blatt-hinweis { color: var(--ink-soft); font-size: 15px; }
 .blatt-check { line-height: 1.8; }
 .blatt-bilder { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
 .blatt-bild { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); padding: 6px; font: inherit; font-size: 13px; cursor: pointer; }
@@ -719,11 +721,12 @@ select.gb-auswahl:focus { outline: none; border-color: var(--teal); }
 .blatt-status { color: var(--good); font-weight: 700; margin: 0; }
 #vokBox { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; z-index: 50; padding: 12px; }
 .vok-karte { background: var(--paper); border-radius: var(--radius); padding: 16px 18px; width: 100%; max-width: 460px; position: relative; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
-.vok-zu { position: absolute; right: 8px; top: 4px; background: none; border: none; font-size: 26px; cursor: pointer; color: var(--ink-soft); }
+.vok-zu { position: absolute; right: 4px; top: 4px; width: 44px; height: 44px; background: none; border: none; font-size: 28px; line-height: 1; cursor: pointer; color: var(--ink-soft); }
 .vok-wort { font-family: Georgia, serif; font-size: 22px; font-weight: 700; padding-right: 26px; }
 .vok-pl { color: var(--ink-soft); font-size: 14px; }
 .vok-zeile { margin-top: 10px; }
-.vok-lab { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-soft); }
+.vok-lab { display: block; font-size: 14px; font-weight: 700; color: var(--ink-soft); }
+#vokSprache { font: inherit; font-size: 16px; font-weight: 400; min-height: 44px; padding: 0 8px; margin-left: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); }
 .vok-fehlt { color: var(--ink-soft); font-style: italic; }
 .blatt-figur { margin: 10px 0; }
 .blatt-figur img { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
@@ -742,13 +745,21 @@ select.gb-auswahl:focus { outline: none; border-color: var(--teal); }
 #bildGross { position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 60; overflow: auto; }
 #bildGross img { width: max(100%, 1000px); max-width: none; display: block; background: #fff; }
 #bildGross .vok-zu { position: fixed; right: 10px; top: 6px; color: #fff; font-size: 34px; z-index: 61; }
-.done-wartet { background: var(--warn-bg); border-left: 5px solid var(--amber); padding: 10px 12px; border-radius: 6px; text-align: left; }
-.jetzt-post { background: var(--warn-bg); border-radius: 8px; padding: 8px 12px; margin: 10px 0 0; font-size: 14px; }
+.done-wartet { background: var(--warn-bg); border: 1px solid rgba(160, 110, 20, .22); padding: 12px 14px; border-radius: 12px; text-align: left; }
+.jetzt-post { display: flex; gap: 10px; align-items: center; background: var(--warn-bg); border-radius: 12px; padding: 10px 14px; margin: 10px 0 0; font-size: 15px; color: var(--warn); }
+.jetzt-post span { color: var(--ink); }
 .done-unterwegs { color: var(--ink-soft); font-size: 14px; }
 .done-angekommen { color: var(--good); font-weight: 700; }
 .vok-ueb { display: block; font-size: 20px; }
 .vok-ueb2 { display: block; color: var(--ink-soft); font-size: 15px; }
 .vok-ueb ~ .vok-fehlt { display: block; font-size: 12px; margin-top: 4px; }
+
+/* Tippflächen mindestens 44 px (Impeccable-Audit 31.10.2026; Kinderhände, Handys) */
+.btn { min-height: 44px; }
+.mc-opt { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+#abmeldenKnopf { min-height: 44px; font-size: 15px; }
+#toDashboard { display: inline-block; padding: 13px 0; }
+.blatt-nav .btn { min-width: 112px; }
 
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
