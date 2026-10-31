@@ -14,6 +14,21 @@
 // WICHTIG: Namen NIE ändern, wenn schon Abgaben existieren — der Speicher-Schlüssel wird aus dem Namen
 // gebildet (slug). Neue Schüler einfach unten anhängen.
 let STUDENTS = [];
+// Testkonten ("TEst", "Lasttest 01" …) stehen im Blatt "Schueler" nur für die automatischen Tests im Hintergrund.
+// Sie erscheinen weder in der Auswahl der Kinder noch in der Lehrkraft-Ansicht — außer auf Testgeräten: einmal
+// index.html?test (bzw. lehrkraft.html?test) öffnen; ?test=0 schaltet wieder ab.
+const TESTNAME = /^(test|lasttest [0-9]+)$/i;
+function testnamenZeigen() {
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.has('test')) localStorage.setItem('daz_testnamen', q.get('test') === '0' ? '0' : '1');
+    return localStorage.getItem('daz_testnamen') === '1';
+  } catch (e) { return false; }
+}
+function ohneTestkonten(namen, testBehalten) {   // testBehalten: TEst bleibt (Schüler-Auswahl, Lukas 31.10.)
+  const zeigen = testnamenZeigen();
+  return (namen || []).filter(n => zeigen || (testBehalten && String(n).trim() === 'TEst') || !TESTNAME.test(String(n).trim()));
+}
 function fillStudentSelect(selectEl, valueMode) {
   // valueMode "slug": value = slug(Name) (Lehrkraft-Filter), sonst value = voller Name
   const vorher = selectEl.value;
@@ -65,8 +80,19 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbzhm6rkABGSot
 let ZUGANGS_CODE = '';
 try { ZUGANGS_CODE = localStorage.getItem('daz_code') || ''; } catch (e) { /* kein localStorage */ }
 
-// Was das Apps Script kann: 1 = bis 10.10.2026, 2 = schuelerStand + setMany mit { loeschen: true }. Kommt mit der Anmeldung.
+// Was das Apps Script kann: 1 = bis 10.10.2026, 2 = schuelerStand + setMany mit { loeschen: true },
+// 3 = Anmeldung mit PIN je Kind (29.10.2026). Kommt mit der Anmeldung.
 let BACKEND_API = 1;
+
+// Sitzung des angemeldeten Kindes (ab BACKEND_API 3): { name, token }. Bleibt auf dem Gerät, bis das Kind sich abmeldet.
+// Geht mit jeder Anfrage der Schüler-Seite mit (nicht von der Lehrkraft-Seite); das Apps Script gibt dann nur noch die
+// Einträge dieses Kindes heraus.
+let ANMELDUNG = null;
+try { ANMELDUNG = JSON.parse(localStorage.getItem('daz_sitzung') || 'null'); } catch (e) { /* keine */ }
+function setzeSitzung(s) {
+  ANMELDUNG = s && s.name && s.token ? { name: s.name, token: s.token } : null;
+  try { if (ANMELDUNG) localStorage.setItem('daz_sitzung', JSON.stringify(ANMELDUNG)); else localStorage.removeItem('daz_sitzung'); } catch (e) { /* egal */ }
+}
 
 // Vorübergehende Fehler (kein Netz, Server überlastet, keine JSON-Antwort) bekommen das Kennzeichen "voruebergehend":
 // api() versucht es dann noch einmal. Inhaltliche Antworten (not_found, zugang_verweigert, …) nicht.
@@ -88,6 +114,8 @@ async function ascAnfrage(url, options) {
   if (data && data.error) {
     // Code fehlt/falsch/geändert: die Seite fragt neu nach (Schüler-Seite: Klassen-Code-Abfrage)
     if (data.error === 'zugang_verweigert' && typeof beiZugangVerweigert === 'function') beiZugangVerweigert();
+    // Sitzung ungültig (z. B. neue PIN in der Tabelle): das Kind meldet sich neu an
+    if (data.error === 'anmeldung_noetig' && typeof beiAnmeldungNoetig === 'function') beiAnmeldungNoetig();
     throw new Error(data.error);
   }
   return data;
@@ -109,7 +137,7 @@ async function apiMitWiederholung(payload, versuche) {
       return await ascAnfrage(APPS_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(Object.assign({ code: ZUGANGS_CODE }, payload)),
+        body: JSON.stringify(Object.assign({ code: ZUGANGS_CODE }, ANMELDUNG && typeof beiAnmeldungNoetig === 'function' ? { sitzungName: ANMELDUNG.name, sitzungToken: ANMELDUNG.token } : {}, payload)),
       });
     } catch (e) {
       if (!e.voruebergehend || i >= versuche) throw e;
@@ -122,6 +150,12 @@ function wartezeitMitZufall(versuch) { return Math.round(1000 * Math.pow(2, vers
 // Prüft einen Code und liefert { rolle, lehrkraft, geschuetzt, namen }. Wirft 'zugang_verweigert', wenn er nicht stimmt.
 function anmelden(code) {
   return api({ action: 'anmelden', code: code || '' }).then(d => { BACKEND_API = (d && d.api) || 1; return d; });
+}
+
+// Anmeldung eines Kindes (ab BACKEND_API 3): ohne PIN in der Tabelle reicht der Name, sonst Fehler 'pin_noetig' /
+// 'pin_falsch' / 'pin_gesperrt'. Liefert { token, mitPin }.
+function schuelerAnmelden(name, pin) {
+  return api({ action: 'schuelerAnmelden', name, pin: pin || '' });
 }
 
 window.storage = {
@@ -229,6 +263,7 @@ function curriculumItemInfo(id) {
   if (id === 'eingangstest_a1') return { title: 'Einstufungstest A1', kind: 'eingangstest' };
   if (TESTS[id] && TESTS[id].kindLabel) return { title: TESTS[id].title, kind: TESTS[id].kindLabel };
   if (TESTS[id]) return { title: TESTS[id].title, kind: TESTS[id].type && TESTS[id].type.startsWith('abschluss') ? 'test-final' : 'test' };
+  if (ACTIVITIES[id] && ACTIVITIES[id].type === 'arbeitsblatt') return { title: ACTIVITIES[id].title, kind: 'blatt' };   // Heft statt Blatt (31.10.2026)
   if (ACTIVITIES[id]) {
     // Grammatikblöcke verhalten sich wie Tests (Abgabe + Lehrkraft-Freigabe), alle anderen Übungen
     // (Domino, Quartett, ...) bleiben Selbstmarkierung. isDoneLocal()/getDisplayStatus() behandeln
@@ -271,7 +306,7 @@ function titelMitSchritt(id, title) { const l = schrittLabel(id); return l ? l +
 // ---------------- BEZEICHNUNGEN (einheitlich im ganzen Tool) ----------------
 // Test zu Schritt N · Spiel · Lernfeld-Test · Grammatik-Block (mit Aufgabe N) · Einstufungstest A1
 function typBezeichnung(kind) {
-  return kind === 'test-final' ? 'Lernfeld-Test' : kind === 'eingangstest' ? 'Einstufungstest' : kind === 'grammatik' ? 'Grammatik-Block' : kind === 'activity' ? 'Spiel' : kind === 'schreiben' ? 'Schreibaufgabe' : kind === 'lesen' ? 'Leseaufgabe' : 'Test';
+  return kind === 'test-final' ? 'Lernfeld-Test' : kind === 'eingangstest' ? 'Einstufungstest' : kind === 'grammatik' ? 'Grammatik-Block' : kind === 'activity' ? 'Spiel' : kind === 'schreiben' ? 'Schreibaufgabe' : kind === 'lesen' ? 'Leseaufgabe' : kind === 'blatt' ? 'Arbeitsblatt' : 'Test';
 }
 function anzeigeTitel(id, title) {
   const info = curriculumItemInfo(id);
@@ -280,7 +315,24 @@ function anzeigeTitel(id, title) {
   if (ACTIVITIES[id] && ACTIVITIES[id].type === 'wdhauswertung') return title;   // Auswertung, kein Spiel
   if (info.kind === 'activity') return l ? `Spiel zu ${l}: ${title}` : `Spiel: ${title}`;
   if (info.kind === 'grammatik' && l) return `${l}: ${title}`;
+  if (info.kind === 'blatt') return l ? `Arbeitsblatt zu ${l}: ${title}` : `Arbeitsblatt: ${title}`;
   return title;
+}
+
+// ---------------- ARBEITSBLÄTTER IM HEFT (Lukas 31.10.2026) ----------------
+// Texte, Bilder und Aufträge eines Arbeitsblatts stehen digital da (Inhalt kommt nach dem Klassen-Code vom Apps
+// Script, Schlüssel blatt:<id>); gearbeitet wird im Heft bzw. Vokabelheft. Das Kind tippt „Fertig“ -> Status
+// { status: 'offen', heft: true }. Erst wenn die Lehrkraft „Heft ok“ setzt (status 'endgueltig'), geht es weiter.
+// „Noch nicht ok“ -> { status: 'heft_nochmal', comment }. Lösungen (loesung:<id>) sieht nur die Lehrkraft.
+// Wer den Test zu diesem Schritt schon abgegeben hat, hat das Blatt noch auf Papier gemacht: gilt als erledigt.
+function istArbeitsblatt(id) { return !!(ACTIVITIES[id] && ACTIVITIES[id].type === 'arbeitsblatt'); }
+function blattZustand(id, statusObj, abgegebeneTests) {
+  if (statusObj && statusObj.status === 'endgueltig') return 'erledigt';
+  if (statusObj && statusObj.status === 'heft_nochmal') return 'nochmal';
+  if (statusObj && statusObj.status === 'offen' && statusObj.heft) return 'heft_zeigen';
+  const test = ACTIVITIES[id] && ACTIVITIES[id].test;
+  if (test && abgegebeneTests && abgegebeneTests.has(test)) return 'erledigt';   // noch auf Papier gemacht
+  return 'offen';
 }
 
 // ---------------- SAMMEL-SPEICHERN ----------------

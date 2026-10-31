@@ -522,7 +522,7 @@ input.wdh-offen, select.wdh-offen, textarea.wdh-offen { box-shadow: 0 0 0 2px #E
 /* Kopfzeile: Niveau + Lernfeld über dem Titel */
 .eyebrow-lernfeld { font-weight: 700; opacity: 1; letter-spacing: .02em; text-transform: none; font-size: 14.5px; }
 /* Klassen-Code-Abfrage (liegt über der ganzen Seite, bis der Code stimmt) */
-#codeGate { position: fixed; inset: 0; z-index: 1000; background: var(--bg, #FAF6EE); display: flex; align-items: flex-start; justify-content: center; padding: 60px 16px; overflow: auto; }
+#codeGate, #pinGate { position: fixed; inset: 0; z-index: 1000; background: var(--bg, #FAF6EE); display: flex; align-items: flex-start; justify-content: center; padding: 60px 16px; overflow: auto; }
 .code-gate-box { width: 100%; max-width: 380px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 24px; }
 .code-gate-box h2 { font-family: Georgia, serif; margin: 4px 0 8px; }
 .code-gate-box input { width: 100%; box-sizing: border-box; font-size: 18px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; margin-top: 10px; }
@@ -670,6 +670,78 @@ select.gb-auswahl:focus { outline: none; border-color: var(--teal); }
 #abschlussBody select { font-size: 16px; font-family: inherit; padding: 8px 10px; min-height: 44px; border: 2px solid var(--line); border-radius: 8px; background: #FCFBF7; color: var(--ink); max-width: 100%; }
 .overview-col-aktuell .overview-col-title { color: #fff; background: var(--teal); border-radius: 6px; border-bottom-color: var(--teal); }   /* aktuelles Lernfeld */
 .overview-hint { position: sticky; left: 0; }   /* Hinweis bleibt sichtbar, auch wenn die Karte zum aktuellen Lernfeld springt */
+#abmeldenKnopf { margin-top: 8px; }   /* PIN je Kind: unter der Namensauswahl */
+
+/* ---------- „Jetzt dran“ + Arbeitsblatt im Heft (31.10.2026) ---------- */
+.jetzt-karte { background: var(--paper); border: 2px solid var(--teal); border-radius: var(--radius); padding: 18px; margin: 14px 0 10px; }
+.jetzt-karte.jetzt-leer { border-color: var(--line); }
+.jetzt-kopf { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--teal-dark); }
+.jetzt-wo { font-size: 13px; color: var(--ink-soft); margin-top: 4px; }
+.jetzt-titel { font-family: Georgia, serif; font-size: 22px; margin: 6px 0 8px; }
+.jetzt-text { margin: 0 0 12px; color: var(--ink); }
+.jetzt-los { width: 100%; }
+.jetzt-extra { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 10px; font-size: 14px; }
+.jetzt-extra-kopf { font-weight: 700; margin-bottom: 4px; }
+.jetzt-extra-zeile { padding: 4px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.jetzt-alles { background: none; border: none; color: var(--teal-dark); text-decoration: underline; font: inherit; font-size: 14px; padding: 6px 0 14px; cursor: pointer; }
+.blatt-punkte { display: flex; gap: 6px; margin-bottom: 6px; }
+.blatt-punkte span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+.blatt-punkte span.vorbei { background: var(--teal); opacity: .5; }
+.blatt-punkte span.an { background: var(--teal); }
+.blatt-seitenkopf { font-size: 13px; color: var(--ink-soft); }
+.blatt-h2 { font-family: Georgia, serif; margin: 4px 0 12px; }
+.blatt-h3 { margin: 12px 0 6px; font-size: 16px; }
+.blatt-auftrag { border-left: 5px solid var(--teal); background: var(--good-bg); padding: 10px 12px; border-radius: 6px; margin: 10px 0; }
+.blatt-auftrag.wo-vokabelheft { border-left-color: var(--amber); background: var(--warn-bg); }
+.blatt-auftrag.wo-lesen { border-left-color: var(--line); background: transparent; }
+.blatt-wo { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-soft); margin-bottom: 2px; }
+.blatt-text p { line-height: 1.6; font-size: 17px; margin: 0 0 10px; }
+.blatt-blasen { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+.blatt-blase { border: 1.5px solid var(--ink-soft); border-radius: 18px; padding: 6px 12px; background: var(--paper); }
+.blatt-merk { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin: 12px 0; }
+.blatt-merk-kopf { font-weight: 700; margin-bottom: 4px; }
+.blatt-merk p { margin: 4px 0; }
+.blatt-tab-wrap { overflow-x: auto; margin: 8px 0; }
+.blatt-tab { border-collapse: collapse; font-size: 14px; min-width: 100%; }
+.blatt-tab th, .blatt-tab td { border: 1px solid var(--line); padding: 5px 7px; text-align: left; vertical-align: top; }
+.blatt-tab thead th { background: var(--bg); }
+.blatt-saetze { padding-left: 26px; line-height: 1.8; font-size: 17px; }
+.blatt-hinweis { color: var(--ink-soft); font-size: 14px; }
+.blatt-check { line-height: 1.8; }
+.blatt-bilder { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.blatt-bild { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); padding: 6px; font: inherit; font-size: 13px; cursor: pointer; }
+.blatt-bild img { width: 70px; height: 60px; object-fit: contain; }
+.blatt-wortliste { columns: 2 220px; column-gap: 18px; }
+.blatt-wort { break-inside: avoid; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.vok { background: none; border: none; padding: 0; font: inherit; color: inherit; text-decoration: underline dotted var(--teal); text-underline-offset: 3px; cursor: pointer; text-align: left; }
+.blatt-bild.vok { text-decoration: none; }
+.blatt-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 18px; align-items: center; flex-wrap: wrap; }
+.blatt-status { color: var(--good); font-weight: 700; margin: 0; }
+#vokBox { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; z-index: 50; padding: 12px; }
+.vok-karte { background: var(--paper); border-radius: var(--radius); padding: 16px 18px; width: 100%; max-width: 460px; position: relative; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+.vok-zu { position: absolute; right: 8px; top: 4px; background: none; border: none; font-size: 26px; cursor: pointer; color: var(--ink-soft); }
+.vok-wort { font-family: Georgia, serif; font-size: 22px; font-weight: 700; padding-right: 26px; }
+.vok-pl { color: var(--ink-soft); font-size: 14px; }
+.vok-zeile { margin-top: 10px; }
+.vok-lab { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-soft); }
+.vok-fehlt { color: var(--ink-soft); font-style: italic; }
+.blatt-figur { margin: 10px 0; }
+.blatt-figur img { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.blatt-figur figcaption { font-size: 13px; color: var(--ink-soft); }
+.blatt-bildreihe { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin: 10px 0; }
+.blatt-bildreihe figure { margin: 0; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 4px; text-align: center; }
+.blatt-bildreihe img { width: 100%; height: 80px; object-fit: contain; }
+.blatt-bildreihe figcaption { font-weight: 700; font-size: 18px; color: var(--teal-dark); }
+.blatt-dialog { margin: 10px 0; font-size: 17px; line-height: 1.55; }
+.blatt-dialog-zeile { display: grid; grid-template-columns: 70px 1fr; gap: 8px; padding: 2px 0; }
+.blatt-wer { font-weight: 700; }
+.blatt-btext { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: start; border-bottom: 1px solid var(--line); padding: 6px 0; }
+.blatt-btext p { margin: 0; line-height: 1.55; }
+.blatt-buchstabe { width: 30px; height: 30px; border-radius: 50%; background: var(--teal); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.blatt-figur img { cursor: zoom-in; }
+#bildGross { position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 60; overflow: auto; }
+#bildGross img { width: max(100%, 1000px); max-width: none; display: block; background: #fff; }
+#bildGross .vok-zu { position: fixed; right: 10px; top: 6px; color: #fff; font-size: 34px; z-index: 61; }
 
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
@@ -719,4 +791,8 @@ select.gb-auswahl:focus { outline: none; border-color: var(--teal); }
   .mx-zelle.leer { background: #F4F2EA; } .mx-zelle.angefangen { background: #9DC3E6; } .mx-zelle.wartet { background: #F2C230; }
   .mx-zelle.zettel { background: #F0955A; } .mx-zelle.wdh { background: #E06666; } .mx-zelle.fertig { background: #6DB98D; }
   .mx-legende { font-size: 12.5px; color: var(--ink-soft); margin: 4px 0; line-height: 1.9; }
+
+/* Arbeitsblätter im Heft (31.10.2026) */
+.ub-loesung-box { border: 1px dashed var(--line); border-radius: 8px; padding: 8px 12px; margin: 0 0 10px; font-size: 14px; background: var(--paper); }
+.ub-loesung-teil ol { margin: 4px 0 8px; padding-left: 22px; }
 

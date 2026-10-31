@@ -31,7 +31,7 @@ document.getElementById('pinSubmit').addEventListener('click', async () => {
   btn.disabled = false;
   if (d && d.lehrkraft) {
     ZUGANGS_CODE = val;          // geht ab jetzt mit jeder Anfrage mit (nur im Speicher dieser Seite, nicht auf dem Gerät)
-    STUDENTS = d.namen || [];
+    STUDENTS = ohneTestkonten(d.namen);
     fillStudentSelect(document.getElementById('manualStudentSelect'));
     document.getElementById('pinGate').classList.add('hidden');
     document.getElementById('dashContent').classList.remove('hidden');

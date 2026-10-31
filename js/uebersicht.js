@@ -39,6 +39,24 @@ async function setzeKorrekturOk(testId, slugName) {
   try { await window.storage.set(key, JSON.stringify(neu), true); return true; } catch (e) { return false; }
 }
 
+// Arbeitsblatt im Heft: Lehrkraft hat das Heft angesehen. ok -> erledigt (nächster Schritt frei), sonst überarbeiten.
+async function setzeHeftStatus(id, slugName, ok, kommentar) {
+  const key = `status:${id}:${slugName}`;
+  let alt = {};
+  try { const r = await window.storage.get(key, true); alt = JSON.parse(r.value) || {}; } catch (e) { /* noch kein Status */ }
+  const neu = Object.assign({}, alt, ok ? { status: 'endgueltig', comment: '' } : { status: 'heft_nochmal', comment: (kommentar || '').trim() }, { reviewedAt: new Date().toISOString() });
+  try { await window.storage.set(key, JSON.stringify(neu), true); return neu; } catch (e) { return null; }
+}
+// Lösung eines Arbeitsblatts (loesung:<id>, nur für die Lehrkraft lesbar)
+const loesungCache = {};
+async function zeigeLoesung(id, box) {
+  box.innerHTML = '<p class="ub-leer">Lösung wird geladen …</p>';
+  try {
+    if (!loesungCache[id]) { const r = await window.storage.get('loesung:' + id, true); loesungCache[id] = JSON.parse(r.value); }
+    box.innerHTML = loesungCache[id].teile.map(t => `<div class="ub-loesung-teil"><strong>${escapeHtml(t.titel)}</strong><ol>${t.zeilen.map(z => `<li>${escapeHtml(z)}</li>`).join('')}</ol></div>`).join('');
+  } catch (e) { box.innerHTML = '<p class="ub-leer">Keine Lösung gefunden (noch nicht hochgeladen?).</p>'; }
+}
+
 async function ladeUebersichtsdaten() {
   const erlaubt = new Set(alleAbgabeIds());
   // ZWEI Anfragen für die ganze Klasse (vorher 2 + eine je Schüler:in, in Vierergruppen nacheinander):
@@ -85,6 +103,11 @@ async function ladeUebersichtsdaten() {
       }));
     }
   }
+  // Arbeitsblätter im Heft (31.10.2026): Zustand je Kind (erledigt / heft_zeigen / nochmal / offen)
+  schueler.forEach(s => {
+    s.blatt = {};
+    CURRICULUM.forEach(lf => lf.items.forEach(id => { if (istArbeitsblatt(id)) s.blatt[id] = blattZustand(id, s.status[id], s.done); }));
+  });
   schueler.forEach(s => { s.pos = berechnePosition(s); });
   return schueler;
 }
@@ -92,8 +115,8 @@ async function ladeUebersichtsdaten() {
 // Aktuelle Station eines Schülers — gleiche Regel wie auf der Schüler-Seite (sequenziell, Bestandsschutz, manuelle Freischaltung)
 function berechnePosition(s) {
   const istAct = id => curriculumItemInfo(id).kind === 'activity';
-  const erledigt = id => istAct(id) ? s.doneActs.has(id) : (s.done.has(id) && ablaufStatus(s.status[id]) === 'endgueltig');
-  const hat = CURRICULUM.map(lf => lf.items.some(id => istAct(id) ? s.doneActs.has(id) : s.done.has(id)));
+  const erledigt = id => istArbeitsblatt(id) ? s.blatt[id] === 'erledigt' : istAct(id) ? s.doneActs.has(id) : (s.done.has(id) && ablaufStatus(s.status[id]) === 'endgueltig');
+  const hat = CURRICULUM.map(lf => lf.items.some(id => istArbeitsblatt(id) ? s.blatt[id] !== 'offen' : istAct(id) ? s.doneActs.has(id) : s.done.has(id)));
   const spaeter = hat.map((_, i) => hat.slice(i + 1).some(Boolean));
   let pos = CURRICULUM.length - 1;
   for (let i = 0; i < CURRICULUM.length; i++) {
@@ -107,8 +130,13 @@ function berechnePosition(s) {
 }
 
 function sammleAufgaben(schueler) {
-  const wartet = [], wiederholen = [], zettel = [], pausiert = [];
+  const wartet = [], wiederholen = [], zettel = [], pausiert = [], heft = [];
   schueler.forEach(s => {
+    Object.keys(s.blatt || {}).forEach(id => {
+      if (s.blatt[id] !== 'heft_zeigen') return;
+      const a = testAnzeige(id), st = s.status[id] || {};
+      heft.push({ name: s.name, slug: s.slug, testId: id, stufe: a.stufe, titel: a.titel, ts: Date.parse(st.am) || null, runde: st.runde || 1 });
+    });
     Object.keys(s.latest).forEach(tid => {
       if (curriculumItemInfo(tid).kind === 'activity') return;
       const st = s.status[tid];
@@ -126,8 +154,8 @@ function sammleAufgaben(schueler) {
     });
   });
   const alt = (a, b) => Number(a.ts) - Number(b.ts);
-  wartet.sort(alt); wiederholen.sort(alt); zettel.sort(alt); pausiert.sort(alt);
-  return { wartet, wiederholen, zettel, pausiert };
+  wartet.sort(alt); wiederholen.sort(alt); zettel.sort(alt); pausiert.sort(alt); heft.sort(alt);
+  return { wartet, wiederholen, zettel, pausiert, heft };
 }
 
 
@@ -136,6 +164,11 @@ function sammleAufgaben(schueler) {
 function zellStatus(s, id) {
   const kind = curriculumItemInfo(id).kind;
   if (kind === 'activity') return s.doneActs.has(id) ? { cls: 'fertig', t: 'gespielt' } : { cls: 'leer', t: 'noch nicht gespielt' };
+  if (kind === 'blatt') {
+    const z = (s.blatt || {})[id];
+    return z === 'erledigt' ? { cls: 'fertig', t: 'Heft ok' } : z === 'heft_zeigen' ? { cls: 'wartet', t: 'fertig — will dir das Heft zeigen' }
+      : z === 'nochmal' ? { cls: 'zettel', t: 'Heft wird überarbeitet' } : { cls: 'leer', t: 'nicht begonnen' };
+  }
   const st = s.status[id];
   if (s.done.has(id)) {
     const ab = ablaufStatus(st);
@@ -154,6 +187,7 @@ function spaltenLabel(id) {
   if (kind === 'lesen') return 'LA';
   if (kind === 'eingangstest') return 'E';
   if (kind === 'grammatik') { const m = /block(\d+)/.exec(id); return 'G' + (m ? m[1] : ''); }
+  if (kind === 'blatt') { const l = schrittLabel(id); return 'AB' + (l ? l.replace('Schritt ', '') : ''); }
   const l = schrittLabel(id);
   const nr = l ? l.replace('Schritt ', '') : '';
   return kind === 'activity' ? (nr ? 'Sp' + nr : 'Sp') : (nr ? 'S' + nr : '•');
@@ -175,7 +209,7 @@ function rendereMatrixHtml(schueler) {
   });
   return `<h2 class="ub-h">Schritt für Schritt</h2>
     <div class="mx-legende"><span class="mx-zelle leer"></span> nicht begonnen <span class="mx-zelle angefangen"></span> angefangen <span class="mx-zelle wartet"></span> wartet auf dich <span class="mx-zelle zettel"></span> Korrektur auf dem Blatt <span class="mx-zelle wdh"></span> Wiederholung frei <span class="mx-zelle fertig"></span> erledigt / gespielt
-      · S = Test zu Schritt · Sp = Spiel · G = Grammatik-Block · LT = Lernfeld-Test · SA = Schreibaufgabe · LA = Leseaufgabe · E = Einstufungstest</div>
+      · S = Test zu Schritt · Sp = Spiel · AB = Arbeitsblatt (Heft) · G = Grammatik-Block · LT = Lernfeld-Test · SA = Schreibaufgabe · LA = Leseaufgabe · E = Einstufungstest</div>
     <div class="mx-wrap"><table class="mx"><thead>${kopf1}</tr>${kopf2}</tr></thead><tbody>${zeilen}</tbody></table></div>`;
 }
 
@@ -194,24 +228,12 @@ function rendereUebersicht() {
   const hatWdh = new Set(A.wiederholen.map(x => x.slug));
 
   let h = `<div class="ub-chips">
-    <span class="ub-chip ${A.wartet.length ? 'gelb' : ''}"><strong>${A.wartet.length}</strong> warten auf dich</span>
+    <span class="ub-chip ${A.wartet.length + A.heft.length ? 'gelb' : ''}"><strong>${A.wartet.length + A.heft.length}</strong> warten auf dich</span>
     <span class="ub-chip ${A.zettel.length ? 'orange' : ''}"><strong>${A.zettel.length}</strong> Korrektur auf dem Blatt</span>
     <span class="ub-chip ${A.wiederholen.length ? 'rot' : ''}"><strong>${A.wiederholen.length}</strong> Wiederholung${A.wiederholen.length === 1 ? '' : 'en'} frei</span>
     <span class="ub-chip"><strong>${A.pausiert.length}</strong> angefangen</span></div>`;
 
-  h += `<h2 class="ub-h">Wartet auf dich</h2>`;
-  h += A.wartet.length ? A.wartet.map(x => zeileHtmlUeb(x, '<button type="button" class="btn small ub-bewerten">Bewerten</button>', x.wdh ? '<div class="ub-komm">Wiederholung abgegeben</div>' : '')).join('') : '<p class="ub-leer">Nichts offen. Alles bewertet.</p>';
-
-  h += `<h2 class="ub-h">Liegt beim Schüler</h2>`;
-  h += `<h3 class="ub-h3">Korrektur auf dem Blatt (${A.zettel.length})</h3>`;
-  h += A.zettel.length ? A.zettel.map(x => zeileHtmlUeb(x, '<button type="button" class="btn small ok ub-korrektur-ok">Handschriftliche Korrektur ist ok</button>')).join('') : '<p class="ub-leer">Keine.</p>';
-  h += `<h3 class="ub-h3">Wiederholung frei (${A.wiederholen.length})</h3>`;
-  h += A.wiederholen.length ? A.wiederholen.map(x => zeileHtmlUeb(x, '<button type="button" class="btn small secondary ub-bewerten">Ansehen</button>',
-        x.kommentar ? `<div class="ub-komm">„${escapeHtml(x.kommentar)}“</div>` : '')).join('') : '<p class="ub-leer">Keine.</p>';
-  h += `<h3 class="ub-h3">Angefangen / pausiert (${A.pausiert.length})</h3>`;
-  h += A.pausiert.length ? A.pausiert.map(x => zeileHtmlUeb(x, '')).join('') : '<p class="ub-leer">Keine.</p>';
-
-  // Spielbrett
+  // Spielbrett — ganz oben (Lukas 31.10.), danach die einzelnen Listen
   h += `<h2 class="ub-h">Wo stehen alle?</h2><div class="brett">`;
   const stationen = [{ name: 'Start', niveau: 'S' }].concat(CURRICULUM.map(s => ({ name: s.name, niveau: s.niveau })));
   stationen.forEach((st, si) => {
@@ -226,6 +248,25 @@ function rendereUebersicht() {
       }).join('') : '<span class="st-leer">–</span>') + `</div></div>`;
   });
   h += `</div><p class="ub-legende"><span class="fig wartet klein">gelb</span> wartet auf deine Bewertung · <span class="fig wdh klein">rot</span> Wiederholung frei · Zahl = Anzahl offener Bewertungen</p>`;
+
+  h += `<h2 class="ub-h">Wartet auf dich</h2>`;
+  if (A.heft.length) {
+    h += `<h3 class="ub-h3">Heft zeigen (${A.heft.length})</h3>`;
+    h += A.heft.map(x => zeileHtmlUeb(x, '<button type="button" class="btn small ok ub-heft-ok">Heft ok</button> <button type="button" class="btn small secondary ub-heft-nein">Noch nicht ok</button> <button type="button" class="btn small secondary ub-loesung">Lösung</button>',
+      x.runde > 1 ? '<div class="ub-komm">überarbeitet</div>' : '') + '<div class="ub-loesung-box hidden"></div>').join('');
+    h += `<h3 class="ub-h3">Abgaben</h3>`;
+  }
+  h += A.wartet.length ? A.wartet.map(x => zeileHtmlUeb(x, '<button type="button" class="btn small ub-bewerten">Bewerten</button>', x.wdh ? '<div class="ub-komm">Wiederholung abgegeben</div>' : '')).join('') : '<p class="ub-leer">Nichts offen. Alles bewertet.</p>';
+
+  h += `<h2 class="ub-h">Liegt beim Schüler</h2>`;
+  h += `<h3 class="ub-h3">Korrektur auf dem Blatt (${A.zettel.length})</h3>`;
+  h += A.zettel.length ? A.zettel.map(x => zeileHtmlUeb(x, '<button type="button" class="btn small ok ub-korrektur-ok">Handschriftliche Korrektur ist ok</button>')).join('') : '<p class="ub-leer">Keine.</p>';
+  h += `<h3 class="ub-h3">Wiederholung frei (${A.wiederholen.length})</h3>`;
+  h += A.wiederholen.length ? A.wiederholen.map(x => zeileHtmlUeb(x, '<button type="button" class="btn small secondary ub-bewerten">Ansehen</button>',
+        x.kommentar ? `<div class="ub-komm">„${escapeHtml(x.kommentar)}“</div>` : '')).join('') : '<p class="ub-leer">Keine.</p>';
+  h += `<h3 class="ub-h3">Angefangen / pausiert (${A.pausiert.length})</h3>`;
+  h += A.pausiert.length ? A.pausiert.map(x => zeileHtmlUeb(x, '')).join('') : '<p class="ub-leer">Keine.</p>';
+
   h += rendereMatrixHtml(schueler);
   body.innerHTML = h;
 
@@ -233,6 +274,24 @@ function rendereUebersicht() {
   body.querySelectorAll('.mx-namebtn').forEach(b => b.addEventListener('click', () => oeffneSchueler(b.getAttribute('data-slug'))));
   body.querySelectorAll('.fig').forEach(b => b.addEventListener('click', () => oeffneSchueler(b.getAttribute('data-slug'))));
   body.querySelectorAll('.ub-bewerten').forEach(b => b.addEventListener('click', () => { const z = b.closest('.ub-zeile'); oeffneSchueler(z.getAttribute('data-slug'), z.getAttribute('data-test')); }));
+  body.querySelectorAll('.ub-heft-ok, .ub-heft-nein').forEach(b => b.addEventListener('click', async () => {
+    const z = b.closest('.ub-zeile'), ok = b.classList.contains('ub-heft-ok');
+    const kommentar = ok ? '' : prompt('Was soll im Heft noch verbessert werden? (Das Kind sieht diesen Satz.)', '');
+    if (!ok && kommentar === null) return;
+    z.querySelectorAll('button').forEach(x => { x.disabled = true; });
+    const id = z.getAttribute('data-test'), sl = z.getAttribute('data-slug');
+    const neu = await setzeHeftStatus(id, sl, ok, kommentar);
+    if (neu) {
+      const s = uebersichtDaten.find(x => x.slug === sl);
+      if (s) { s.status[id] = neu; s.blatt[id] = ok ? 'erledigt' : 'nochmal'; s.pos = berechnePosition(s); }
+      rendereUebersicht();
+    } else { z.querySelectorAll('button').forEach(x => { x.disabled = false; }); alert('Konnte nicht gespeichert werden. Bitte nochmal versuchen.'); }
+  }));
+  body.querySelectorAll('.ub-loesung').forEach(b => b.addEventListener('click', () => {
+    const z = b.closest('.ub-zeile'), box = z.nextElementSibling;
+    if (box.classList.toggle('hidden')) return;
+    zeigeLoesung(z.getAttribute('data-test'), box);
+  }));
   body.querySelectorAll('.ub-korrektur-ok').forEach(b => b.addEventListener('click', async () => {
     const z = b.closest('.ub-zeile'); b.disabled = true;
     const ok = await setzeKorrekturOk(z.getAttribute('data-test'), z.getAttribute('data-slug'));

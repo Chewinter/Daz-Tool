@@ -32,7 +32,7 @@ const CURRICULUM = [
   // ---- A2: Schreibanlässe (E-Mails und Brief) ----
   { id: "a2_schreiben", name: "Schreibanlässe (E-Mails & Brief)", niveau: "A2", items: ["a2_schreiben_fahrrad", "a2_schreiben_restaurant", "a2_schreiben_ausflug", "a2_schreiben_bibliothek", "a2_schreiben_absage", "a2_schreiben_umzug", "a2_schreiben_feier", "a2_schreiben_weihnachtsmann"] },
   // ---- B1 (Fortgeschrittenenkurs) ----
-  { id: "b1_lf1", name: "B1.1 Unterwegs", niveau: "B1", items: ["b1_lf1_schritt1", "b1_lf1_puzzle", "b1_lf1_schritt3", "b1_lf1_schritt4", "b1_lf1_schritt5", "b1_lf1_schritt6", "b1_lf1_abschlusstest"] },
+  { id: "b1_lf1", name: "B1.1 Unterwegs", niveau: "B1", items: ["b1_lf1_blatt1", "b1_lf1_schritt1", "b1_lf1_puzzle", "b1_lf1_blatt3", "b1_lf1_schritt3", "b1_lf1_blatt4", "b1_lf1_schritt4", "b1_lf1_blatt5", "b1_lf1_schritt5", "b1_lf1_blatt6", "b1_lf1_schritt6", "b1_lf1_abschlusstest"] },
   { id: "b1_lf2", name: "B1.2 Die Erde", niveau: "B1", items: ["b1_lf2_schritt1", "b1_lf2_schritt2", "b1_lf2_schritt3", "b1_lf2_schritt4", "b1_lf2_schritt5", "b1_lf2_abschlusstest"] },
   { id: "b1_lf3", name: "B1.3 Feste", niveau: "B1", items: ["b1_lf3_schritt1", "b1_lf3_schritt2", "b1_lf3_schritt3", "b1_lf3_schritt4", "b1_lf3_schritt5", "b1_lf3_redelegen", "b1_lf3_abschlusstest"] },
   { id: "b1_lf4", name: "B1.4 Geschichte", niveau: "B1", items: ["b1_lf4_schritt1", "b1_lf4_schritt2", "b1_lf4_schritt3", "b1_lf4_abschlusstest"] },

@@ -146,6 +146,10 @@ async function refreshProgress() {
   }
 
   // Falls inzwischen eine neuere Anfrage (z.B. durch weiteres Tippen) gestartet wurde: dieses veraltete Ergebnis verwerfen
+  // Arbeitsblätter zählen erst als erledigt, wenn die Lehrkraft „Heft ok“ gesetzt hat (oder das Blatt noch auf Papier
+  // gemacht wurde: der Test zu diesem Schritt ist schon abgegeben)
+  CURRICULUM.forEach(lf => lf.items.forEach(id => { if (istArbeitsblatt(id) && blattZustand(id, statusInfo[id], doneTests) === 'erledigt') doneTests.add(id); }));
+
   if (myRequestId !== progressRequestId) return;
 
   // Freischaltung berechnen: Lernfelder sind SEQUENZIELL. Nur im aktuell aktiven Lernfeld
@@ -214,6 +218,10 @@ function isItemDone(id, kind) {
 // 'wiederholen' (gelb) — Lehrkraft hat explizit "Wiederholen nötig" gesetzt
 // 'erledigt' (grün) — Lehrkraft hat explizit "Kann weitermachen" gesetzt
 function getDisplayStatus(id, kind) {
+  if (kind === 'blatt') {   // Heft: offen -> „Fertig“ (Lehrkraft prüft) -> erledigt; „Noch nicht ok“ wie eine Rückgabe
+    const z = blattZustand(id, (progressCache.statusInfo || {})[id], progressCache.doneTests);
+    return z === 'erledigt' ? 'erledigt' : z === 'heft_zeigen' ? 'wirdgeprueft' : z === 'nochmal' ? 'zettel' : 'unerledigt';
+  }
   if (kind === 'activity') {
     return progressCache.doneActs.has(id) ? 'erledigt' : 'unerledigt';
   }
@@ -228,6 +236,7 @@ function getDisplayStatus(id, kind) {
 }
 
 function renderAll() {
+  renderJetztDran();
   renderProgressOverview();
   renderItemBrowser();
 }
@@ -377,7 +386,10 @@ async function renderLernfeldItems(lfIdx, name) {
       hatPausiertenFortschritt = progressCache.pausierteTests.has(id);
     }
 
-    const statusBadge = isActivity
+    const statusBadge = info.kind === 'blatt'
+      ? (status === 'erledigt' ? `<span class="status-pill gruen">✓ Heft ist ok</span>` : status === 'wirdgeprueft' ? `<span class="status-pill blau">✏️ Zeig dein Heft deiner Lehrkraft</span>`
+         : status === 'zettel' ? `<span class="status-pill gelb">✏️ Überarbeite dein Heft</span>` : `<span class="status-pill rot">noch offen</span>`)
+      : isActivity
       ? (status === 'erledigt' ? `<span class="status-pill gruen">✓ erledigt</span>` : `<span class="status-pill rot">noch offen</span>`)
       : status === 'erledigt'
         ? `<span class="status-pill gruen">✓ Fertig! Dieser Test ist erledigt.</span>`
@@ -395,12 +407,12 @@ async function renderLernfeldItems(lfIdx, name) {
     // bei der Rückgabe gibt es nur "Ergebnis ansehen", erst nach dem Haken der Lehrkraft auch "Wiederholen".
     const si = (progressCache.statusInfo || {})[id];
     const ergebnisBtnHtml = (!isActivity && si && si.reviewKey && (status === 'zettel' || status === 'wiederholen')) ? '<button type="button" class="btn small secondary ergebnis-btn" style="margin-top:8px;">Ergebnis ansehen</button>' : '';
-    const hauptKnopf = (ACTIVITIES[id] && ACTIVITIES[id].type === 'wdhauswertung') ? 'Ansehen' : isActivity ? (status !== 'unerledigt' ? 'Nochmal machen' : 'Üben')
+    const hauptKnopf = info.kind === 'blatt' ? (status === 'erledigt' ? 'Ansehen' : 'Öffnen') : (ACTIVITIES[id] && ACTIVITIES[id].type === 'wdhauswertung') ? 'Ansehen' : isActivity ? (status !== 'unerledigt' ? 'Nochmal machen' : 'Üben')
       : status === 'unerledigt' ? (hatPausiertenFortschritt ? 'Fortsetzen' : 'Starten')
       : status === 'wiederholen' ? 'Wiederholen' : '';
     const card = document.createElement('div');
     card.className = 'ib-item-card';
-    const sub = (isActivity || isGrammatik) ? ACTIVITIES[id].sub : TESTS[id].sub;
+    const sub = (isActivity || isGrammatik || info.kind === 'blatt') ? ACTIVITIES[id].sub : TESTS[id].sub;
     card.innerHTML = `
       <div class="ib-item-info">
         <div class="ib-item-typ">${typLabel}</div>
@@ -414,7 +426,7 @@ async function renderLernfeldItems(lfIdx, name) {
     `;
     const hb = card.querySelector('.haupt-btn');
     if (hb) hb.addEventListener('click', () => {
-      if (isActivity || isGrammatik) openActivity(id); else startTest(id, name);
+      if (isActivity || isGrammatik || info.kind === 'blatt') openActivity(id); else startTest(id, name);
     });
     const eb = card.querySelector('.ergebnis-btn'); if (eb) eb.addEventListener('click', () => zeigeErgebnis(id, name));
     listEl.appendChild(card);
@@ -474,6 +486,7 @@ async function openActivity(actId) {
   else if (a.type === 'vierseitenpuzzle') buildVierseitenpuzzle(a);
   else if (a.type === 'lesespur') buildLesespur(a);
   else if (a.type === 'wdhauswertung') zeigeWdhAuswertung(a);
+  else if (a.type === 'arbeitsblatt') zeigeArbeitsblatt(a, actId);
   else if (a.type === 'grammatikblock') {
     document.getElementById('actBody').innerHTML = '<p class="hint">Lädt …</p>';
     const wiederholung = await ermittleGrammatikWiederholungsfilter(actId, currentActivityName, a);
@@ -2702,7 +2715,7 @@ async function holeStatus(id, name) {
 // antwortet nur, wenn der Klassen-Code stimmt. Der Code wird einmal pro Gerät eingegeben und dort gespeichert; die
 // zuletzt geladene Namensliste ebenfalls, damit die Auswahl beim nächsten Öffnen sofort da ist.
 function zeigeNamen(namen) {
-  STUDENTS = namen || [];
+  STUDENTS = ohneTestkonten(namen, true);
   fillStudentSelect(document.getElementById('startName'));
 }
 function setzeNamenPlatzhalter(text) {
@@ -2717,9 +2730,15 @@ async function starteZugang() {
     zeigeNamen(d.namen);
     setzeNamenPlatzhalter('— Bitte wählen —');
     try { localStorage.setItem('daz_namen', JSON.stringify(d.namen || [])); } catch (e) { /* egal */ }
+    zugangFertig();
   } catch (e) {
     if (e && e.message === 'zugang_verweigert') beiZugangVerweigert();
-    else if (!(Array.isArray(cache) && cache.length)) setzeNamenPlatzhalter('Keine Verbindung — bitte Seite neu laden');
+    else {
+      if (!(Array.isArray(cache) && cache.length)) setzeNamenPlatzhalter('Keine Verbindung — bitte Seite neu laden');
+      // ohne Netz: mit gespeicherter Sitzung weiterarbeiten (lokale Entwürfe), sonst nichts anhalten
+      if (ANMELDUNG) BACKEND_API = 3;
+      zugangFertig();
+    }
   }
 }
 // Wird auch von ascAnfrage() aufgerufen, sobald IRGENDEINE Anfrage mit "zugang_verweigert" zurückkommt
@@ -2751,6 +2770,7 @@ function beiZugangVerweigert() {
       gate.remove();
       zeigeNamen(d.namen);
       setzeNamenPlatzhalter('— Bitte wählen —');
+      zugangFertig();
     } catch (e) {
       err.textContent = (e && e.message === 'zugang_verweigert') ? 'Der Code stimmt nicht. Bitte noch einmal versuchen.' : 'Keine Verbindung. Bitte noch einmal versuchen.';
       btn.disabled = false; btn.textContent = 'Weiter';
@@ -2759,6 +2779,107 @@ function beiZugangVerweigert() {
   btn.addEventListener('click', pruefen);
   input.addEventListener('keydown', e => { if (e.key === 'Enter') pruefen(); });
   input.focus();
+}
+
+// ---------------- ANMELDUNG MIT PIN JE KIND (ab BACKEND_API 3, Stand 29.10.2026) ----------------
+// Name wählen -> das Apps Script prüft die PIN (Tabellenblatt "Schueler", Spalte B). Kinder ohne PIN kommen ohne Abfrage
+// weiter. Die Sitzung bleibt auf dem Gerät (jedes Kind hat ein eigenes), bis es auf „Abmelden“ tippt; beim nächsten
+// Öffnen ist der eigene Name schon gewählt. Erst mit gültiger Sitzung wird der Stand geladen (refreshProgress).
+let zugangGeprueft = false, zugangWarten = [], nameDurchlassen = false;
+function zugangFertig() { zugangGeprueft = true; zugangWarten.splice(0).forEach(f => f()); sitzungWiederherstellen(); }
+function nameSelect() { return document.getElementById('startName'); }
+function nameWeiter() { nameDurchlassen = true; nameSelect().dispatchEvent(new Event('change')); nameDurchlassen = false; zeigeAbmelden(); }
+function nameZurueck() { const s = nameSelect(); s.value = ANMELDUNG && STUDENTS.indexOf(ANMELDUNG.name) >= 0 ? ANMELDUNG.name : ''; zeigeAbmelden(); }
+// Läuft vor refreshProgress (Erfassungsphase am Dokument) und hält die Auswahl an, bis die Anmeldung stimmt
+document.addEventListener('change', e => {
+  if (nameDurchlassen || !e.target || e.target.id !== 'startName') return;
+  const name = e.target.value.trim();
+  if (zugangGeprueft && (BACKEND_API < 3 || !name || (ANMELDUNG && ANMELDUNG.name === name))) { zeigeAbmelden(); return; }
+  e.stopImmediatePropagation();
+  if (!zugangGeprueft) { zugangWarten.push(() => { if (nameSelect().value.trim() === name) nameSelect().dispatchEvent(new Event('change')); }); return; }
+  anmeldeKind(name);
+}, true);
+async function anmeldeKind(name) {
+  try {
+    const d = await schuelerAnmelden(name, '');
+    setzeSitzung({ name, token: d.token }); merkeSprache(d.sprache);
+    nameWeiter();
+  } catch (e) {
+    const f = e && e.message;
+    if (f === 'pin_noetig' || f === 'pin_gesperrt') zeigePinAbfrage(name, f === 'pin_gesperrt' ? PIN_TEXTE.pin_gesperrt : '');
+    else if (f !== 'zugang_verweigert') { nameZurueck(); alert('Keine Verbindung. Bitte noch einmal versuchen.'); }
+  }
+}
+const PIN_TEXTE = {
+  pin_falsch: 'Die PIN stimmt nicht. Bitte noch einmal versuchen.',
+  pin_gesperrt: 'Zu viele falsche Versuche. Warte 10 Minuten oder frag deine Lehrkraft.',
+  name_unbekannt: 'Diesen Namen gibt es nicht mehr. Bitte lade die Seite neu.',
+};
+function zeigePinAbfrage(name, fehlerText) {
+  if (document.getElementById('pinGate')) return;
+  const gate = document.createElement('div');
+  gate.id = 'pinGate';
+  gate.innerHTML = `<div class="code-gate-box">
+      <p class="eyebrow" style="color:var(--ink-soft);">Anmelden</p>
+      <h2>${escapeHtml(name)}</h2>
+      <p>Bitte gib deine PIN ein (4 Ziffern). Deine Lehrkraft gibt sie dir.</p>
+      <input type="password" id="pinInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="PIN" autocomplete="off">
+      <button class="btn full" id="pinSubmit" style="margin-top:12px;">Weiter</button>
+      <button class="btn secondary full" id="pinAbbrechen" style="margin-top:8px;">Das bin ich nicht</button>
+      <p id="pinError" class="code-gate-fehler">${escapeHtml(fehlerText || '')}</p>
+    </div>`;
+  document.body.appendChild(gate);
+  const input = document.getElementById('pinInput'), btn = document.getElementById('pinSubmit'), err = document.getElementById('pinError');
+  input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 4); });
+  async function pruefen() {
+    const pin = input.value.trim();
+    if (!/^\d{4}$/.test(pin)) { err.textContent = 'Die PIN hat 4 Ziffern.'; return; }
+    btn.disabled = true; btn.textContent = 'Prüfe …'; err.textContent = '';
+    try {
+      const d = await schuelerAnmelden(name, pin);
+      setzeSitzung({ name, token: d.token }); merkeSprache(d.sprache);
+      gate.remove();
+      nameWeiter();
+    } catch (e) {
+      err.textContent = PIN_TEXTE[e && e.message] || 'Keine Verbindung. Bitte noch einmal versuchen.';
+      input.value = ''; btn.disabled = false; btn.textContent = 'Weiter'; input.focus();
+    }
+  }
+  btn.addEventListener('click', pruefen);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') pruefen(); });
+  document.getElementById('pinAbbrechen').addEventListener('click', () => { gate.remove(); nameZurueck(); });
+  input.focus();
+}
+// Das Apps Script kennt die Sitzung nicht mehr (z. B. neue PIN): abmelden und für den gewählten Namen neu fragen
+function beiAnmeldungNoetig() {
+  const name = ANMELDUNG ? ANMELDUNG.name : nameSelect().value.trim();
+  setzeSitzung(null);
+  zeigeAbmelden();
+  if (name && STUDENTS.indexOf(name) >= 0) zeigePinAbfrage(name, 'Bitte melde dich neu an.');
+}
+// Beim Öffnen: eigener Name schon gewählt, wenn das Gerät eine Sitzung hat
+function sitzungWiederherstellen() {
+  if (BACKEND_API < 3) return;
+  const s = nameSelect();
+  if (ANMELDUNG && STUDENTS.indexOf(ANMELDUNG.name) >= 0) { if (s.value !== ANMELDUNG.name) { s.value = ANMELDUNG.name; nameWeiter(); } }
+  else if (ANMELDUNG && STUDENTS.length) setzeSitzung(null);
+  zeigeAbmelden();
+}
+function zeigeAbmelden() {
+  let b = document.getElementById('abmeldenKnopf');
+  const an = BACKEND_API >= 3 && !!ANMELDUNG && nameSelect().value.trim() === ANMELDUNG.name;
+  if (!an) { if (b) b.remove(); return; }
+  if (b) return;
+  b = document.createElement('button');
+  b.id = 'abmeldenKnopf'; b.type = 'button'; b.className = 'btn secondary small'; b.textContent = 'Abmelden';
+  b.addEventListener('click', () => {
+    setzeSitzung(null);
+    const s = nameSelect(); s.value = '';
+    nameDurchlassen = true; s.dispatchEvent(new Event('change')); nameDurchlassen = false;
+    zeigeAbmelden();
+    if (typeof showView === 'function') showView('view-start');
+  });
+  nameSelect().insertAdjacentElement('afterend', b);
 }
 starteZugang();
 
@@ -3000,3 +3121,242 @@ function wortzaehlerAktualisieren(ta) {
 }
 ['input', 'blur'].forEach(ev => document.addEventListener(ev, e => { if (e.target && e.target.tagName === 'TEXTAREA') wortzaehlerAktualisieren(e.target); }, true));
 
+
+// ---------------- „JETZT DRAN“: NUR DIE NÄCHSTE AUFGABE (Lukas 31.10.2026) ----------------
+// Für alle Schüler und alle Inhalte: Oben bleibt die Lernpfad-Karte (wo stehe ich?), darunter steht genau eine Karte
+// mit dem, was jetzt zu tun ist. Die bisherige Liste aller Lerninhalte ist nur noch über „Alle Lerninhalte ansehen“ da.
+// Reihenfolge: Heft überarbeiten > Wiederholung > nächster offener Schritt > Heft zeigen > nichts zu tun.
+function jetztDranBereich() {
+  let el = document.getElementById('jetztDran');
+  if (el) return el;
+  el = document.createElement('div'); el.id = 'jetztDran';
+  const liste = document.getElementById('itemBrowserList');
+  const label = liste.parentNode.querySelector('.section-label');
+  const alles = document.createElement('div'); alles.id = 'allesBereich';
+  let offen = false; try { offen = sessionStorage.getItem('daz_alles') === '1'; } catch (e) { /* egal */ }   // gilt nur in diesem Tab
+  if (!offen) alles.className = 'hidden';
+  const karte = document.getElementById('progressOverview');
+  karte.parentNode.insertBefore(el, karte);                 // ganz oben, direkt unter dem Namen: sofort sichtbar
+  liste.parentNode.insertBefore(alles, label || liste);
+  const sub = document.querySelector('#view-start header .sub');
+  if (sub) sub.textContent = 'Wähle deinen Namen. Dann siehst du, was jetzt dran ist.';
+  [label, document.getElementById('itemBrowserFilters'), liste].forEach(n => { if (n) alles.appendChild(n); });
+  return el;
+}
+function jetztAufgaben() {
+  const pc = progressCache, liste = [];
+  CURRICULUM.forEach((lf, li) => lf.items.forEach((id, i) => {
+    if (!pc.unlocked.has(id)) return;
+    const kind = curriculumItemInfo(id).kind;
+    liste.push({ id, lf, li, nr: i + 1, kind, st: getDisplayStatus(id, kind) });
+  }));
+  const aktiv = findAktivesLernfeldIndex();
+  // Nächster Schritt in Lernpfad-Reihenfolge. Ein Arbeitsblatt ohne „Heft ok“ ist ein Riegel — auch wenn die Lehrkraft das
+  // Lernfeld von Hand freigeschaltet hat (Quereinstieg): dahinter wird nichts als „Jetzt dran“ vorgeschlagen.
+  let naechste = null;
+  for (const x of liste) {
+    if (x.li < aktiv) continue;
+    if (x.kind === 'blatt' && x.st !== 'erledigt') { if (x.st === 'unerledigt') naechste = x; break; }
+    if (x.st === 'unerledigt') { naechste = x; break; }
+  }
+  return {
+    nochmal: liste.filter(x => x.kind === 'blatt' && x.st === 'zettel'),
+    wdh: liste.filter(x => x.st === 'wiederholen'),
+    naechste,
+    heft: liste.filter(x => x.kind === 'blatt' && x.st === 'wirdgeprueft'),
+    zettel: liste.filter(x => x.kind !== 'blatt' && x.st === 'zettel'),
+  };
+}
+function jetztOeffnen(x) {
+  const name = document.getElementById('startName').value.trim();
+  if (x.kind === 'activity' || x.kind === 'grammatik' || x.kind === 'blatt') openActivity(x.id); else startTest(x.id, name);
+}
+function jetztKarteHtml(x, kopf, text, knopf) {
+  const info = curriculumItemInfo(x.id);
+  return `<div class="jetzt-karte">
+    <div class="jetzt-kopf">${escapeHtml(kopf)}</div>
+    <div class="jetzt-wo">${escapeHtml(x.lf.name)} · ${x.nr} von ${x.lf.items.length} · ${escapeHtml(typBezeichnung(info.kind))}</div>
+    <h2 class="jetzt-titel">${escapeHtml(anzeigeTitel(x.id, info.title))}</h2>
+    ${text ? `<p class="jetzt-text">${text}</p>` : ''}
+    ${knopf ? `<button type="button" class="btn jetzt-los">${escapeHtml(knopf)}</button>` : ''}
+  </div>`;
+}
+function renderJetztDran() {
+  const el = jetztDranBereich();
+  const name = document.getElementById('startName').value.trim();
+  if (!name) { el.innerHTML = ''; return; }
+  if (!progressCache.loaded) { el.innerHTML = '<p class="overview-empty">Lade …</p>'; return; }
+  const A = jetztAufgaben();
+  let haupt = null, html = '';
+  if (A.nochmal.length) {
+    haupt = A.nochmal[0];
+    const k = ((progressCache.statusInfo || {})[haupt.id] || {}).comment;
+    html = jetztKarteHtml(haupt, 'Überarbeite dein Heft', (k ? `Deine Lehrkraft sagt: „${escapeHtml(k)}“<br>` : '') + 'Verbessere es im Heft und tippe dann wieder auf „Fertig“.', 'Arbeitsblatt öffnen');
+  } else if (A.wdh.length) {
+    haupt = A.wdh[0];
+    html = jetztKarteHtml(haupt, 'Jetzt dran: Wiederholung', 'Mache nur die falschen Aufgaben noch einmal.', 'Wiederholen');
+  } else if (A.naechste) {
+    haupt = A.naechste;
+    const p = progressCache.pausierteTests && progressCache.pausierteTests.has(haupt.id);
+    const sub = haupt.kind === 'blatt' ? 'Lies und schreibe in dein Heft. Am Ende zeigst du dein Heft deiner Lehrkraft.'
+      : escapeHtml(((ACTIVITIES[haupt.id] || TESTS[haupt.id] || {}).sub) || '');
+    html = jetztKarteHtml(haupt, 'Jetzt dran', sub, haupt.kind === 'activity' ? 'Spielen' : haupt.kind === 'blatt' ? 'Arbeitsblatt öffnen' : p ? 'Fortsetzen' : 'Starten');
+  } else if (A.heft.length) {
+    haupt = A.heft[0];
+    html = jetztKarteHtml(haupt, 'Zeig dein Heft', 'Geh mit deinem Heft und deinem Vokabelheft zu deiner Lehrkraft. Danach geht es weiter.', 'Arbeitsblatt noch einmal ansehen');
+  } else {
+    html = '<div class="jetzt-karte jetzt-leer"><div class="jetzt-kopf">Gerade nichts zu tun</div><p class="jetzt-text">Deine Lehrkraft schaut sich deine Arbeit an. Danach geht es weiter.</p></div>';
+  }
+  // Was sonst noch offen ist, aber nicht die Hauptaufgabe: kurze Erinnerungen
+  const extra = [];
+  A.heft.filter(x => x !== haupt).forEach(x => extra.push(`Zeig deiner Lehrkraft dein Heft: ${escapeHtml(anzeigeTitel(x.id, curriculumItemInfo(x.id).title))}`));
+  A.zettel.forEach(x => extra.push(`Korrigiere auf deinem Blatt: ${escapeHtml(anzeigeTitel(x.id, curriculumItemInfo(x.id).title))} <button type="button" class="btn small secondary jetzt-ergebnis" data-id="${x.id}">Ergebnis ansehen</button>`));
+  if (extra.length) html += `<div class="jetzt-extra"><div class="jetzt-extra-kopf">Außerdem noch offen</div>${extra.map(t => `<div class="jetzt-extra-zeile">${t}</div>`).join('')}</div>`;
+  const alles = document.getElementById('allesBereich');
+  html += `<button type="button" class="jetzt-alles" id="jetztAlles">${alles && !alles.classList.contains('hidden') ? 'Liste wieder ausblenden' : 'Alle Lerninhalte ansehen'}</button>`;
+  el.innerHTML = html;
+  const los = el.querySelector('.jetzt-los'); if (los && haupt) los.addEventListener('click', () => jetztOeffnen(haupt));
+  el.querySelectorAll('.jetzt-ergebnis').forEach(b => b.addEventListener('click', () => zeigeErgebnis(b.getAttribute('data-id'), name)));
+  document.getElementById('jetztAlles').addEventListener('click', () => {
+    const zu = alles.classList.toggle('hidden');
+    try { sessionStorage.setItem('daz_alles', zu ? '0' : '1'); } catch (e) { /* egal */ }
+    renderJetztDran();
+  });
+}
+
+// ---------------- ARBEITSBLATT IM HEFT ----------------
+// Inhalt: blatt:<id> vom Apps Script (nur mit Klassen-Code). Wird auf dem Gerät zwischengespeichert, damit ein Blatt
+// auch bei wackligem Internet sofort wieder da ist. Seite für Seite; am Ende „Fertig“ -> Lehrkraft prüft das Heft.
+const blattCache = {}, blattBilder = {};
+function ladeBlattBilder(id) { const g = schrittBildGruppe(id); return blattBilder[g] || (blattBilder[g] = ladeSkript('data/icons-blaetter-' + g + '.js')); }
+async function ladeBlatt(id) {
+  if (blattCache[id]) return blattCache[id];
+  const lk = 'daz_blatt:' + id;
+  try {
+    const r = await window.storage.get('blatt:' + id, true);
+    if (r && r.value) { blattCache[id] = JSON.parse(r.value); try { localStorage.setItem(lk, r.value); } catch (e) { /* voll */ } return blattCache[id]; }
+  } catch (e) {
+    try { const v = localStorage.getItem(lk); if (v) return (blattCache[id] = JSON.parse(v)); } catch (e2) { /* nichts */ }
+    if (!(e && e.message === 'not_found')) throw e;
+  }
+  return null;
+}
+function blattSeiteKey(id) { return 'daz_blattseite:' + id + ':' + slug(currentActivityName); }
+function blattInline(t) {   // Text sicher machen, **fett**, [[Wort|Stichwort]] als antippbare Vokabel
+  return escapeHtml(t).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, (m, a, b) => `<button type="button" class="vok" data-vok="${b}">${a}</button>`);
+}
+function blattVokKnopf(text, stichwort) {
+  const t = escapeHtml(text).replace(/\n/g, '<br>');
+  return stichwort ? `<button type="button" class="vok" data-vok="${escapeHtml(stichwort)}">${t}</button>` : `<span>${t}</span>`;
+}
+const WO_SYMBOL = { heft: '✏️', vokabelheft: '📒', lesen: '📖' };
+const WO_TEXT = { heft: 'Ins Heft', vokabelheft: 'Ins Vokabelheft', lesen: 'Lesen' };
+function blattTabelleHtml(t) {
+  return `<div class="blatt-tab-wrap"><table class="blatt-tab"><thead><tr>${t.kopf.map(k => `<th>${blattInline(k)}</th>`).join('')}</tr></thead>
+    <tbody>${t.zeilen.map(z => `<tr>${z.map((c, i) => i ? `<td>${blattInline(c)}</td>` : `<th>${blattInline(c)}</th>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+function blattBlockHtml(b) {
+  if (b.art === 'auftrag') return `<div class="blatt-auftrag wo-${b.wo}"><span class="blatt-wo">${WO_SYMBOL[b.wo] || ''} ${WO_TEXT[b.wo] || ''}</span>${blattInline(b.text)}</div>`;
+  if (b.art === 'text') return `<div class="blatt-text">${b.absaetze.map(a => `<p>${blattInline(a)}</p>`).join('')}</div>`;
+  if (b.art === 'blasen') return `<div class="blatt-blasen">${b.blasen.map(x => `<span class="blatt-blase">${blattInline(x)}</span>`).join('')}</div>`;
+  if (b.art === 'merk') return `<div class="blatt-merk"><div class="blatt-merk-kopf">ⓘ ${blattInline(b.titel)}</div>${(b.zeilen || []).map(z => `<p>${blattInline(z)}</p>`).join('')}${(b.tabellen || []).map(blattTabelleHtml).join('')}</div>`;
+  if (b.art === 'tabelle') return blattTabelleHtml(b);
+  if (b.art === 'saetze') return `<ol class="blatt-saetze">${b.zeilen.map(z => `<li>${blattInline(z)}</li>`).join('')}</ol>`;
+  if (b.art === 'hinweis') return `<p class="blatt-hinweis">${blattInline(b.text)}</p>`;
+  if (b.art === 'checkliste') return `<ul class="blatt-check">${b.punkte.map(p => `<li>${blattInline(p)}</li>`).join('')}</ul>`;
+  if (b.art === 'bildwoerter') return `${b.titel ? `<h3 class="blatt-h3">${blattInline(b.titel)}</h3>` : ''}<div class="blatt-bilder">${b.woerter.map(x =>
+    `<button type="button" class="blatt-bild vok" data-vok="${escapeHtml(x.stichwort || x.de)}">${iconSrc(x.bild) ? `<img src="${iconSrc(x.bild)}" alt="">` : ''}<span>${escapeHtml(x.de)}</span></button>`).join('')}</div>`;
+  if (b.art === 'bild') return `<figure class="blatt-figur">${iconSrc(b.bild) ? `<img src="${iconSrc(b.bild)}" alt="">` : '<p class="hint">Bild wird geladen …</p>'}<figcaption>${b.unter ? blattInline(b.unter) + ' · ' : ''}Tippe auf das Bild, um es groß zu sehen.</figcaption></figure>`;
+  if (b.art === 'bildreihe') return `<div class="blatt-bildreihe">${b.bilder.map(x => `<figure>${iconSrc(x.bild) ? `<img src="${iconSrc(x.bild)}" alt="">` : ''}<figcaption>${escapeHtml(x.label)}</figcaption></figure>`).join('')}</div>`;
+  if (b.art === 'dialog') return `<div class="blatt-dialog">${b.zeilen.map(([wer, was]) => `<div class="blatt-dialog-zeile"><span class="blatt-wer">${escapeHtml(wer)}:</span><span>${blattInline(was)}</span></div>`).join('')}</div>`;
+  if (b.art === 'buchstabentexte') return `<div class="blatt-btexte">${b.texte.map((t, i) => `<div class="blatt-btext"><span class="blatt-buchstabe">${'ABCDEFGHIJ'[i]}</span><p>${blattInline(t)}</p></div>`).join('')}</div>`;
+  if (b.art === 'wortliste') return `<div class="blatt-wortliste">${b.woerter.map(x => `<div class="blatt-wort">${blattVokKnopf(x.de, x.stichwort)}</div>`).join('')}</div>`;
+  return '';
+}
+async function zeigeArbeitsblatt(a, id) {
+  const body = document.getElementById('actBody');
+  body.innerHTML = '<p class="hint">Das Arbeitsblatt wird geladen …</p>';
+  let b = null, fehler = false;
+  try { [b] = await Promise.all([ladeBlatt(id), ladeBlattBilder(id)]); } catch (e) { fehler = true; }   // Bilder der Blätter erst jetzt laden
+  if (currentActivityId !== id) return;
+  if (!b) {
+    body.innerHTML = fehler ? '<p class="hint">Keine Verbindung. Bitte gleich noch einmal versuchen.</p><button type="button" class="btn" id="blattNochmal">Nochmal laden</button>'
+      : '<p class="hint">Dieses Arbeitsblatt ist noch nicht da. Sag deiner Lehrkraft Bescheid.</p>';
+    const n = document.getElementById('blattNochmal'); if (n) n.addEventListener('click', () => zeigeArbeitsblatt(a, id));
+    return;
+  }
+  let seite = 0;
+  try { seite = Math.min(b.seiten.length - 1, Math.max(0, parseInt(localStorage.getItem(blattSeiteKey(id)) || '0', 10) || 0)); } catch (e) { /* egal */ }
+  const zeichne = () => {
+    try { localStorage.setItem(blattSeiteKey(id), String(seite)); } catch (e) { /* egal */ }
+    const s = b.seiten[seite], letzte = seite === b.seiten.length - 1;
+    const st = (progressCache.statusInfo || {})[id];
+    const z = blattZustand(id, st, progressCache.doneTests);
+    const hinweisOben = z === 'nochmal' && st.comment ? `<div class="blatt-auftrag wo-heft"><span class="blatt-wo">Deine Lehrkraft</span>„${escapeHtml(st.comment)}“</div>` : '';
+    let fertigHtml = '';
+    if (letzte) fertigHtml = z === 'heft_zeigen' ? '<p class="blatt-status">✓ Du hast auf „Fertig“ getippt. Zeig dein Heft und dein Vokabelheft deiner Lehrkraft.</p>'
+      : z === 'erledigt' ? '<p class="blatt-status">✓ Dieses Arbeitsblatt ist erledigt.</p>'
+      : '<button type="button" class="btn ok" id="blattFertig">Fertig – ich zeige mein Heft</button>';
+    body.innerHTML = `${hinweisOben}
+      <div class="blatt-punkte">${b.seiten.map((_, i) => `<span class="${i === seite ? 'an' : i < seite ? 'vorbei' : ''}"></span>`).join('')}</div>
+      <div class="blatt-seitenkopf">Teil ${seite + 1} von ${b.seiten.length}</div>
+      <h2 class="blatt-h2">${blattInline(s.titel)}</h2>
+      ${s.bloecke.map(blattBlockHtml).join('')}
+      <div class="blatt-nav">
+        ${seite > 0 ? '<button type="button" class="btn secondary" id="blattZurueck">← Zurück</button>' : '<span></span>'}
+        ${letzte ? fertigHtml : '<button type="button" class="btn" id="blattWeiter">Weiter →</button>'}
+      </div>`;
+    body.querySelectorAll('.vok').forEach(v => v.addEventListener('click', () => zeigeVokabel(b, v.getAttribute('data-vok'))));
+    body.querySelectorAll('.blatt-figur img').forEach(img => img.addEventListener('click', () => {   // Bild groß ansehen (Handy)
+      const box = document.createElement('div'); box.id = 'bildGross';
+      box.innerHTML = `<button type="button" class="vok-zu" aria-label="Schließen">×</button><img src="${img.src}" alt="">`;
+      box.addEventListener('click', () => box.remove()); document.body.appendChild(box);
+    }));
+    const zb = document.getElementById('blattZurueck'); if (zb) zb.addEventListener('click', () => { seite--; zeichne(); window.scrollTo(0, 0); });
+    const wb = document.getElementById('blattWeiter'); if (wb) wb.addEventListener('click', () => { seite++; zeichne(); window.scrollTo(0, 0); });
+    const fb = document.getElementById('blattFertig'); if (fb) fb.addEventListener('click', async () => {
+      fb.disabled = true;
+      const st2 = { status: 'offen', heft: true, am: new Date().toISOString(), runde: ((st && st.runde) || 0) + 1 };
+      try {
+        await window.storage.set(`status:${id}:${slug(currentActivityName)}`, JSON.stringify(st2), true);
+        if (progressCache.statusInfo) progressCache.statusInfo[id] = st2;
+        zeichne();
+      } catch (e) { fb.disabled = false; alert('Das hat nicht geklappt (keine Verbindung). Bitte noch einmal auf „Fertig“ tippen.'); }
+    });
+  };
+  zeichne();
+}
+
+// Vokabel antippen: Englisch, einfache Erklärung und (sobald eingetragen) die eigene Sprache. Die Sprache wählt das
+// Kind einmal; sie bleibt auf dem Gerät gespeichert.
+const SPRACHEN = { ar: 'Arabisch', uk: 'Ukrainisch', ru: 'Russisch', tr: 'Türkisch', fa: 'Persisch', sq: 'Albanisch', bg: 'Bulgarisch', es: 'Spanisch', so: 'Somali', ti: 'Tigrinya', ku: 'Kurdisch' };
+// Sprache aus der Tabelle (Spalte C, kommt bei der Anmeldung mit): Name ("Arabisch") oder Kürzel ("ar")
+function merkeSprache(text) {
+  const t = String(text || '').trim().toLowerCase();
+  if (!t) return;
+  const code = Object.keys(SPRACHEN).find(k => k === t || SPRACHEN[k].toLowerCase() === t);
+  if (code) { try { localStorage.setItem('daz_sprache', code); } catch (e) { /* egal */ } }
+}
+function meineSprache() { try { return localStorage.getItem('daz_sprache') || ''; } catch (e) { return ''; } }
+function zeigeVokabel(b, stichwort) {
+  const v = (b.vokabeln || {})[stichwort];
+  if (!v) return;
+  let box = document.getElementById('vokBox');
+  if (!box) { box = document.createElement('div'); box.id = 'vokBox'; document.body.appendChild(box); }
+  const zeichne = () => {
+    const sp = meineSprache(), ueb = sp && v.sp && v.sp[sp];
+    box.innerHTML = `<div class="vok-karte" role="dialog" aria-label="Vokabel">
+      <button type="button" class="vok-zu" aria-label="Schließen">×</button>
+      <div class="vok-wort">${escapeHtml(stichwort)}</div>${v.pl ? `<div class="vok-pl">Mehrzahl: ${escapeHtml(v.pl)}</div>` : ''}
+      ${v.erkl ? `<div class="vok-zeile"><span class="vok-lab">Einfach erklärt</span>${escapeHtml(v.erkl)}</div>` : ''}
+      <div class="vok-zeile"><span class="vok-lab">Englisch</span>${escapeHtml(v.en)}</div>
+      <div class="vok-zeile"><span class="vok-lab">Meine Sprache <select id="vokSprache"><option value="">— wählen —</option>${Object.keys(SPRACHEN).map(k => `<option value="${k}" ${k === sp ? 'selected' : ''}>${SPRACHEN[k]}</option>`).join('')}</select></span>
+        ${sp ? (ueb ? `<span dir="auto">${escapeHtml(ueb)}</span>` : '<span class="vok-fehlt">Noch keine Übersetzung — frag deine Lehrkraft.</span>') : ''}</div>
+    </div>`;
+    box.querySelector('.vok-zu').addEventListener('click', () => box.remove());
+    box.querySelector('#vokSprache').addEventListener('change', e => { try { localStorage.setItem('daz_sprache', e.target.value); } catch (x) { /* egal */ } zeichne(); });
+  };
+  box.onclick = e => { if (e.target === box) box.remove(); };
+  zeichne();
+}
