@@ -719,8 +719,10 @@ select.gb-auswahl:focus { outline: none; border-color: var(--teal); }
 .blatt-bild.vok { text-decoration: none; }
 .blatt-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 18px; align-items: center; flex-wrap: wrap; }
 .blatt-status { color: var(--good); font-weight: 700; margin: 0; }
-#vokBox { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; z-index: 50; padding: 12px; }
-.vok-karte { background: var(--paper); border-radius: var(--radius); padding: 16px 18px; width: 100%; max-width: 460px; position: relative; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+#vokBox { position: absolute; z-index: 50; }   /* direkt unter dem Wort (01.11.2026), siehe platziereVokabel */
+.vok-karte { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; position: relative; box-shadow: 0 10px 28px rgba(0,0,0,.18); }
+.vok-karte::before { content: ''; position: absolute; top: -8px; left: calc(var(--pfeil, 40px) - 8px); width: 14px; height: 14px; background: var(--paper);
+  border-left: 1px solid var(--line); border-top: 1px solid var(--line); transform: rotate(45deg); }
 .vok-zu { position: absolute; right: 4px; top: 4px; width: 44px; height: 44px; background: none; border: none; font-size: 28px; line-height: 1; cursor: pointer; color: var(--ink-soft); }
 .vok-wort { font-family: Georgia, serif; font-size: 22px; font-weight: 700; padding-right: 26px; }
 .vok-pl { color: var(--ink-soft); font-size: 14px; }
@@ -779,6 +781,17 @@ select.gb-auswahl:focus { outline: none; border-color: var(--teal); }
 body.pruefkonto .overview-item { cursor: pointer; }
 body.pruefkonto .overview-item.unerledigt, body.pruefkonto .overview-item.gesperrt { background: var(--paper); border-color: var(--line); color: var(--ink); font-weight: 400; opacity: 1; }
 body.pruefkonto .status-pill.rot { background: var(--bg); color: var(--ink-soft); }
+
+/* Form des Buchs (01.11.2026): Person mit Sprechblase, Spitze zeigt auf die Person */
+.blatt-figur.klein img { max-width: 360px; }
+.blatt-sprecher { display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: start; margin: 12px 0; }
+.blatt-sprecher.rechts { grid-template-columns: 1fr 64px; }
+.blatt-sprecher.rechts img { order: 2; }
+.blatt-sprecher img { width: 64px; height: auto; margin-top: 6px; }
+.blatt-sprechblase { position: relative; background: var(--paper); border: 1.5px solid var(--ink-soft); border-radius: 18px; padding: 12px 14px; line-height: 1.55; font-size: 16px; }
+.blatt-sprechblase::before { content: ''; position: absolute; top: 20px; left: -9px; width: 14px; height: 14px; background: var(--paper);
+  border-left: 1.5px solid var(--ink-soft); border-bottom: 1.5px solid var(--ink-soft); transform: rotate(45deg); }
+.blatt-sprecher.rechts .blatt-sprechblase::before { left: auto; right: -9px; transform: rotate(-135deg); }
 
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }

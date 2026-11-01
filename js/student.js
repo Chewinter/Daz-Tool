@@ -3314,7 +3314,8 @@ function blattBlockHtml(b) {
   if (b.art === 'checkliste') return `<ul class="blatt-check">${b.punkte.map(p => `<li>${blattInline(p)}</li>`).join('')}</ul>`;
   if (b.art === 'bildwoerter') return `${b.titel ? `<h3 class="blatt-h3">${blattInline(b.titel)}</h3>` : ''}<div class="blatt-bilder">${b.woerter.map(x =>
     `<button type="button" class="blatt-bild vok" data-vok="${escapeHtml(x.stichwort || x.de)}">${iconSrc(x.bild) ? `<img src="${iconSrc(x.bild)}" alt="">` : ''}<span>${escapeHtml(x.de)}</span></button>`).join('')}</div>`;
-  if (b.art === 'bild') return `<figure class="blatt-figur">${iconSrc(b.bild) ? `<img src="${iconSrc(b.bild)}" alt="">` : '<p class="hint">Bild wird geladen …</p>'}<figcaption>${b.unter ? blattInline(b.unter) + ' · ' : ''}Tippe auf das Bild, um es groß zu sehen.</figcaption></figure>`;
+  if (b.art === 'bild') return `<figure class="blatt-figur${b.klein ? ' klein' : ''}">${iconSrc(b.bild) ? `<img src="${iconSrc(b.bild)}" alt="">` : '<p class="hint">Bild wird geladen …</p>'}<figcaption>${b.unter ? blattInline(b.unter) + ' · ' : ''}Tippe auf das Bild, um es groß zu sehen.</figcaption></figure>`;
+  if (b.art === 'sprecher') return `<div class="blatt-sprecher ${b.seite === 'rechts' ? 'rechts' : ''}">${iconSrc(b.bild) ? `<img src="${iconSrc(b.bild)}" alt="">` : '<span></span>'}<div class="blatt-sprechblase">${blattInline(b.text)}</div></div>`;
   if (b.art === 'bildreihe') return `<div class="blatt-bildreihe">${b.bilder.map(x => `<figure>${iconSrc(x.bild) ? `<img src="${iconSrc(x.bild)}" alt="">` : ''}<figcaption>${escapeHtml(x.label)}</figcaption></figure>`).join('')}</div>`;
   if (b.art === 'dialog') return `<div class="blatt-dialog">${b.zeilen.map(([wer, was]) => `<div class="blatt-dialog-zeile"><span class="blatt-wer">${escapeHtml(wer)}:</span><span>${blattInline(was)}</span></div>`).join('')}</div>`;
   if (b.art === 'buchstabentexte') return `<div class="blatt-btexte">${b.texte.map((t, i) => `<div class="blatt-btext"><span class="blatt-buchstabe">${'ABCDEFGHIJ'[i]}</span><p>${blattInline(t)}</p></div>`).join('')}</div>`;
@@ -3354,7 +3355,7 @@ async function zeigeArbeitsblatt(a, id) {
         ${seite > 0 ? '<button type="button" class="btn secondary" id="blattZurueck">← Zurück</button>' : '<span></span>'}
         ${letzte ? fertigHtml : '<button type="button" class="btn" id="blattWeiter">Weiter →</button>'}
       </div>`;
-    body.querySelectorAll('.vok').forEach(v => v.addEventListener('click', () => zeigeVokabel(b, v.getAttribute('data-vok'))));
+    body.querySelectorAll('.vok').forEach(v => v.addEventListener('click', () => zeigeVokabel(b, v.getAttribute('data-vok'), v)));
     body.querySelectorAll('.blatt-figur img').forEach(img => img.addEventListener('click', () => {   // Bild groß ansehen (Handy)
       const box = document.createElement('div'); box.id = 'bildGross';
       box.innerHTML = `<button type="button" class="vok-zu" aria-label="Schließen">×</button><img src="${img.src}" alt="">`;
@@ -3398,7 +3399,7 @@ function dudenKopf(stichwort, v) {
 
 // Vokabel antippen. Reihenfolge immer gleich (Lukas 01.11.2026): Erklärung auf Deutsch, dann Englisch, dann die
 // Herkunftssprache(n). Ohne Sprache aus der Tabelle wählt das Kind einmal selbst; das Gerät merkt es sich.
-function zeigeVokabel(b, stichwort) {
+function zeigeVokabel(b, stichwort, anker) {
   const v = (b.vokabeln || {})[stichwort];
   if (!v) return;
   let box = document.getElementById('vokBox');
@@ -3415,12 +3416,32 @@ function zeigeVokabel(b, stichwort) {
         ${sp.length ? '<span class="vok-fehlt vok-hinweis">Stimmt etwas nicht? Sag es deiner Lehrkraft.</span>' : ''}
         <label class="vok-wahl">${sp.length ? 'Andere Sprache' : 'Sprache wählen'} <select id="vokSprache"><option value="">—</option>${Object.keys(SPRACHEN).map(k => `<option value="${k}" ${k === sp[0] && sp.length === 1 ? 'selected' : ''}>${SPRACHEN[k]}</option>`).join('')}</select></label></div>
     </div>`;
-    box.querySelector('.vok-zu').addEventListener('click', () => box.remove());
-    box.querySelector('#vokSprache').addEventListener('change', e => { try { localStorage.setItem('daz_sprache', e.target.value); } catch (x) { /* egal */ } zeichne(); });
+    box.querySelector('.vok-zu').addEventListener('click', vokabelZu);
+    box.querySelector('#vokSprache').addEventListener('change', e => { try { localStorage.setItem('daz_sprache', e.target.value); } catch (x) { /* egal */ } zeichne(); platziereVokabel(box, anker); });
   };
-  box.onclick = e => { if (e.target === box) box.remove(); };
   zeichne();
+  platziereVokabel(box, anker);
 }
+// Die Karte steht direkt unter dem angetippten Wort (Lukas 01.11.2026), der Pfeil zeigt darauf. Passt sie nicht mehr ganz
+// auf den Bildschirm, scrollt die Seite ein Stück mit. Zu: ×, Tippen daneben oder Esc.
+function platziereVokabel(box, anker) {
+  if (!anker || !anker.isConnected) return;
+  const r = anker.getBoundingClientRect(), breite = Math.min(440, window.innerWidth - 24);
+  const links = Math.max(12, Math.min(r.left + r.width / 2 - breite / 2, window.innerWidth - breite - 12));
+  box.style.width = breite + 'px';
+  box.style.left = (links + window.scrollX) + 'px';
+  box.style.top = (r.bottom + window.scrollY + 12) + 'px';
+  box.style.setProperty('--pfeil', Math.max(18, Math.min(breite - 18, r.left + r.width / 2 - links)) + 'px');
+  const unten = box.getBoundingClientRect().bottom;
+  if (unten > window.innerHeight - 8) window.scrollBy({ top: unten - window.innerHeight + 16, behavior: 'smooth' });
+}
+function vokabelZu() { const box = document.getElementById('vokBox'); if (box) box.remove(); }
+document.addEventListener('click', e => {
+  const box = document.getElementById('vokBox');
+  if (box && !box.contains(e.target) && !e.target.closest('.vok')) vokabelZu();
+}, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') vokabelZu(); });
+window.addEventListener('resize', vokabelZu);
 
 // ---------------- POSTAUSGANG: KEINE ABGABE GEHT VERLOREN (Lukas 31.10.2026: Schul-WLAN reißt oft ab) ----------------
 // Jede Abgabe (Test, Grammatik-Block, „Fertig“ beim Arbeitsblatt) liegt ZUERST auf dem Gerät (localStorage) und wird dann
