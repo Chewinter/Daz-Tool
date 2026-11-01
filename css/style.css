@@ -811,6 +811,10 @@ body.pruefkonto .status-pill.rot { background: var(--bg); color: var(--ink-soft)
 .wl-de, .wl-rechts { overflow-wrap: anywhere; hyphens: auto; }
 .wl-de { font-size: 15px; } .wl-ueb { font-size: 15px; } .wl-hinweis { font-size: 13.5px; }
 
+/* Beispielsatz (01.11.2026): fett = ins Vokabelheft; eigene Sprache jetzt dünn und kursiv wie die anderen Hinweise */
+.wl-bsp { font-weight: 700; font-size: 15px; line-height: 1.35; margin-bottom: 2px; }
+.wl-ueb { font-weight: 400; font-style: italic; color: var(--ink-soft); font-size: 14px; }
+
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
   .ub-chip { padding: 6px 12px; border-radius: 999px; background: #EFEBDD; font-size: 14px; }

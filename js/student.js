@@ -3303,15 +3303,15 @@ function blattTabelleHtml(t) {
   return `<div class="blatt-tab-wrap"><table class="blatt-tab${t.leer ? ' leer' : ''}"><thead><tr>${t.kopf.map(k => `<th>${blattInline(k)}</th>`).join('')}</tr></thead>
     <tbody>${t.zeilen.map(z => `<tr>${z.map((c, i) => i ? `<td>${blattInline(c)}</td>` : `<th>${blattInline(c)}</th>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
-// Vokabelliste (Lukas 01.11.2026): eine Zeile je Eintrag. Links das Wort wie im Buch, rechts die eigene Sprache — beides
-// fett, das kommt ins Vokabelheft. Darunter kursiv als Hinweis: Erklärung auf Deutsch und Englisch.
+// Vokabelliste (Lukas 01.11.2026): eine Zeile je Eintrag. Links das Wort wie im Buch, rechts ein kurzer Beispielsatz — beides
+// fett, das kommt ins Vokabelheft. Darunter dünn und kursiv als Hilfe: eigene Sprache, Erklärung auf Deutsch, Englisch.
 function blattWortlisteHtml(b, vok) {
   const sp = meineSprachen();
   const wahl = sp.length ? '' : `<p class="blatt-hinweis">Wähle deine Sprache, dann steht die Übersetzung gleich daneben: <select class="wl-sprache"><option value="">—</option>${Object.keys(SPRACHEN).map(k => `<option value="${k}">${SPRACHEN[k]}</option>`).join('')}</select></p>`;
   return wahl + `<div class="wl">${b.woerter.map(x => {
     const v = x.stichwort && vok ? vok[x.stichwort] : null;
     const ueb = v ? sp.map(k => v.sp && v.sp[k]).filter(Boolean) : [];
-    const rechts = v ? `${ueb.length ? `<div class="wl-ueb" dir="auto">${ueb.map(escapeHtml).join(' · ')}</div>` : ''}<div class="wl-hinweis">${v.erkl ? escapeHtml(v.erkl) + ' · ' : ''}${escapeHtml(v.en)}</div>` : '';
+    const rechts = v ? `${v.bsp ? `<div class="wl-bsp">${escapeHtml(v.bsp)}</div>` : ''}${ueb.length ? `<div class="wl-ueb" dir="auto">${ueb.map(escapeHtml).join(' · ')}</div>` : ''}<div class="wl-hinweis">${v.erkl ? escapeHtml(v.erkl) + ' · ' : ''}${escapeHtml(v.en)}</div>` : '';
     return `<div class="wl-zeile${v ? '' : ' form'}"><div class="wl-de">${blattVokKnopf(x.de, x.stichwort)}</div><div class="wl-rechts">${rechts}</div></div>`;
   }).join('')}</div>`;
 }
@@ -3424,6 +3424,7 @@ function zeigeVokabel(b, stichwort, anker) {
       <button type="button" class="vok-zu" aria-label="Schließen">×</button>
       <div class="vok-wort">${escapeHtml(kopf.wort)}</div>${kopf.gram ? `<div class="vok-gram">${escapeHtml(kopf.gram)}</div>` : ''}
       <div class="vok-zeile"><span class="vok-lab">Auf Deutsch erklärt</span>${escapeHtml(v.erkl || '–')}</div>
+      ${v.bsp ? `<div class="vok-zeile"><span class="vok-lab">Beispiel</span><strong>${escapeHtml(v.bsp)}</strong></div>` : ''}
       <div class="vok-zeile"><span class="vok-lab">Englisch</span>${escapeHtml(v.en)}</div>
       <div class="vok-zeile"><span class="vok-lab">${sp.length > 1 ? 'Meine Sprachen' : 'Meine Sprache'}</span>${zeilen}
         ${sp.length ? '<span class="vok-fehlt vok-hinweis">Stimmt etwas nicht? Sag es deiner Lehrkraft.</span>' : ''}
