@@ -3227,7 +3227,10 @@ function renderJetztDran() {
   html += `<button type="button" class="jetzt-alles" id="jetztAlles">${alles && !alles.classList.contains('hidden') ? 'Liste wieder ausblenden' : 'Alle Lerninhalte ansehen'}</button>`;
   el.innerHTML = html;
   const los = el.querySelector('.jetzt-los'); if (los && haupt) los.addEventListener('click', () => jetztOeffnen(haupt));
-  if (haupt) setTimeout(() => ladeSchrittBilder(haupt.id), 400);   // Bilder der nächsten Aufgabe schon vorladen (klein, nur dieses Lernfeld)
+  if (haupt) setTimeout(() => {   // nächste Aufgabe schon vorladen, solange das Kind die Karte liest (Schul-WLAN langsam)
+    ladeSchrittBilder(haupt.id);
+    if (haupt.kind === 'blatt') { ladeBlatt(haupt.id).catch(() => {}); ladeBlattBilder(haupt.id); }
+  }, 400);
   el.querySelectorAll('.jetzt-ergebnis').forEach(b => b.addEventListener('click', () => zeigeErgebnis(b.getAttribute('data-id'), name)));
   document.getElementById('jetztAlles').addEventListener('click', () => {
     const zu = alles.classList.toggle('hidden');
@@ -3241,8 +3244,13 @@ function renderJetztDran() {
 // auch bei wackligem Internet sofort wieder da ist. Seite für Seite; am Ende „Fertig“ -> Lehrkraft prüft das Heft.
 const blattCache = {}, blattBilder = {};
 function ladeBlattBilder(id) { const g = schrittBildGruppe(id); return blattBilder[g] || (blattBilder[g] = ladeSkript('data/icons-blaetter-' + g + '.js')); }
-async function ladeBlatt(id) {
-  if (blattCache[id]) return blattCache[id];
+const blattLaeuft = {};   // gerade laufende Ladung (Vorladen + Antippen = nur eine Anfrage)
+function ladeBlatt(id) {
+  if (blattCache[id]) return Promise.resolve(blattCache[id]);
+  if (!blattLaeuft[id]) blattLaeuft[id] = ladeBlattJetzt(id).finally(() => { delete blattLaeuft[id]; });
+  return blattLaeuft[id];
+}
+async function ladeBlattJetzt(id) {
   const lk = 'daz_blatt:' + id;
   try {
     const r = await window.storage.get('blatt:' + id, true);

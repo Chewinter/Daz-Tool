@@ -760,6 +760,13 @@ select.gb-auswahl:focus { outline: none; border-color: var(--teal); }
 #abmeldenKnopf { min-height: 44px; font-size: 15px; }
 #toDashboard { display: inline-block; padding: 13px 0; }
 .blatt-nav .btn { min-width: 112px; }
+/* Vollständiger Durchgang 01.11.2026 (alle 163 Schritte bei 375 px gemessen) */
+.mc-opt, .wo-karte { min-width: 44px; }
+.mc-opt { min-height: 46px; }
+.btn:disabled { color: #3F3B33; }                                                   /* grau gesperrt: Schrift trotzdem lesbar */
+.domino-piece.placed.start .half, .spielfeld-zelle.start { background: #9A6416; }    /* Weiß auf Orange: 2,9:1 -> 5:1 */
+#view-test input:not([type=checkbox]):not([type=radio]), #view-test textarea, #view-test select,
+#view-activity input:not([type=checkbox]):not([type=radio]), #view-activity textarea, #view-activity select { font-size: max(16px, 1em) !important; }   /* iPhone zoomt sonst beim Antippen; !important wegen fester Werte am Feld (A2.3 Lernfeld-Test) */
 
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
