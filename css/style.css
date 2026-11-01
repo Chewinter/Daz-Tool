@@ -775,6 +775,11 @@ select.gb-auswahl:focus { outline: none; border-color: var(--teal); }
 .vok-hinweis { display: block; font-size: 13px; margin-top: 4px; }
 .vok-wahl { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; color: var(--ink-soft); }
 
+/* Prüfkonto TEst (01.11.2026): alles neutral und antippbar statt rot/gesperrt */
+body.pruefkonto .overview-item { cursor: pointer; }
+body.pruefkonto .overview-item.unerledigt, body.pruefkonto .overview-item.gesperrt { background: var(--paper); border-color: var(--line); color: var(--ink); font-weight: 400; opacity: 1; }
+body.pruefkonto .status-pill.rot { background: var(--bg); color: var(--ink-soft); }
+
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
   .ub-chip { padding: 6px 12px; border-radius: 999px; background: #EFEBDD; font-size: 14px; }

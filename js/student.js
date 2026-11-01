@@ -206,6 +206,7 @@ async function refreshProgress() {
     // Alle Lernfelder NACH dem aktiven bleiben komplett gesperrt (nichts hinzufügen), außer manuell freigeschaltet
   });
 
+  if (istPruefkonto(name)) CURRICULUM.forEach(lf => lf.items.forEach(id => unlocked.add(id)));   // Prüfkonto: alles offen
    progressCache = { name, doneTests, doneActs, unlocked, manualAccessUpTo, testApproval, statusComments, statusInfo, pausierteTests, loaded: true };
   renderAll();
 }
@@ -278,7 +279,7 @@ function renderProgressOverview() {
       }
       const typLabel = (ACTIVITIES[id] && ACTIVITIES[id].type === 'wdhauswertung') ? 'Auswertung' : typBezeichnung(info.kind);
       const kurz = info.kind === 'test-final' ? 'Lernfeld-Test' : info.kind === 'eingangstest' ? info.title : titelMitSchritt(id, info.title);
-      html += `<div class="overview-item ${cls}"><span class="icon">${icon}</span><span><span class="overview-item-title">${kurz}</span><span class="overview-item-typ">${typLabel}</span></span></div>`;
+      html += `<div class="overview-item ${cls}" data-id="${id}"><span class="icon">${icon}</span><span><span class="overview-item-title">${kurz}</span><span class="overview-item-typ">${typLabel}</span></span></div>`;
     });
     html += `</div>`;
   });
@@ -3130,6 +3131,18 @@ function wortzaehlerAktualisieren(ta) {
 ['input', 'blur'].forEach(ev => document.addEventListener(ev, e => { if (e.target && e.target.tagName === 'TEXTAREA') wortzaehlerAktualisieren(e.target); }, true));
 
 
+// ---------------- PRÜFKONTO (Lukas 01.11.2026) ----------------
+// „TEst“ ist Lukas' Überprüfungskonto: alles freigeschaltet (refreshProgress), jeder Schritt in der Lernpfad-Karte und
+// in der Liste antippbar, Liste aufgeklappt, keine roten „noch offen“-Markierungen. Für die Kinder ändert sich nichts.
+const PRUEFKONTEN = ['TEst'];
+function istPruefkonto(name) { return !window.PRUEFKONTO_AUS && PRUEFKONTEN.indexOf(String(name || '').trim()) >= 0; }   // PRUEFKONTO_AUS: nur die Test-Umgebung (TEst als normales Kind)
+document.getElementById('progressOverview').addEventListener('click', e => {
+  const it = e.target.closest('.overview-item[data-id]');
+  if (!it || !istPruefkonto(document.getElementById('startName').value)) return;
+  const id = it.getAttribute('data-id'), kind = curriculumItemInfo(id).kind;
+  jetztOeffnen({ id, kind });
+});
+
 // ---------------- „JETZT DRAN“: NUR DIE NÄCHSTE AUFGABE (Lukas 31.10.2026) ----------------
 // Für alle Schüler und alle Inhalte: Oben bleibt die Lernpfad-Karte (wo stehe ich?), darunter steht genau eine Karte
 // mit dem, was jetzt zu tun ist. Die bisherige Liste aller Lerninhalte ist nur noch über „Alle Lerninhalte ansehen“ da.
@@ -3195,6 +3208,14 @@ function renderJetztDran() {
   const name = document.getElementById('startName').value.trim();
   if (!name) { el.innerHTML = ''; return; }
   if (!progressCache.loaded) { el.innerHTML = '<p class="overview-empty">Lade …</p>'; return; }
+  const pruef = istPruefkonto(name);
+  document.body.classList.toggle('pruefkonto', pruef);
+  if (pruef) {   // Prüfkonto: kein „Jetzt dran“, sondern alles offen
+    el.innerHTML = '<section class="jetzt-karte" aria-label="Prüfkonto"><h2 class="jetzt-titel">Prüfkonto: alles ist offen</h2>'
+      + '<p class="jetzt-text">Tippe in der Lernpfad-Karte auf einen Schritt oder wähle unten Niveau und Lernfeld. Die Kinder sehen stattdessen nur ihre nächste Aufgabe.</p></section>';
+    const alles = document.getElementById('allesBereich'); if (alles) alles.classList.remove('hidden');
+    return;
+  }
   const A = jetztAufgaben();
   let haupt = null, html = '';
   if (A.nochmal.length) {
