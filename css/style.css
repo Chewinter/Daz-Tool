@@ -768,6 +768,13 @@ select.gb-auswahl:focus { outline: none; border-color: var(--teal); }
 #view-test input:not([type=checkbox]):not([type=radio]), #view-test textarea, #view-test select,
 #view-activity input:not([type=checkbox]):not([type=radio]), #view-activity textarea, #view-activity select { font-size: max(16px, 1em) !important; }   /* iPhone zoomt sonst beim Antippen; !important wegen fester Werte am Feld (A2.3 Lernfeld-Test) */
 
+/* Vokabel-Karte wie im Duden (01.11.2026): „Mantel, der“ · maskulin · Plural; Sprachen untereinander */
+.vok-gram { color: var(--ink-soft); font-size: 15px; margin-top: 2px; }
+.vok-ueb { display: block; font-size: 18px; margin-top: 2px; }
+.vok-sprache { font-size: 14px; font-weight: 700; color: var(--ink-soft); }
+.vok-hinweis { display: block; font-size: 13px; margin-top: 4px; }
+.vok-wahl { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; color: var(--ink-soft); }
+
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
   .ub-chip { padding: 6px 12px; border-radius: 999px; background: #EFEBDD; font-size: 14px; }

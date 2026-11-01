@@ -3354,32 +3354,45 @@ async function zeigeArbeitsblatt(a, id) {
   zeichne();
 }
 
-// Vokabel antippen: Englisch, einfache Erklärung und (sobald eingetragen) die eigene Sprache. Die Sprache wählt das
-// Kind einmal; sie bleibt auf dem Gerät gespeichert.
 const SPRACHEN = { ar: 'Arabisch', uk: 'Ukrainisch', ru: 'Russisch', tr: 'Türkisch', fa: 'Persisch', sq: 'Albanisch', bg: 'Bulgarisch', es: 'Spanisch', so: 'Somali', ti: 'Tigrinya', ku: 'Kurdisch' };
-// Sprache aus der Tabelle (Spalte C, kommt bei der Anmeldung mit): Name ("Arabisch") oder Kürzel ("ar")
+// Sprachen aus der Tabelle (Spalte C, kommen bei der Anmeldung mit). Mehrere mit Komma: „Ukrainisch, Russisch“
+// (auch „oder“, „und“, „/“). Gespeichert als Kürzel-Liste „uk,ru“; die Vokabel-Karte zeigt alle untereinander.
 function merkeSprache(text) {
-  const t = String(text || '').trim().toLowerCase();
-  if (!t) return;
-  const code = Object.keys(SPRACHEN).find(k => k === t || SPRACHEN[k].toLowerCase() === t);
-  if (code) { try { localStorage.setItem('daz_sprache', code); } catch (e) { /* egal */ } }
+  const teile = String(text || '').toLowerCase().split(/\s*(?:,|;|\/|\boder\b|\bund\b)\s*/).map(x => x.trim()).filter(Boolean);
+  const codes = [];
+  teile.forEach(t => { const c = Object.keys(SPRACHEN).find(k => k === t || SPRACHEN[k].toLowerCase() === t); if (c && codes.indexOf(c) < 0) codes.push(c); });
+  if (codes.length) { try { localStorage.setItem('daz_sprache', codes.join(',')); } catch (e) { /* egal */ } }
 }
-function meineSprache() { try { return localStorage.getItem('daz_sprache') || ''; } catch (e) { return ''; } }
+function meineSprachen() { try { return (localStorage.getItem('daz_sprache') || '').split(',').filter(k => SPRACHEN[k]); } catch (e) { return []; } }
+
+// Nomen wie im Duden: „Mantel, der“ — darunter Genus und Plural. Nur-Plural-Wörter kennzeichnen.
+const NUR_PLURAL = ['die Ferien'];
+const GENUS = { der: 'maskulin', die: 'feminin', das: 'neutral' };
+function dudenKopf(stichwort, v) {
+  const m = /^(der|die|das) (.+)$/.exec(stichwort);
+  if (!m) return { wort: stichwort, gram: '' };
+  if (NUR_PLURAL.indexOf(stichwort) >= 0) return { wort: m[2] + ', die', gram: 'nur Plural' };
+  return { wort: m[2] + ', ' + m[1], gram: GENUS[m[1]] + ' · ' + (v.pl ? 'Plural: ' + v.pl : 'kein Plural') };
+}
+
+// Vokabel antippen. Reihenfolge immer gleich (Lukas 01.11.2026): Erklärung auf Deutsch, dann Englisch, dann die
+// Herkunftssprache(n). Ohne Sprache aus der Tabelle wählt das Kind einmal selbst; das Gerät merkt es sich.
 function zeigeVokabel(b, stichwort) {
   const v = (b.vokabeln || {})[stichwort];
   if (!v) return;
   let box = document.getElementById('vokBox');
   if (!box) { box = document.createElement('div'); box.id = 'vokBox'; document.body.appendChild(box); }
   const zeichne = () => {
-    const sp = meineSprache(), ueb = sp && v.sp && v.sp[sp];
-    const zweit = { uk: 'ru', ru: 'uk' }[sp], ueb2 = zweit && v.sp && v.sp[zweit];   // Ukrainisch und Russisch zusammen zeigen
+    const sp = meineSprachen(), kopf = dudenKopf(stichwort, v);
+    const zeilen = sp.map(k => `<span dir="auto" class="vok-ueb"><span class="vok-sprache">${SPRACHEN[k]}:</span> ${v.sp && v.sp[k] ? escapeHtml(v.sp[k]) : '<span class="vok-fehlt">noch keine Übersetzung</span>'}</span>`).join('');
     box.innerHTML = `<div class="vok-karte" role="dialog" aria-label="Vokabel">
       <button type="button" class="vok-zu" aria-label="Schließen">×</button>
-      <div class="vok-wort">${escapeHtml(stichwort)}</div>${v.pl ? `<div class="vok-pl">Mehrzahl: ${escapeHtml(v.pl)}</div>` : ''}
-      ${v.erkl ? `<div class="vok-zeile"><span class="vok-lab">Einfach erklärt</span>${escapeHtml(v.erkl)}</div>` : ''}
+      <div class="vok-wort">${escapeHtml(kopf.wort)}</div>${kopf.gram ? `<div class="vok-gram">${escapeHtml(kopf.gram)}</div>` : ''}
+      <div class="vok-zeile"><span class="vok-lab">Auf Deutsch erklärt</span>${escapeHtml(v.erkl || '–')}</div>
       <div class="vok-zeile"><span class="vok-lab">Englisch</span>${escapeHtml(v.en)}</div>
-      <div class="vok-zeile"><span class="vok-lab">Meine Sprache <select id="vokSprache"><option value="">— wählen —</option>${Object.keys(SPRACHEN).map(k => `<option value="${k}" ${k === sp ? 'selected' : ''}>${SPRACHEN[k]}</option>`).join('')}</select></span>
-        ${sp ? (ueb ? `<span dir="auto" class="vok-ueb">${escapeHtml(ueb)}</span>${ueb2 ? `<span dir="auto" class="vok-ueb2">${SPRACHEN[zweit]}: ${escapeHtml(ueb2)}</span>` : ''}<span class="vok-fehlt">Stimmt etwas nicht? Sag es deiner Lehrkraft.</span>` : '<span class="vok-fehlt">Noch keine Übersetzung — frag deine Lehrkraft.</span>') : ''}</div>
+      <div class="vok-zeile"><span class="vok-lab">${sp.length > 1 ? 'Meine Sprachen' : 'Meine Sprache'}</span>${zeilen}
+        ${sp.length ? '<span class="vok-fehlt vok-hinweis">Stimmt etwas nicht? Sag es deiner Lehrkraft.</span>' : ''}
+        <label class="vok-wahl">${sp.length ? 'Andere Sprache' : 'Sprache wählen'} <select id="vokSprache"><option value="">—</option>${Object.keys(SPRACHEN).map(k => `<option value="${k}" ${k === sp[0] && sp.length === 1 ? 'selected' : ''}>${SPRACHEN[k]}</option>`).join('')}</select></label></div>
     </div>`;
     box.querySelector('.vok-zu').addEventListener('click', () => box.remove());
     box.querySelector('#vokSprache').addEventListener('change', e => { try { localStorage.setItem('daz_sprache', e.target.value); } catch (x) { /* egal */ } zeichne(); });
