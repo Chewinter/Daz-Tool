@@ -710,7 +710,7 @@ select.gb-auswahl:focus { outline: none; border-color: var(--teal); }
 .blatt-saetze { padding-left: 26px; line-height: 1.8; font-size: 17px; }
 .blatt-hinweis { color: var(--ink-soft); font-size: 15px; }
 .blatt-check { line-height: 1.8; }
-.blatt-bilder { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.blatt-bilder { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
 .blatt-bild { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); padding: 6px; font: inherit; font-size: 13px; cursor: pointer; }
 .blatt-bild img { width: 70px; height: 60px; object-fit: contain; }
 .blatt-wortliste { columns: 2 220px; column-gap: 18px; }
@@ -792,6 +792,24 @@ body.pruefkonto .status-pill.rot { background: var(--bg); color: var(--ink-soft)
 .blatt-sprechblase::before { content: ''; position: absolute; top: 20px; left: -9px; width: 14px; height: 14px; background: var(--paper);
   border-left: 1.5px solid var(--ink-soft); border-bottom: 1.5px solid var(--ink-soft); transform: rotate(45deg); }
 .blatt-sprecher.rechts .blatt-sprechblase::before { left: auto; right: -9px; transform: rotate(-135deg); }
+
+/* Schöner (Lukas 01.11.2026): Bilder ohne Rahmen, Szene neben dem Text, Vokabelliste einspaltig mit Hinweisen */
+.blatt-figur img { border: none; border-radius: 0; background: transparent; }
+.blatt-figur figcaption { margin-top: 4px; }
+.blatt-text.mit-bild::after { content: ''; display: block; clear: both; }
+.blatt-textbild { float: right; width: 44%; max-width: 300px; margin: 4px 0 8px 14px; cursor: zoom-in; }
+.blatt-tab.leer td { height: 34px; }
+.wl { border-top: 1px solid var(--line); }
+.wl-zeile { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 4px 14px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.wl-de { font-weight: 700; font-size: 16px; line-height: 1.35; }
+.wl-de .vok { font-weight: 700; }
+.wl-zeile.form .wl-de { font-weight: 700; }
+.wl-ueb { font-weight: 700; font-size: 16px; }
+.wl-hinweis { font-style: italic; color: var(--ink-soft); font-size: 14px; line-height: 1.4; }
+.wl-sprache { font: inherit; font-size: 16px; min-height: 44px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.wl-zeile { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 4px 12px; }   /* links Deutsch, rechts der Rest — auch am Handy nebeneinander */
+.wl-de, .wl-rechts { overflow-wrap: anywhere; hyphens: auto; }
+.wl-de { font-size: 15px; } .wl-ueb { font-size: 15px; } .wl-hinweis { font-size: 13.5px; }
 
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }

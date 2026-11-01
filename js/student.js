@@ -3300,12 +3300,24 @@ const WO_SYMBOL = {
 };
 const WO_TEXT = { heft: 'Ins Heft', vokabelheft: 'Ins Vokabelheft', lesen: 'Lesen' };
 function blattTabelleHtml(t) {
-  return `<div class="blatt-tab-wrap"><table class="blatt-tab"><thead><tr>${t.kopf.map(k => `<th>${blattInline(k)}</th>`).join('')}</tr></thead>
+  return `<div class="blatt-tab-wrap"><table class="blatt-tab${t.leer ? ' leer' : ''}"><thead><tr>${t.kopf.map(k => `<th>${blattInline(k)}</th>`).join('')}</tr></thead>
     <tbody>${t.zeilen.map(z => `<tr>${z.map((c, i) => i ? `<td>${blattInline(c)}</td>` : `<th>${blattInline(c)}</th>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
-function blattBlockHtml(b) {
+// Vokabelliste (Lukas 01.11.2026): eine Zeile je Eintrag. Links das Wort wie im Buch, rechts die eigene Sprache — beides
+// fett, das kommt ins Vokabelheft. Darunter kursiv als Hinweis: Erklärung auf Deutsch und Englisch.
+function blattWortlisteHtml(b, vok) {
+  const sp = meineSprachen();
+  const wahl = sp.length ? '' : `<p class="blatt-hinweis">Wähle deine Sprache, dann steht die Übersetzung gleich daneben: <select class="wl-sprache"><option value="">—</option>${Object.keys(SPRACHEN).map(k => `<option value="${k}">${SPRACHEN[k]}</option>`).join('')}</select></p>`;
+  return wahl + `<div class="wl">${b.woerter.map(x => {
+    const v = x.stichwort && vok ? vok[x.stichwort] : null;
+    const ueb = v ? sp.map(k => v.sp && v.sp[k]).filter(Boolean) : [];
+    const rechts = v ? `${ueb.length ? `<div class="wl-ueb" dir="auto">${ueb.map(escapeHtml).join(' · ')}</div>` : ''}<div class="wl-hinweis">${v.erkl ? escapeHtml(v.erkl) + ' · ' : ''}${escapeHtml(v.en)}</div>` : '';
+    return `<div class="wl-zeile${v ? '' : ' form'}"><div class="wl-de">${blattVokKnopf(x.de, x.stichwort)}</div><div class="wl-rechts">${rechts}</div></div>`;
+  }).join('')}</div>`;
+}
+function blattBlockHtml(b, vok) {
   if (b.art === 'auftrag') return `<div class="blatt-auftrag wo-${b.wo}">${WO_SYMBOL[b.wo] || ''}<p><strong class="blatt-wo">${WO_TEXT[b.wo] || ''}:</strong> ${blattInline(b.text)}</p></div>`;
-  if (b.art === 'text') return `<div class="blatt-text">${b.absaetze.map(a => `<p>${blattInline(a)}</p>`).join('')}</div>`;
+  if (b.art === 'text') return `<div class="blatt-text${b.bild ? ' mit-bild' : ''}">${b.bild && iconSrc(b.bild) ? `<img class="blatt-textbild" src="${iconSrc(b.bild)}" alt="">` : ''}${b.absaetze.map(a => `<p>${blattInline(a)}</p>`).join('')}</div>`;
   if (b.art === 'blasen') return `<div class="blatt-blasen">${b.blasen.map(x => `<span class="blatt-blase">${blattInline(x)}</span>`).join('')}</div>`;
   if (b.art === 'merk') return `<div class="blatt-merk"><div class="blatt-merk-kopf">ⓘ ${blattInline(b.titel)}</div>${(b.zeilen || []).map(z => `<p>${blattInline(z)}</p>`).join('')}${(b.tabellen || []).map(blattTabelleHtml).join('')}</div>`;
   if (b.art === 'tabelle') return blattTabelleHtml(b);
@@ -3314,12 +3326,12 @@ function blattBlockHtml(b) {
   if (b.art === 'checkliste') return `<ul class="blatt-check">${b.punkte.map(p => `<li>${blattInline(p)}</li>`).join('')}</ul>`;
   if (b.art === 'bildwoerter') return `${b.titel ? `<h3 class="blatt-h3">${blattInline(b.titel)}</h3>` : ''}<div class="blatt-bilder">${b.woerter.map(x =>
     `<button type="button" class="blatt-bild vok" data-vok="${escapeHtml(x.stichwort || x.de)}">${iconSrc(x.bild) ? `<img src="${iconSrc(x.bild)}" alt="">` : ''}<span>${escapeHtml(x.de)}</span></button>`).join('')}</div>`;
-  if (b.art === 'bild') return `<figure class="blatt-figur${b.klein ? ' klein' : ''}">${iconSrc(b.bild) ? `<img src="${iconSrc(b.bild)}" alt="">` : '<p class="hint">Bild wird geladen …</p>'}<figcaption>${b.unter ? blattInline(b.unter) + ' · ' : ''}Tippe auf das Bild, um es groß zu sehen.</figcaption></figure>`;
+  if (b.art === 'bild') return `<figure class="blatt-figur${b.klein ? ' klein' : ''}">${iconSrc(b.bild) ? `<img src="${iconSrc(b.bild)}" alt="">` : '<p class="hint">Bild wird geladen …</p>'}${b.unter ? `<figcaption>${blattInline(b.unter)}</figcaption>` : ''}</figure>`;
   if (b.art === 'sprecher') return `<div class="blatt-sprecher ${b.seite === 'rechts' ? 'rechts' : ''}">${iconSrc(b.bild) ? `<img src="${iconSrc(b.bild)}" alt="">` : '<span></span>'}<div class="blatt-sprechblase">${blattInline(b.text)}</div></div>`;
   if (b.art === 'bildreihe') return `<div class="blatt-bildreihe">${b.bilder.map(x => `<figure>${iconSrc(x.bild) ? `<img src="${iconSrc(x.bild)}" alt="">` : ''}<figcaption>${escapeHtml(x.label)}</figcaption></figure>`).join('')}</div>`;
   if (b.art === 'dialog') return `<div class="blatt-dialog">${b.zeilen.map(([wer, was]) => `<div class="blatt-dialog-zeile"><span class="blatt-wer">${escapeHtml(wer)}:</span><span>${blattInline(was)}</span></div>`).join('')}</div>`;
   if (b.art === 'buchstabentexte') return `<div class="blatt-btexte">${b.texte.map((t, i) => `<div class="blatt-btext"><span class="blatt-buchstabe">${'ABCDEFGHIJ'[i]}</span><p>${blattInline(t)}</p></div>`).join('')}</div>`;
-  if (b.art === 'wortliste') return `<div class="blatt-wortliste">${b.woerter.map(x => `<div class="blatt-wort">${blattVokKnopf(x.de, x.stichwort)}</div>`).join('')}</div>`;
+  if (b.art === 'wortliste') return blattWortlisteHtml(b, vok);
   return '';
 }
 async function zeigeArbeitsblatt(a, id) {
@@ -3350,13 +3362,14 @@ async function zeigeArbeitsblatt(a, id) {
       <div class="blatt-punkte">${b.seiten.map((_, i) => `<span class="${i === seite ? 'an' : i < seite ? 'vorbei' : ''}"></span>`).join('')}</div>
       <div class="blatt-seitenkopf">Teil ${seite + 1} von ${b.seiten.length}</div>
       <h2 class="blatt-h2">${blattInline(s.titel)}</h2>
-      ${s.bloecke.map(blattBlockHtml).join('')}
+      ${s.bloecke.map(bl => blattBlockHtml(bl, b.vokabeln)).join('')}
       <div class="blatt-nav">
         ${seite > 0 ? '<button type="button" class="btn secondary" id="blattZurueck">← Zurück</button>' : '<span></span>'}
         ${letzte ? fertigHtml : '<button type="button" class="btn" id="blattWeiter">Weiter →</button>'}
       </div>`;
     body.querySelectorAll('.vok').forEach(v => v.addEventListener('click', () => zeigeVokabel(b, v.getAttribute('data-vok'), v)));
-    body.querySelectorAll('.blatt-figur img').forEach(img => img.addEventListener('click', () => {   // Bild groß ansehen (Handy)
+    body.querySelectorAll('.wl-sprache').forEach(s => s.addEventListener('change', () => { try { localStorage.setItem('daz_sprache', s.value); } catch (e) { /* egal */ } zeichne(); }));
+    body.querySelectorAll('.blatt-figur img, .blatt-textbild').forEach(img => img.addEventListener('click', () => {   // Bild groß ansehen (Handy)
       const box = document.createElement('div'); box.id = 'bildGross';
       box.innerHTML = `<button type="button" class="vok-zu" aria-label="Schließen">×</button><img src="${img.src}" alt="">`;
       box.addEventListener('click', () => box.remove()); document.body.appendChild(box);
