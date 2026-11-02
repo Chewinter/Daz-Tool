@@ -40,7 +40,8 @@ registerActivities({
        "antwort": "interessanteste"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -271,7 +272,8 @@ registerActivities({
        ]
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 6,
@@ -418,7 +420,8 @@ registerActivities({
        "antwort": "der"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -636,7 +639,8 @@ registerActivities({
        ]
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -687,7 +691,8 @@ registerActivities({
        ]
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 6,
@@ -821,7 +826,8 @@ registerActivities({
        "exakt": true
       }
      ]
-    }
+    },
+    "heft": true
    }
   ]
  },
@@ -883,7 +889,8 @@ registerActivities({
        "antwort": "starb"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -1023,7 +1030,8 @@ registerActivities({
        ]
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -1394,7 +1402,8 @@ registerActivities({
        ]
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 6,
@@ -1592,7 +1601,8 @@ registerActivities({
        ]
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -1640,7 +1650,8 @@ registerActivities({
        ]
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -1883,7 +1894,8 @@ registerActivities({
        ]
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 7,
@@ -1948,7 +1960,8 @@ registerActivities({
        ]
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 8,
@@ -2007,7 +2020,8 @@ registerActivities({
        ]
       }
      ]
-    }
+    },
+    "heft": true
    }
   ]
  },
@@ -2170,7 +2184,8 @@ registerActivities({
        "antwort": "mochten"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -2215,7 +2230,8 @@ registerActivities({
        "antwort": "wollte"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -2399,7 +2415,8 @@ registerActivities({
        ]
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 8,

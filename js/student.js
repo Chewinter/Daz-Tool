@@ -608,9 +608,11 @@ function buildGrammatikblock(a, wiederholung) {
     `;
     if (p.heft && !window.GRAMMATIK_HEFT_AUS) {   // Heft-Aufgabe: Sätze ins Heft schreiben (Grammatik-Hybrid 02.11.2026; HEFT_AUS nur für ältere Prüfungen)
       const offen = p.uebung.items.map((item, ii) => ({ item, ii })).filter(x => !istGesperrt(gesperrtInfo, x.ii));
-      html += `<div class="blatt-auftrag wo-heft gb-heft">${WO_SYMBOL.heft}<p><strong class="blatt-wo">Ins Heft:</strong> Schreibe die Aufgabe ${p.nr} in dein Heft (mit Nummern). Deine Lehrkraft schaut sie im Heft an.</p></div>`
+      html += `<div class="blatt-auftrag wo-heft gb-heft">${WO_SYMBOL.heft}<p><strong class="blatt-wo">Ins Heft:</strong> Schreibe die Aufgabe ${p.nr} in dein Heft: jeden Satz ganz und mit Nummer. Deine Lehrkraft schaut sie im Heft an.</p></div>`
         + (offen.every(x => /^Satz \d+$/.test(x.item.frage)) ? `<p class="hint">Schreibe ${offen.length} ${offen.length === 1 ? 'Satz' : 'Sätze'} (mit Nummern).</p></div>`   // freie Sätze: keine Liste „Satz 1, Satz 2 …“
-        : `<ol class="blatt-saetze gb-heft-liste">${offen.map(x => `<li value="${x.ii + 1}">${escapeHtml(x.item.frage)}</li>`).join('')}</ol></div>`);
+        : (opts => opts.length ? `<div class="blatt-blasen gb-heft-auswahl"><span class="blatt-blase">${opts.map(o => escapeHtml(o)).join(' • ')}</span></div>` : '')(   // Auswahl-Aufgaben: Möglichkeiten zum Abschreiben zeigen
+            [...new Set(p.uebung.items.flatMap(i => i.optionen || []))])
+          + `<ol class="blatt-saetze gb-heft-liste">${offen.map(x => `<li value="${x.ii + 1}">${escapeHtml(x.item.frage)}</li>`).join('')}</ol></div>`);
       return;
     }
     p.uebung.items.forEach((item, ii) => {

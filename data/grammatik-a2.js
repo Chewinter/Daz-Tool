@@ -51,7 +51,8 @@ registerActivities(
        "antwort": "Kommst du heute Abend mit?"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -74,7 +75,8 @@ registerActivities(
        "antwort": "dich"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -97,7 +99,8 @@ registerActivities(
        "antwort": "müssen"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -154,7 +157,8 @@ registerActivities(
        "exakt": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -177,7 +181,8 @@ registerActivities(
        "antwort": "uns für"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -200,7 +205,8 @@ registerActivities(
        "antwort": "ihnen"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -250,7 +256,8 @@ registerActivities(
        "antwort": "Durftest"
       }
      ]
-    }
+    },
+    "heft": true
    }
   ],
   "type": "grammatikblock"
@@ -304,7 +311,8 @@ registerActivities(
        "antwort": "sollt"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -406,7 +414,8 @@ registerActivities(
        "antwort": "10 % der Bevölkerung"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -462,7 +471,8 @@ registerActivities(
        "antwort": "liebsten"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -509,7 +519,8 @@ registerActivities(
        "antwort": "seit"
       }
      ]
-    }
+    },
+    "heft": true
    }
   ],
   "type": "grammatikblock"
@@ -548,7 +559,8 @@ registerActivities(
        "antwort": "wird"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -575,7 +587,8 @@ registerActivities(
        "antwort": "Welcher"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -626,7 +639,8 @@ registerActivities(
        "antwort": "um Ärztin zu werden"
       }
      ]
-    }
+    },
+    "heft": true
    }
   ]
  },
@@ -693,7 +707,8 @@ registerActivities(
        "antwort": "Hättest"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -740,7 +755,8 @@ registerActivities(
        "antwort": "es"
       }
      ]
-    }
+    },
+    "heft": true
    }
   ]
  },
@@ -778,7 +794,8 @@ registerActivities(
        "antwort": "verstanden"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -833,7 +850,8 @@ registerActivities(
        "antwort": "Wen"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -860,7 +878,8 @@ registerActivities(
        "antwort": "Worum"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -946,7 +965,8 @@ registerActivities(
        "antwort": "Durftet"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -997,7 +1017,8 @@ registerActivities(
        "antwort": "Außerdem"
       }
      ]
-    }
+    },
+    "heft": true
    }
   ]
  },
@@ -1064,7 +1085,8 @@ registerActivities(
        ]
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -1161,7 +1183,8 @@ registerActivities(
        "antwort": "von"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -1192,7 +1215,8 @@ registerActivities(
        "antwort": "bis"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -1229,7 +1253,8 @@ registerActivities(
        "antwort": "Während"
       }
      ]
-    }
+    },
+    "heft": true
    }
   ]
  },
@@ -1298,7 +1323,8 @@ registerActivities(
        "exakt": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -1329,7 +1355,8 @@ registerActivities(
        "exakt": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -1360,7 +1387,8 @@ registerActivities(
        "exakt": true
       }
      ]
-    }
+    },
+    "heft": true
    }
   ]
  },
@@ -1394,7 +1422,8 @@ registerActivities(
        "antwort": "heim"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -1421,7 +1450,8 @@ registerActivities(
        "antwort": "angezeigt"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,

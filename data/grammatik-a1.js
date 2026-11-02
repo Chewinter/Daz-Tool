@@ -152,7 +152,8 @@ registerActivities({
        "antwort": "mag"
       }
      ]
-    }
+    },
+    "heft": true
    }
   ],
   "type": "grammatikblock"
@@ -186,7 +187,8 @@ registerActivities({
        "antwort": "Siehst"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -305,7 +307,8 @@ registerActivities({
        "antwort": "mag"
       }
      ]
-    }
+    },
+    "heft": true
    }
   ],
   "type": "grammatikblock"
@@ -339,7 +342,8 @@ registerActivities({
        "antwort": "die Söhne"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -366,7 +370,8 @@ registerActivities({
        "antwort": "seid"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -389,7 +394,8 @@ registerActivities({
        "antwort": "ein"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -416,7 +422,8 @@ registerActivities({
        "antwort": "Ihr"
       }
      ]
-    }
+    },
+    "heft": true
    }
   ],
   "type": "grammatikblock"
@@ -446,7 +453,8 @@ registerActivities({
        "antwort": "den"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -469,7 +477,8 @@ registerActivities({
        "antwort": "eine"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -492,7 +501,8 @@ registerActivities({
        "antwort": "Es gibt"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -519,7 +529,8 @@ registerActivities({
        "antwort": "halb sieben"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -542,7 +553,8 @@ registerActivities({
        "antwort": "Am"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 6,
@@ -596,7 +608,8 @@ registerActivities({
        "antwort": "essen"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -641,7 +654,8 @@ registerActivities({
        "antwort": "können"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -719,7 +733,8 @@ registerActivities({
        "antwort": "dem Publikum"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -740,7 +755,8 @@ registerActivities({
        ]
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -763,7 +779,8 @@ registerActivities({
        "antwort": "sie"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -790,7 +807,8 @@ registerActivities({
        "antwort": "wollen"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -872,7 +890,8 @@ registerActivities({
        "antwort": "geschlafen"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -915,7 +934,8 @@ registerActivities({
        "antwort": "ihm"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -969,7 +989,8 @@ registerActivities({
        "antwort": "e"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -1016,7 +1037,8 @@ registerActivities({
        "antwort": "dir"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -1070,7 +1092,8 @@ registerActivities({
        "antwort": "an der Wand"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -1093,7 +1116,8 @@ registerActivities({
        "antwort": "an die Wand"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -1136,7 +1160,8 @@ registerActivities({
        "antwort": "e"
       }
      ]
-    }
+    },
+    "heft": true
    }
   ],
   "type": "grammatikblock"

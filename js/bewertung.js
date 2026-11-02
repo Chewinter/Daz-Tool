@@ -80,7 +80,8 @@ function analysiereAbgabe(sub) {
     (sub.teilDetails || []).forEach((d, i) => {
       const defItem = def && def.punkte ? ((def.punkte.find(x => x.nr === d.punktNr) || {}).uebung || { items: [] }).items[d.itemIdx] : null;
       const frei = !!(defItem && (defItem.manuell || defItem.regel));   // freie Sätze: nur Beispiel/Regel zum Vergleich, keine feste Lösung
-      A.items.push({ id: 'd' + i, teil: 'p' + d.punktNr, itemIdx: d.itemIdx, frage: d.frage, antwort: d.antwort, auto: d.korrekt === undefined ? null : d.korrekt, korrektAntwort: d.korrektAntwort, punkte: 1, heft: !!d.heft, frei });
+      const satz = d.heft && defItem && !frei ? heftSatz(defItem) : '';  // Lückensatz im Heft: ganzen Satz mit Lösung zeigen
+      A.items.push({ id: 'd' + i, teil: 'p' + d.punktNr, itemIdx: d.itemIdx, frage: d.frage, antwort: d.antwort, auto: d.korrekt === undefined ? null : d.korrekt, korrektAntwort: d.korrektAntwort, punkte: 1, heft: !!d.heft, frei, satz });
     });
     return A;
   }
@@ -155,6 +156,27 @@ function berechneErgebnis(A, ov) {
   return { teile, punkte, max, prozent, note, offen, falsch };
 }
 
+// Grammatik-Hybrid: Das Kind schreibt Lückensätze ganz ins Heft — die Lehrkraft sieht den ganzen Satz mit eingesetzter Lösung
+// („Ich stehe um sieben Uhr ___. (aufstehen)“ + „auf“ -> „Ich stehe um sieben Uhr auf.“). Passt die Lösung nicht sicher, bleibt sie, wie sie ist.
+function heftSatz(item) {
+  const frage = String(item.frage || '').split('→').pop().trim();   // „Satz → Lotte gibt ___ den Ball.“: nur die rechte Seite
+  const LUECKE = /([A-Za-zÄÖÜäöüß]*)(_{2,}|…|\.\.\.)/g;              // Lücke, ggf. mit Wortanfang davor („originell__“, „speziell…“)
+  const luecken = frage.match(LUECKE) || [];
+  if (!luecken.length) return '';
+  const varianten = (Array.isArray(item.antwort) ? item.antwort : [item.antwort]).map(a => String(a).replace(/^[a-f]\)\s*/, ''));
+  if (/[.!?]$/.test(varianten[0].trim())) return '';                  // Lösung ist schon ein ganzer Satz: so zeigen, wie sie ist
+  const teile = luecken.length === 1 ? [varianten[0]] : varianten[0].split(/\s+/);
+  if (teile.length !== luecken.length) return '';
+  let i = 0;
+  let satz = frage.replace(LUECKE, (m, stamm) => { const t = teile[i++]; return stamm && t.toLowerCase().startsWith(stamm.toLowerCase()) ? t : stamm + t; })
+    .replace(/\s*\([^)]*\)\s*/g, ' ')                   // Hinweise in Klammern („(fahren)“, „(der Hund)“, „(s/S)“) weg
+    .replace(/\b(\p{L}{3,})\s+\1\b/gu, '$1')             // „auf dem Sofa Sofa“: Lösung enthält schon das Wort danach
+    .replace(/\s+([.,!?])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+  satz = satz.charAt(0).toUpperCase() + satz.slice(1);
+  if (/(…|\.\.\.)\s*$/.test(frage) && !/[.!?“"]$/.test(satz)) satz += '.';   // „Laís fährt nach Recife, …“ + Ergänzung: Satzende
+  const andere = luecken.length === 1 ? varianten.slice(1).filter(v => v && !/[,/]/.test(v)) : [];
+  return satz + (andere.length ? ` (auch: ${andere.join(', ')})` : '');
+}
 function zeileHtml(it, ov, fb, fbOffen, gezeigt) {
   const e = effektiv(it, ov);
   const geaendert = ov && ov[it.id] !== undefined && ov[it.id] !== it.auto;
@@ -164,7 +186,7 @@ function zeileHtml(it, ov, fb, fbOffen, gezeigt) {
   const zeichen = e === true ? '✓' : e === false ? (tipp ? '⚠' : '✗') : '—';
   let text = `${antwortBilderHtml(it, gezeigt)}${zeichen} ${escapeHtml(it.frage)} — „${escapeHtml(it.antwort)}“`;
   if (it.heft) {   // Grammatik-Hybrid (02.11.2026): im Heft geschrieben — Lösung immer daneben, ✓/✗ = abhaken
-    text = `<span class="bw-heft">Heft</span>${zeichen} ${escapeHtml(it.frage)}<div class="bw-heft-loesung">${it.frei ? 'Freie Antwort, zum Vergleich' : 'Lösung'}: „${escapeHtml(it.korrektAntwort || '')}“</div>`;
+    text = `<span class="bw-heft">Heft</span>${zeichen} ${escapeHtml(it.frage)}<div class="bw-heft-loesung">${it.frei ? 'Freie Antwort, zum Vergleich' : 'Lösung'}: „${escapeHtml(it.satz || it.korrektAntwort || '')}“</div>`;
     if (e === null || e === undefined) text += ' <em>(im Heft ansehen und abhaken)</em>';
     if (geaendert) text += ' <em class="geaendert">(von dir abgehakt)</em>';
     return `<div class="antwortzeile bw-zeile ${cls} bw-heftzeile" data-id="${it.id}"><div class="bw-text">${text}</div>
