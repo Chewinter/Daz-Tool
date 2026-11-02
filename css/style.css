@@ -787,7 +787,7 @@ body.pruefkonto .status-pill.rot { background: var(--bg); color: var(--ink-soft)
 .blatt-sprecher { display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: start; margin: 12px 0; }
 .blatt-sprecher.rechts { grid-template-columns: 1fr 64px; }
 .blatt-sprecher.rechts img { order: 2; }
-.blatt-sprecher img { width: 64px; height: auto; margin-top: 6px; }
+.blatt-sprecher img { width: 64px; height: auto; margin-top: 6px; cursor: default; }
 .blatt-sprechblase { position: relative; background: var(--paper); border: 1.5px solid var(--ink-soft); border-radius: 18px; padding: 12px 14px; line-height: 1.55; font-size: 16px; }
 .blatt-sprechblase::before { content: ''; position: absolute; top: 20px; left: -9px; width: 14px; height: 14px; background: var(--paper);
   border-left: 1.5px solid var(--ink-soft); border-bottom: 1.5px solid var(--ink-soft); transform: rotate(45deg); }

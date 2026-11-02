@@ -40,5 +40,45 @@ registerActivities({
   "schritt": 6,
   "test": "b1_lf1_schritt6",
   "seiten": 6
+ },
+ "b1_lf2_blatt1": {
+  "title": "Die Welt",
+  "sub": "B1.2 Die Erde — Schritt 1 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 1,
+  "test": "b1_lf2_schritt1",
+  "seiten": 6
+ },
+ "b1_lf2_blatt2": {
+  "title": "Das Sonnensystem",
+  "sub": "B1.2 Die Erde — Schritt 2 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 2,
+  "test": "b1_lf2_schritt2",
+  "seiten": 4
+ },
+ "b1_lf2_blatt3": {
+  "title": "Tag und Nacht",
+  "sub": "B1.2 Die Erde — Schritt 3 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 3,
+  "test": "b1_lf2_schritt3",
+  "seiten": 5
+ },
+ "b1_lf2_blatt4": {
+  "title": "Das Wetter",
+  "sub": "B1.2 Die Erde — Schritt 4 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 4,
+  "test": "b1_lf2_schritt4",
+  "seiten": 5
+ },
+ "b1_lf2_blatt5": {
+  "title": "Modalverben",
+  "sub": "B1.2 Die Erde — Schritt 5 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 5,
+  "test": "b1_lf2_schritt5",
+  "seiten": 5
  }
 });

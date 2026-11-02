@@ -301,10 +301,10 @@ registerTests({
    },
    {
     "num": 31,
-    "word": "Bild Anzug",
-    "label": "Bild Anzug",
-    "bild": "Kleidung_Anzug",
-    "correct": "der Anzug"
+    "word": "Bild T-Shirt",
+    "label": "Bild T-Shirt",
+    "bild": "Kleidung_T-Shirt",
+    "correct": "das T-Shirt"
    },
    {
     "num": 32,

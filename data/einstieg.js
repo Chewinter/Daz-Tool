@@ -39,5 +39,45 @@ var EINSTIEG = {
    "bild": "EIN_A15_Maeppchen",
    "unter": "Das Mäppchen"
   }
+ ],
+ "lf1_schritt1": [
+  {
+   "bild": "EIN_A21_Freizeit",
+   "unter": "Was machst du gerne in deiner Freizeit?"
+  }
+ ],
+ "lf2_schritt5": [
+  {
+   "bild": "EIN_A22_Putzen",
+   "unter": "Die Wohnung ist dreckig."
+  }
+ ],
+ "lf3_schritt5": [
+  {
+   "bild": "EIN_A23_Arzt",
+   "unter": "Beim Arzt"
+  },
+  {
+   "bild": "EIN_A23_Wartezimmer",
+   "unter": "Im Wartezimmer"
+  }
+ ],
+ "lf3_schritt6": [
+  {
+   "bild": "EIN_A23_Apotheke",
+   "unter": "In der Apotheke"
+  }
+ ],
+ "lf4_schritt1": [
+  {
+   "bild": "EIN_A24_Restaurant",
+   "unter": "Im Restaurant"
+  }
+ ],
+ "lf5_schritt2": [
+  {
+   "bild": "EIN_A25_Kasse",
+   "unter": "An der Kasse"
+  }
  ]
 };

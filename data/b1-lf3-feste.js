@@ -391,14 +391,14 @@ registerTests({
    },
    {
     "num": 12,
-    "vor": "Am Mittwoch, dem Aschermittwoch, endet die",
+    "vor": "Am Mittwoch, dem Aschermittwoch, beginnt die",
     "nach": ".",
     "options": [
      "Weihnachtszeit",
      "Fastnacht",
      "Fastenzeit"
     ],
-    "correct": 1
+    "correct": 2
    },
    {
     "num": 13,

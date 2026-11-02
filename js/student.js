@@ -3323,6 +3323,7 @@ function blattBlockHtml(b, vok) {
   if (b.art === 'merk') return `<div class="blatt-merk"><div class="blatt-merk-kopf">ⓘ ${blattInline(b.titel)}</div>${(b.zeilen || []).map(z => `<p>${blattInline(z)}</p>`).join('')}${(b.tabellen || []).map(blattTabelleHtml).join('')}</div>`;
   if (b.art === 'tabelle') return blattTabelleHtml(b);
   if (b.art === 'saetze') return `<ol class="blatt-saetze">${b.zeilen.map(z => `<li>${blattInline(z)}</li>`).join('')}</ol>`;
+  if (b.art === 'h') return `<h3 class="blatt-h3">${blattInline(b.text)}</h3>`;
   if (b.art === 'hinweis') return `<p class="blatt-hinweis">${blattInline(b.text)}</p>`;
   if (b.art === 'checkliste') return `<ul class="blatt-check">${b.punkte.map(p => `<li>${blattInline(p)}</li>`).join('')}</ul>`;
   if (b.art === 'bildwoerter') return `${b.titel ? `<h3 class="blatt-h3">${blattInline(b.titel)}</h3>` : ''}<div class="blatt-bilder">${b.woerter.map(x =>
@@ -3390,15 +3391,22 @@ async function zeigeArbeitsblatt(a, id) {
   zeichne();
 }
 
-const SPRACHEN = { ar: 'Arabisch', uk: 'Ukrainisch', ru: 'Russisch', tr: 'Türkisch', fa: 'Persisch', sq: 'Albanisch', bg: 'Bulgarisch', es: 'Spanisch', so: 'Somali', ti: 'Tigrinya', ku: 'Kurdisch' };
+const SPRACHEN = { ar: 'Arabisch', uk: 'Ukrainisch', ru: 'Russisch', tr: 'Türkisch', fa: 'Persisch', sq: 'Albanisch', bg: 'Bulgarisch', es: 'Spanisch', so: 'Somali', am: 'Amharisch', ti: 'Tigrinya', ku: 'Kurdisch (Sorani)' };
+// Schreibweisen aus der Tabelle (Spalte C) -> Kürzel; Klammern werden ignoriert, kleine Tippfehler toleriert
+const SPRACH_ALIAS = { somalisch: 'so', somali: 'so', kurdisch: 'ku', sorani: 'ku', amharisch: 'am', tigrinisch: 'ti', tigrinya: 'ti', persisch: 'fa', farsi: 'fa', dari: 'fa', spansich: 'es', spanisch: 'es', türkisch: 'tr', tuerkisch: 'tr' };
 // Sprachen aus der Tabelle (Spalte C, kommen bei der Anmeldung mit). Mehrere mit Komma: „Ukrainisch, Russisch“
 // (auch „oder“, „und“, „/“). Gespeichert als Kürzel-Liste „uk,ru“; die Vokabel-Karte zeigt alle untereinander.
 function merkeSprache(text) {
   const teile = String(text || '').toLowerCase().split(/\s*(?:,|;|\/|\boder\b|\bund\b)\s*/).map(x => x.trim()).filter(Boolean);
   const codes = [];
-  teile.forEach(t => { const c = Object.keys(SPRACHEN).find(k => k === t || SPRACHEN[k].toLowerCase() === t); if (c && codes.indexOf(c) < 0) codes.push(c); });
+  teile.forEach(t0 => {
+    const t = t0.replace(/\(.*?\)/g, '').trim();
+    const c = Object.keys(SPRACHEN).find(k => k === t || SPRACHEN[k].toLowerCase().replace(/\s*\(.*\)/, '') === t) || SPRACH_ALIAS[t];
+    if (c && codes.indexOf(c) < 0) codes.push(c);
+  });
   if (codes.length) { try { localStorage.setItem('daz_sprache', codes.join(',')); } catch (e) { /* egal */ } }
 }
+const UNGEPRUEFT = ['so', 'am', 'ku', 'ti'];   // Übersetzungen ohne muttersprachliche Prüfung
 function meineSprachen() { try { return (localStorage.getItem('daz_sprache') || '').split(',').filter(k => SPRACHEN[k]); } catch (e) { return []; } }
 
 // Nomen wie im Duden: „Mantel, der“ — darunter Genus und Plural. Nur-Plural-Wörter kennzeichnen.
@@ -3420,7 +3428,7 @@ function zeigeVokabel(b, stichwort, anker) {
   if (!box) { box = document.createElement('div'); box.id = 'vokBox'; document.body.appendChild(box); }
   const zeichne = () => {
     const sp = meineSprachen(), kopf = dudenKopf(stichwort, v);
-    const zeilen = sp.map(k => `<span dir="auto" class="vok-ueb"><span class="vok-sprache">${SPRACHEN[k]}:</span> ${v.sp && v.sp[k] ? escapeHtml(v.sp[k]) : '<span class="vok-fehlt">noch keine Übersetzung</span>'}</span>`).join('');
+    const zeilen = sp.map(k => `<span dir="auto" class="vok-ueb"><span class="vok-sprache">${SPRACHEN[k]}:</span> ${v.sp && v.sp[k] ? escapeHtml(v.sp[k]) + (UNGEPRUEFT.indexOf(k) >= 0 ? ' <span class="vok-fehlt">(noch nicht geprüft)</span>' : '') : '<span class="vok-fehlt">noch keine Übersetzung</span>'}</span>`).join('');
     box.innerHTML = `<div class="vok-karte" role="dialog" aria-label="Vokabel">
       <button type="button" class="vok-zu" aria-label="Schließen">×</button>
       <div class="vok-wort">${escapeHtml(kopf.wort)}</div>${kopf.gram ? `<div class="vok-gram">${escapeHtml(kopf.gram)}</div>` : ''}
