@@ -76,7 +76,8 @@ registerActivities({
        "regel": "superlativ_am"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -132,7 +133,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -180,7 +182,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -315,7 +318,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 7,
@@ -362,7 +366,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    }
   ]
  },
@@ -471,7 +476,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -578,7 +584,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -713,7 +720,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 7,
@@ -781,7 +789,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 8,
@@ -930,7 +939,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -1058,7 +1068,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -1102,7 +1113,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    }
   ]
  },
@@ -1164,7 +1176,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -1200,7 +1213,8 @@ registerActivities({
        "regel": "dass_verb_ende"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -1234,7 +1248,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -1281,7 +1296,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -1424,7 +1440,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 7,
@@ -1464,7 +1481,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    }
   ]
  },
@@ -1507,7 +1525,8 @@ registerActivities({
        "teil": "im Garten"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -1674,7 +1693,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -2238,7 +2258,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -2263,7 +2284,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -2294,7 +2316,8 @@ registerActivities({
        "regel": "als_verb_zuerst"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 6,
@@ -2345,7 +2368,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 7,
@@ -2424,7 +2448,8 @@ registerActivities({
        "satz": true
       }
      ]
-    }
+    },
+    "heft": true
    }
   ]
  }

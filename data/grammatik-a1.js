@@ -28,7 +28,8 @@ registerActivities({
        "exakt": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -51,7 +52,8 @@ registerActivities({
        "antwort": "Caroline ist krank."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -74,7 +76,8 @@ registerActivities({
        "antwort": "Sie ist krank."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -101,7 +104,8 @@ registerActivities({
        "antwort": "Er heißt Jens."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -124,7 +128,8 @@ registerActivities({
        "antwort": "Wo wohnst du?"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 6,
@@ -204,7 +209,8 @@ registerActivities({
        "antwort": "Hörst du Musik?"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -227,7 +233,8 @@ registerActivities({
        "antwort": "Bastian liest nicht gern Comics."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -246,7 +253,8 @@ registerActivities({
        "antwort": "Tim spielt Volleyball und hört Musik."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -269,7 +277,8 @@ registerActivities({
        "antwort": "Ich lese gern Bücher."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 6,
@@ -556,7 +565,8 @@ registerActivities({
        "antwort": "Wir haben keine Bücher."
       }
      ]
-    }
+    },
+    "heft": true
    }
   ],
   "type": "grammatikblock"
@@ -607,7 +617,8 @@ registerActivities({
        "manuell": true
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -653,7 +664,8 @@ registerActivities({
        "antwort": "Er nimmt eine Currywurst."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 5,
@@ -676,7 +688,8 @@ registerActivities({
        "antwort": "Trinken Sie Limonade?"
       }
      ]
-    }
+    },
+    "heft": true
    }
   ],
   "type": "grammatikblock"
@@ -804,7 +817,8 @@ registerActivities({
        "antwort": "Hattet ihr eine Klassenarbeit?"
       }
      ]
-    }
+    },
+    "heft": true
    }
   ],
   "type": "grammatikblock"
@@ -830,7 +844,8 @@ registerActivities({
        "antwort": "In Spanien spricht man Spanisch."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -876,7 +891,8 @@ registerActivities({
        "antwort": "Wir müssen gehen, denn unser Bus fährt gleich."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -922,7 +938,8 @@ registerActivities({
        "antwort": "Nimm das Buch!"
       }
      ]
-    }
+    },
+    "heft": true
    }
   ],
   "type": "grammatikblock"
@@ -975,7 +992,8 @@ registerActivities({
        "antwort": "Mein Rock ist länger als deiner."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -1021,7 +1039,8 @@ registerActivities({
        "antwort": "Das T-Shirt passt dir."
       }
      ]
-    }
+    },
+    "heft": true
    }
   ],
   "type": "grammatikblock"
@@ -1093,7 +1112,8 @@ registerActivities({
        "antwort": "Ich lebe in der Stadt, weil meine Eltern hier arbeiten."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,

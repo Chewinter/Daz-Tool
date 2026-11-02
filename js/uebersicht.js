@@ -144,7 +144,7 @@ function sammleAufgaben(schueler) {
       const basis = { name: s.name, slug: s.slug, testId: tid, stufe: a.stufe, titel: a.titel };
       const ab = ablaufStatus(st);
       const bewertetTs = st && st.reviewedAt ? new Date(st.reviewedAt).getTime() : s.latest[tid];
-      if (ab === 'offen') wartet.push({ ...basis, ts: s.latest[tid], wdh: !!(st && st.wiederholung) });
+      if (ab === 'offen') wartet.push({ ...basis, ts: s.latest[tid], wdh: !!(st && st.wiederholung), heft: !!(st && st.heft) });
       else if (ab === 'wiederholung_frei') wiederholen.push({ ...basis, ts: bewertetTs, kommentar: st.comment || '', teile: st.wiederholenTeile || st.punkteWiederholen || null });
       else if (ab === 'zettel_offen') zettel.push({ ...basis, ts: bewertetTs });
     });
@@ -256,7 +256,7 @@ function rendereUebersicht() {
       x.runde > 1 ? '<div class="ub-komm">überarbeitet</div>' : '') + '<div class="ub-loesung-box hidden"></div>').join('');
     h += `<h3 class="ub-h3">Abgaben</h3>`;
   }
-  h += A.wartet.length ? A.wartet.map(x => zeileHtmlUeb(x, '<button type="button" class="btn small ub-bewerten">Bewerten</button>', x.wdh ? '<div class="ub-komm">Wiederholung abgegeben</div>' : '')).join('') : '<p class="ub-leer">Nichts offen. Alles bewertet.</p>';
+  h += A.wartet.length ? A.wartet.map(x => zeileHtmlUeb(x, '<button type="button" class="btn small ub-bewerten">Bewerten</button>', (x.wdh ? '<div class="ub-komm">Wiederholung abgegeben</div>' : '') + (x.heft ? '<div class="ub-komm">+ Heft zeigen lassen und abhaken</div>' : ''))).join('') : '<p class="ub-leer">Nichts offen. Alles bewertet.</p>';
 
   h += `<h2 class="ub-h">Liegt beim Schüler</h2>`;
   h += `<h3 class="ub-h3">Korrektur auf dem Blatt (${A.zettel.length})</h3>`;

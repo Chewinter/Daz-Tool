@@ -57,7 +57,7 @@ function registerIcons(obj) { registerInto(ICONS, obj, 'ICONS'); }
 function registerTests(obj) { registerInto(TESTS, obj, 'TESTS'); }
 function registerActivities(obj) { registerInto(ACTIVITIES, obj, 'ACTIVITIES'); }
 
-function iconSrc(name) { return ICONS[name] ? "data:image/png;base64," + ICONS[name] : ""; } // leer, wenn das Bild auf dieser Seite nicht geladen ist (Lehrkraft-Seite)
+function iconSrc(name) { const b = ICONS[name]; return b ? (b.startsWith("/9j/") ? "data:image/jpeg;base64," : "data:image/png;base64,") + b : ""; } // leer, wenn das Bild auf dieser Seite nicht geladen ist (Lehrkraft-Seite); Fotos (B1.4) als JPEG
 function vereinheitlicheText(s) {
   return String(s == null ? '' : s).replace(/[„“”‟″«»]/g, '"').replace(/[‚‘’‛′`´‹›]/g, "'").replace(/\s+/g, ' ').trim();
 }

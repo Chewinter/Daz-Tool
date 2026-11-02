@@ -78,7 +78,9 @@ function analysiereAbgabe(sub) {
     (sub.teilDetails || []).forEach(d => { if (nrs.indexOf(d.punktNr) < 0) nrs.push(d.punktNr); });
     A.teile = nrs.map(nr => { const p = def && def.punkte ? def.punkte.find(x => x.nr === nr) : null; return { id: 'p' + nr, nr, titel: `Aufgabe ${nr}${p && p.titel ? ' — ' + p.titel : ''}` }; });
     (sub.teilDetails || []).forEach((d, i) => {
-      A.items.push({ id: 'd' + i, teil: 'p' + d.punktNr, itemIdx: d.itemIdx, frage: d.frage, antwort: d.antwort, auto: d.korrekt === undefined ? null : d.korrekt, korrektAntwort: d.korrektAntwort, punkte: 1 });
+      const defItem = def && def.punkte ? ((def.punkte.find(x => x.nr === d.punktNr) || {}).uebung || { items: [] }).items[d.itemIdx] : null;
+      const frei = !!(defItem && (defItem.manuell || defItem.regel));   // freie Sätze: nur Beispiel/Regel zum Vergleich, keine feste Lösung
+      A.items.push({ id: 'd' + i, teil: 'p' + d.punktNr, itemIdx: d.itemIdx, frage: d.frage, antwort: d.antwort, auto: d.korrekt === undefined ? null : d.korrekt, korrektAntwort: d.korrektAntwort, punkte: 1, heft: !!d.heft, frei });
     });
     return A;
   }
@@ -161,6 +163,16 @@ function zeileHtml(it, ov, fb, fbOffen, gezeigt) {
   const cls = e === true ? 'antwort-correct' : e === false ? (tipp ? 'antwort-typo' : 'antwort-wrong') : '';
   const zeichen = e === true ? '✓' : e === false ? (tipp ? '⚠' : '✗') : '—';
   let text = `${antwortBilderHtml(it, gezeigt)}${zeichen} ${escapeHtml(it.frage)} — „${escapeHtml(it.antwort)}“`;
+  if (it.heft) {   // Grammatik-Hybrid (02.11.2026): im Heft geschrieben — Lösung immer daneben, ✓/✗ = abhaken
+    text = `<span class="bw-heft">Heft</span>${zeichen} ${escapeHtml(it.frage)}<div class="bw-heft-loesung">${it.frei ? 'Freie Antwort, zum Vergleich' : 'Lösung'}: „${escapeHtml(it.korrektAntwort || '')}“</div>`;
+    if (e === null || e === undefined) text += ' <em>(im Heft ansehen und abhaken)</em>';
+    if (geaendert) text += ' <em class="geaendert">(von dir abgehakt)</em>';
+    return `<div class="antwortzeile bw-zeile ${cls} bw-heftzeile" data-id="${it.id}"><div class="bw-text">${text}</div>
+      <div class="bw-toggle" role="group" aria-label="Im Heft richtig oder falsch">
+        <button type="button" class="bw-btn ${e === true ? 'an-ok' : ''}" data-wert="true" title="im Heft richtig">✓</button>
+        <button type="button" class="bw-btn ${e === false ? 'an-bad' : ''}" data-wert="false" title="im Heft falsch">✗</button>
+      </div></div>`;
+  }
   if (e === false && it.korrektAntwort) text += `, ${it.satz ? 'Vorschlag' : 'richtig wäre'}: „${escapeHtml(it.korrektAntwort)}“`;
   if (tipp) text += ' <em>(evtl. nur Tippfehler)</em>';
   if (e === null || e === undefined) text += ' <em>(nicht automatisch geprüft — bitte bewerten)</em>';

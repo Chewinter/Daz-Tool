@@ -1,4 +1,4 @@
-/* Grammatik-Training A2 (4 Blöcke). Übernommen aus einem parallel entstandenen Tool-Stand (auf Wunsch von Chewinter).
+/* Grammatik-Training A2 (12 Blöcke). Übernommen aus einem parallel entstandenen Tool-Stand (auf Wunsch von Chewinter).
    Verhalten wie Tests: Abgabe + Lehrkraft-Freigabe, gleiches Format wie Grammatik-Training A1. */
 registerActivities(
 {
@@ -27,7 +27,8 @@ registerActivities(
        "antwort": "Ich dusche jeden Morgen um sieben."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -119,7 +120,8 @@ registerActivities(
        "antwort": "Spielen wir Tennis?"
       }
      ]
-    }
+    },
+    "heft": true
    }
   ],
   "type": "grammatikblock"
@@ -278,7 +280,8 @@ registerActivities(
        "antwort": "Die Band hat bei jedem Konzert mitgespielt."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -324,7 +327,8 @@ registerActivities(
        "antwort": "Warten Sie hier!"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -347,7 +351,8 @@ registerActivities(
        "antwort": "Er sagt, dass er später kommt."
       }
      ]
-    }
+    },
+    "heft": true
    }
   ],
   "type": "grammatikblock"
@@ -377,7 +382,8 @@ registerActivities(
        "antwort": "Der Spaß ist wichtiger als die Medaille."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -432,7 +438,8 @@ registerActivities(
        ]
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -478,7 +485,8 @@ registerActivities(
        "antwort": "Claudia hat damit ein Problem."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 6,
@@ -590,7 +598,8 @@ registerActivities(
        "antwort": "Wenn Mona frei hat, besucht sie ihre Oma."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -656,7 +665,8 @@ registerActivities(
        ]
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -706,7 +716,8 @@ registerActivities(
        "antwort": "Du solltest Sport machen."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -790,7 +801,8 @@ registerActivities(
        "antwort": "Sie und ihre Freunde würden einen gemeinsamen Ausflug organisieren."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 3,
@@ -871,7 +883,8 @@ registerActivities(
        "antwort": "Er erklärt die Regeln, damit alle sie verstehen."
       }
      ]
-    }
+    },
+    "heft": true
    }
   ]
  },
@@ -901,7 +914,8 @@ registerActivities(
        "antwort": "Meine Freundin Jenny, die aus Koblenz kommt, mag Berlin."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -959,7 +973,8 @@ registerActivities(
        "antwort": "Knut lebte im Eisbärengehege."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,
@@ -1012,7 +1027,8 @@ registerActivities(
        "antwort": "Jessica macht einen Kochkurs, weil sie gern kocht."
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 2,
@@ -1075,7 +1091,8 @@ registerActivities(
        "antwort": "Lena hat gefragt, ob ich das Bild gemalt habe."
       }
      ]
-    }
+    },
+    "heft": true
    }
   ]
  },
@@ -1427,7 +1444,8 @@ registerActivities(
        "antwort": "Wen ruft Klaus an der Bushaltestelle an?"
       }
      ]
-    }
+    },
+    "heft": true
    },
    {
     "nr": 4,

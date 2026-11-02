@@ -606,6 +606,13 @@ function buildGrammatikblock(a, wiederholung) {
         <div class="grammatik-uebung-titel">✎ Aufgabe ${p.nr}${gesperrtGanz ? ' <span class="locked-tag">bereits erledigt</span>' : ''}</div>
         <p class="hint" style="margin-top:0;">${escapeHtml(p.uebung.anleitung)}</p>
     `;
+    if (p.heft && !window.GRAMMATIK_HEFT_AUS) {   // Heft-Aufgabe: Sätze ins Heft schreiben (Grammatik-Hybrid 02.11.2026; HEFT_AUS nur für ältere Prüfungen)
+      const offen = p.uebung.items.map((item, ii) => ({ item, ii })).filter(x => !istGesperrt(gesperrtInfo, x.ii));
+      html += `<div class="blatt-auftrag wo-heft gb-heft">${WO_SYMBOL.heft}<p><strong class="blatt-wo">Ins Heft:</strong> Schreibe die Aufgabe ${p.nr} in dein Heft (mit Nummern). Deine Lehrkraft schaut sie im Heft an.</p></div>`
+        + (offen.every(x => /^Satz \d+$/.test(x.item.frage)) ? `<p class="hint">Schreibe ${offen.length} ${offen.length === 1 ? 'Satz' : 'Sätze'} (mit Nummern).</p></div>`   // freie Sätze: keine Liste „Satz 1, Satz 2 …“
+        : `<ol class="blatt-saetze gb-heft-liste">${offen.map(x => `<li value="${x.ii + 1}">${escapeHtml(x.item.frage)}</li>`).join('')}</ol></div>`);
+      return;
+    }
     p.uebung.items.forEach((item, ii) => {
       const key = `gb-${pi}-${ii}`;
       if (istGesperrt(gesperrtInfo, ii)) {
@@ -705,6 +712,9 @@ async function submitGrammatikblock(a) {
         antworten.push(wert);
         teilDetails.push({ frage: item.frage, antwort: wert, korrekt: item.manuell ? null : true, korrektAntwort: korrektAnzeige, punktNr: p.nr, itemIdx: ii });
         if (!item.manuell) autoCorrect++;
+      } else if (p.heft && !window.GRAMMATIK_HEFT_AUS) {   // im Heft — die Lehrkraft bewertet beim Abhaken (korrekt: null)
+        antworten.push('');
+        teilDetails.push({ frage: item.frage, antwort: '(im Heft)', korrekt: null, korrektAntwort: korrektAnzeige, punktNr: p.nr, itemIdx: ii, heft: true });
       } else {
         const input = document.querySelector(`#actBody .gb-input[data-key="gb-${pi}-${ii}"]`);
         const wert = input ? input.value.trim() : '';
@@ -720,7 +730,7 @@ async function submitGrammatikblock(a) {
 
   const submission = {
     name: currentActivityName, testId: currentActivityId, testTitle: a.title,
-    timestamp: new Date().toISOString(), isGrammatikblock: true,
+    timestamp: new Date().toISOString(), isGrammatikblock: true, mitHeft: a.punkte.some(p => p.heft),
     autoCorrect, autoTotal, teilDetails, raState, teil3: [],
   };
 
@@ -728,7 +738,7 @@ async function submitGrammatikblock(a) {
     const key = `submission:${currentActivityId}:${slug(currentActivityName)}:${Date.now()}`;
     const entwurfKey = `testprogress:${currentActivityId}:${slug(currentActivityName)}`;
     await grammatikAutosaveBeenden();
-    const wie = await abgabeSichernUndSenden([{ key, value: JSON.stringify(submission) }, { key: `status:${currentActivityId}:${slug(currentActivityName)}`, value: JSON.stringify(neuerStatusNachAbgabe()) }, { key: entwurfKey, loeschen: true }], entwurfKey);
+    const wie = await abgabeSichernUndSenden([{ key, value: JSON.stringify(submission) }, { key: `status:${currentActivityId}:${slug(currentActivityName)}`, value: JSON.stringify(Object.assign(neuerStatusNachAbgabe(), a.punkte.some(p => p.heft) ? { heft: true } : {})) }, { key: entwurfKey, loeschen: true }], entwurfKey);
     zeigeAbgabeHinweis(wie);   // lokal geloescht wird erst nach dem Senden
     document.getElementById('doneName').textContent = currentActivityName;
     nachAbgabe(); showView('view-done', { ersetzen: true });
@@ -3241,6 +3251,11 @@ function renderJetztDran() {
   // Was sonst noch offen ist, aber nicht die Hauptaufgabe: kurze Erinnerungen
   const extra = [];
   A.heft.filter(x => x !== haupt).forEach(x => extra.push(`Zeig deiner Lehrkraft dein Heft: ${escapeHtml(anzeigeTitel(x.id, curriculumItemInfo(x.id).title))}`));
+  Object.keys(progressCache.statusInfo || {}).forEach(id => {   // Grammatik-Hybrid: abgegebener Block mit Heft-Aufgaben
+    const st = progressCache.statusInfo[id];
+    const stufe = (/^(a1|a2|b1)_grammatik/.exec(id) || [])[1];   // „Grammatik-Block 3“ gibt es in A1, A2 und B1 — Stufe dazuschreiben
+    if (st && st.heft && !istArbeitsblatt(id) && ablaufStatus(st) === 'offen' && ACTIVITIES[id]) extra.push(`Zeig deiner Lehrkraft dein Heft: ${stufe ? stufe.toUpperCase() + ' ' : ''}${escapeHtml(anzeigeTitel(id, ACTIVITIES[id].title))}`);
+  });
   A.zettel.forEach(x => extra.push(`Korrigiere auf deinem Blatt: ${escapeHtml(anzeigeTitel(x.id, curriculumItemInfo(x.id).title))} <button type="button" class="btn small secondary jetzt-ergebnis" data-id="${x.id}">Ergebnis ansehen</button>`));
   if (extra.length) html += `<div class="jetzt-extra"><div class="jetzt-extra-kopf">Außerdem noch offen</div>${extra.map(t => `<div class="jetzt-extra-zeile">${t}</div>`).join('')}</div>`;
   const wartend = postausgang().length;
@@ -3284,8 +3299,8 @@ async function ladeBlattJetzt(id) {
   return null;
 }
 function blattSeiteKey(id) { return 'daz_blattseite:' + id + ':' + slug(currentActivityName); }
-function blattInline(t) {   // Text sicher machen, **fett**, [[Wort|Stichwort]] als antippbare Vokabel
-  return escapeHtml(t).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+function blattInline(t) {   // Text sicher machen, **fett**, *kursiv*, __unterstrichen__ (Relativsätze, Verben), [[Wort|Stichwort]] als antippbare Vokabel
+  return escapeHtml(t).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\*([^*\s][^*]*)\*/g, '<em>$1</em>').replace(/__([^_]+)__/g, '<u>$1</u>')
     .replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, (m, a, b) => `<button type="button" class="vok" data-vok="${b}">${a}</button>`);
 }
 function blattVokKnopf(text, stichwort) {
