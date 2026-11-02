@@ -1452,6 +1452,7 @@ async function startTest(testId, name) {
   document.getElementById('testTitle').textContent = anzeigeTitel(testId, t.title);
   document.getElementById('testSub').textContent = t.sub;
   setzeKopfzeile('view-test', testId);
+  zeigeEinstieg(testId);   // Szene aus dem Buch über dem Test (02.11.2026)
 
   const isAbschluss = istAbschlusstest(t); // alle Abschlusstest-Typen (siehe ABSCHLUSS_BUILDER in tests-common.js)
   const isEingangstest = t.type === 'eingangstest';
@@ -3520,4 +3521,21 @@ function zeigeAbgabeHinweis(wie) {
   el.textContent = wie === 'wartet' ? 'Das Internet ist gerade weg. Deine Abgabe ist sicher auf diesem Gerät gespeichert und wird automatisch gesendet, sobald das Internet wieder da ist. Öffne die Seite dafür einfach später wieder.'
     : wie === 'unterwegs' ? 'Deine Abgabe ist auf diesem Gerät gespeichert und wird gerade gesendet …'
     : wie === 'gesendet' && el.textContent ? '✓ Angekommen.' : '';
+}
+
+// ---------------- EINSTIEGSBILD VOR DEM TEST (Lukas 02.11.2026) ----------------
+// Die große Szene aus dem Arbeitsblatt des Buchs (EINSTIEG aus data/einstieg.js) steht über dem Test, damit der
+// Zusammenhang erhalten bleibt. Antippen vergrößert das Bild.
+function zeigeEinstieg(testId) {
+  let el = document.getElementById('einstieg');
+  if (!el) { el = document.createElement('section'); el.id = 'einstieg'; const w = document.querySelector('#view-test .wrap'); w.insertBefore(el, w.firstChild); }
+  const liste = (typeof EINSTIEG !== 'undefined' && EINSTIEG[testId]) || [];
+  el.className = liste.length ? 'einstieg' : 'hidden';
+  el.innerHTML = liste.length ? '<h2 class="einstieg-kopf">Schau dir das Bild an</h2>' + liste.map(x =>
+    `<figure class="blatt-figur">${iconSrc(x.bild) ? `<img src="${iconSrc(x.bild)}" alt="">` : ''}${x.unter ? `<figcaption>${escapeHtml(x.unter)}</figcaption>` : ''}</figure>`).join('') : '';
+  el.querySelectorAll('img').forEach(img => img.addEventListener('click', () => {
+    const box = document.createElement('div'); box.id = 'bildGross';
+    box.innerHTML = `<button type="button" class="vok-zu" aria-label="Schließen">×</button><img src="${img.src}" alt="">`;
+    box.addEventListener('click', () => box.remove()); document.body.appendChild(box);
+  }));
 }

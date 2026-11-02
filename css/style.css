@@ -815,6 +815,11 @@ body.pruefkonto .status-pill.rot { background: var(--bg); color: var(--ink-soft)
 .wl-bsp { font-weight: 700; font-size: 15px; line-height: 1.35; margin-bottom: 2px; }
 .wl-ueb { font-weight: 400; font-style: italic; color: var(--ink-soft); font-size: 14px; }
 
+/* Einstiegsbild vor dem Test (02.11.2026) */
+.einstieg { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin: 0 0 14px; }
+.einstieg-kopf { font-family: Georgia, serif; font-size: 18px; margin: 0 0 8px; }
+.einstieg .blatt-figur img { cursor: zoom-in; }
+
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
   .ub-chip { padding: 6px 12px; border-radius: 999px; background: #EFEBDD; font-size: 14px; }
