@@ -192,5 +192,37 @@ registerActivities({
   "schritt": 3,
   "test": "lf5_schritt3",
   "seiten": 7
+ },
+ "a2_lf4_blatt1": {
+  "title": "Lebensmittel",
+  "sub": "A2 Lernfeld 4: Essen — Schritt 1 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 1,
+  "test": "lf4_schritt1",
+  "seiten": 7
+ },
+ "a2_lf4_blatt2": {
+  "title": "In der Küche",
+  "sub": "A2 Lernfeld 4: Essen — Schritt 2 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 2,
+  "test": "lf4_schritt2",
+  "seiten": 5
+ },
+ "a2_lf4_blatt3": {
+  "title": "Kochen",
+  "sub": "A2 Lernfeld 4: Essen — Schritt 3 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 3,
+  "test": "lf4_schritt3",
+  "seiten": 7
+ },
+ "a2_lf4_blatt4": {
+  "title": "Backen",
+  "sub": "A2 Lernfeld 4: Essen — Schritt 4 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 4,
+  "test": "lf4_schritt4",
+  "seiten": 5
  }
 });

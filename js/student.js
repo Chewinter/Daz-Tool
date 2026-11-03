@@ -3302,7 +3302,7 @@ async function ladeBlattJetzt(id) {
 }
 function blattSeiteKey(id) { return 'daz_blattseite:' + id + ':' + slug(currentActivityName); }
 function blattInline(t) {   // Text sicher machen, **fett**, *kursiv*, __unterstrichen__ (Relativsätze, Verben), [[Wort|Stichwort]] als antippbare Vokabel
-  return escapeHtml(t).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\*([^*\s][^*]*)\*/g, '<em>$1</em>').replace(/__([^_]+)__/g, '<u>$1</u>')
+  return escapeHtml(t).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\*([^*\s][^*]*)\*/g, '<em>$1</em>').replace(/(^|[^_])__([^_\s](?:[^_]*[^_\s])?)__(?!_)/g, '$1<u>$2</u>')   // Lücken „________“ bleiben Lücken (03.11.)
     .replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, (m, a, b) => `<button type="button" class="vok" data-vok="${b}">${a}</button>`);
 }
 function blattVokKnopf(text, stichwort) {
