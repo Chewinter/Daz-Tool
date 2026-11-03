@@ -66,12 +66,12 @@ async function setzeHeftGesehen(testId, slugName, ts) {
     return neuSt;
   } catch (e) { return null; }
 }
-// Reihenfolge wie im Lernpfad (Niveau → Lernfeld → Schritt), nicht nach Datum (Lukas 03.11.)
+// Reihenfolge nach Lernpfad, das Weiteste oben (B1.5 vor A1.1, Schritt 3 vor Schritt 1), nicht nach Datum (Lukas 03.11.)
 function lernpfadRang(id) {
   for (let i = 0; i < CURRICULUM.length; i++) { const j = CURRICULUM[i].items.indexOf(id); if (j >= 0) return i * 1000 + j; }
   return 1e9;
 }
-function nachLernpfad(a, b) { return lernpfadRang(a.testId) - lernpfadRang(b.testId) || String(a.name).localeCompare(String(b.name), 'de') || Number(a.ts) - Number(b.ts); }
+function nachLernpfad(a, b) { return lernpfadRang(b.testId) - lernpfadRang(a.testId) || String(a.name).localeCompare(String(b.name), 'de') || Number(a.ts) - Number(b.ts); }
 
 // Arbeitsblatt im Heft: Lehrkraft hat das Heft angesehen. ok -> erledigt (nächster Schritt frei), sonst überarbeiten.
 async function setzeHeftStatus(id, slugName, ok, kommentar) {

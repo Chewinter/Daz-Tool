@@ -279,7 +279,7 @@ async function loadSubmissions(isBackgroundRefresh) {
     if (!werte[k]) return;
     try { submissions.push({ _key: k, ...JSON.parse(werte[k]) }); } catch (e) { /* korrupter Eintrag, überspringen */ }
   });
-  submissions.sort((a, b) => (typeof lernpfadRang === 'function' ? lernpfadRang(a.testId) - lernpfadRang(b.testId) : 0) || new Date(b.timestamp) - new Date(a.timestamp));   // Lernpfad, dann neueste zuerst
+  submissions.sort((a, b) => (typeof lernpfadRang === 'function' ? lernpfadRang(b.testId) - lernpfadRang(a.testId) : 0) || new Date(b.timestamp) - new Date(a.timestamp));   // Weitestes oben, dann neueste zuerst
 
   // Lehrkraft-Freigabestatus: aus der einen listBySuffix-Abfrage; nur wenn die gescheitert ist, einzeln nachladen
   const statusKeyVon = sub => `status:${sub.testId}:${slug(sub.name)}`;
