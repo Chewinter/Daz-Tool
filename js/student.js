@@ -2911,7 +2911,7 @@ function neuerStatusNachAbgabe() { return wiederholungsRunde ? { status: 'offen'
 // angesehen) wird — so bleibt der Seitenstart schnell. SCHRITT_BILD_GRUPPEN kommt aus data/icons-schritte-gruppen.js.
 const schrittBilderGeladen = {};
 function schrittBildGruppe(id) {
-  const m = /^(b1|a1)_lf(\d)/.exec(id) || null;
+  const m = /^(b1|a1|a2)_lf(\d)/.exec(id) || null;   // a2_lf5_blatt1 … (Heft-Arbeitsblätter A2, 03.11.); A2-Tests heißen lf5_schritt1
   if (m) return m[1] + '_lf' + m[2];
   const a2 = /^lf(\d)/.exec(id);
   return a2 ? 'a2_lf' + a2[1] : null;
@@ -3256,7 +3256,7 @@ function renderJetztDran() {
   Object.keys(progressCache.statusInfo || {}).forEach(id => {   // Grammatik-Hybrid: abgegebener Block mit Heft-Aufgaben
     const st = progressCache.statusInfo[id];
     const stufe = (/^(a1|a2|b1)_grammatik/.exec(id) || [])[1];   // „Grammatik-Block 3“ gibt es in A1, A2 und B1 — Stufe dazuschreiben
-    if (st && st.heft && !istArbeitsblatt(id) && ablaufStatus(st) === 'offen' && ACTIVITIES[id]) extra.push(`Zeig deiner Lehrkraft dein Heft: ${stufe ? stufe.toUpperCase() + ' ' : ''}${escapeHtml(anzeigeTitel(id, ACTIVITIES[id].title))}`);
+    if (st && st.heft && !st.heftGesehen && !istArbeitsblatt(id) && ablaufStatus(st) === 'offen' && ACTIVITIES[id]) extra.push(`Zeig deiner Lehrkraft dein Heft: ${stufe ? stufe.toUpperCase() + ' ' : ''}${escapeHtml(anzeigeTitel(id, ACTIVITIES[id].title))}`);
   });
   A.zettel.forEach(x => extra.push(`Korrigiere auf deinem Blatt: ${escapeHtml(anzeigeTitel(x.id, curriculumItemInfo(x.id).title))} <button type="button" class="btn small secondary jetzt-ergebnis" data-id="${x.id}">Ergebnis ansehen</button>`));
   if (extra.length) html += `<div class="jetzt-extra"><div class="jetzt-extra-kopf">Außerdem noch offen</div>${extra.map(t => `<div class="jetzt-extra-zeile">${t}</div>`).join('')}</div>`;

@@ -826,6 +826,11 @@ body.pruefkonto .status-pill.rot { background: var(--bg); color: var(--ink-soft)
   .blatt-tab th, .blatt-tab td { padding: 4px 4px; }
   .blatt-merk { padding: 10px 8px; }
 }
+/* 03.11.2026 (A2.5): lange Sprechernamen („Kassiererin“) laufen nicht mehr in den Text; Bildwörter mit „…“ brechen sauber um */
+.blatt-dialog { display: grid; grid-template-columns: max-content 1fr; column-gap: 10px; }
+.blatt-dialog-zeile { display: contents; }
+.blatt-dialog-zeile > * { padding: 2px 0; }
+.blatt-bild span, .blatt-bild .vok { overflow-wrap: anywhere; hyphens: auto; text-align: center; }
 
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }

@@ -168,5 +168,29 @@ registerActivities({
   "schritt": 3,
   "test": "b1_lf5_schritt3",
   "seiten": 4
+ },
+ "a2_lf5_blatt1": {
+  "title": "Geschäfte",
+  "sub": "A2 Lernfeld 5: Einkaufen — Schritt 1 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 1,
+  "test": "lf5_schritt1",
+  "seiten": 6
+ },
+ "a2_lf5_blatt2": {
+  "title": "Bezahlen",
+  "sub": "A2 Lernfeld 5: Einkaufen — Schritt 2 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 2,
+  "test": "lf5_schritt2",
+  "seiten": 6
+ },
+ "a2_lf5_blatt3": {
+  "title": "Mahlzeiten",
+  "sub": "A2 Lernfeld 5: Einkaufen — Schritt 3 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 3,
+  "test": "lf5_schritt3",
+  "seiten": 7
  }
 });

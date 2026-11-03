@@ -233,6 +233,7 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
   const dt = new Date(sub.timestamp);
   const dateStr = dt.toLocaleDateString('de-DE') + ' ' + dt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   const titelAnzeige = anzeigeTitel(sub.testId, sub.testTitle);
+  const stufeAnzeige = (typeof testAnzeige === 'function' ? testAnzeige(sub.testId).stufe : '') || '';
   const istAbschluss = A.art === 'abschluss';
   const ab = ablaufStatus(statusObj);
   const istWdhAbgabe = ab === 'offen' && !!statusObj.wiederholung;   // Abgabe der digitalen Wiederholung (Schritt 4)
@@ -249,7 +250,7 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
 
   div.classList.add('collapsed');
   div.innerHTML = `
-    <div class="head"><h3>${escapeHtml(sub.name)}</h3><span class="meta">${escapeHtml(titelAnzeige)} · ${dateStr}</span></div>
+    <div class="head"><h3>${escapeHtml(sub.name)}</h3><span class="meta">${stufeAnzeige ? `<strong>${escapeHtml(stufeAnzeige)}</strong> · ` : ''}${escapeHtml(titelAnzeige)} · ${dateStr}</span></div>
     <span class="status-tag ${ab}">${statusText}</span><span class="bw-chevron">▾</span>
     <div class="bw-details">
     <div class="bw-summe"></div>
@@ -283,7 +284,7 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
       return `<div class="bw-teil" data-teil="${tl.id}">
         <h4>${escapeHtml(tl.titel)} <span class="bw-teilzahl ${te.falsch ? 'hat-fehler' : ''}">${zahl}</span></h4>
         ${its.length ? its.map(it => zeileHtml(it, ov, fb, fbOffen, gezeigt)).join('') : '<div class="bw-leer">Keine Antworten in diesem Teil.</div>'}
-        ${(te.falsch && ab === 'offen') ? '<div class="bw-wdh-hinweis">Nach der Korrektur auf dem Blatt bekommt der Schüler genau die ✗-Aufgaben hier noch einmal — automatisch, keine Auswahl nötig.</div>' : ''}
+        ${(te.falsch && ab === 'offen') ? '<div class="bw-wdh-hinweis">Nach der Korrektur auf dem Blatt wählst du: endgültig erledigt oder digitale Wiederholung genau dieser ✗-Aufgaben.</div>' : ''}
       </div>`;
     }).join('');
     // Summe
@@ -300,18 +301,21 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
         <button type="button" class="btn ok small bw-endgueltig">Endgültig erledigt</button>
         <button type="button" class="btn danger small bw-nochmal-zettel" ${erg.falsch ? '' : 'disabled title="Keine Antwort ist mit ✗ markiert."'}>Nochmal Korrektur auf Zettel (die ✗-Aufgaben)</button></div>`;
     } else if (ab === 'offen') {
-      aktionEl.innerHTML = `<div class="status-controls"><button type="button" class="btn ok small bw-abschliessen">${erg.falsch
-        ? 'Bewertung abschließen — Rückgabe: Korrektur auf dem Blatt' : 'Bewertung abschließen — alles richtig, erledigt'}</button></div>`;
+      const heftOffen = A.items.some(it => it.heft && effektiv(it, ov) == null);
+      aktionEl.innerHTML = `<div class="status-controls">${heftOffen ? '<button type="button" class="btn ok small bw-heft-alle">Alle Heft-Aufgaben ✓</button>' : ''}
+        <button type="button" class="btn ok small bw-abschliessen">${erg.falsch
+        ? 'Bewertung abschließen — Rückgabe: Korrektur auf dem Blatt' : 'Bewertung abschließen — alles richtig, erledigt'}</button> <button type="button" class="btn secondary small bw-endgueltig-direkt">Endgültig erledigt</button></div>`;
     } else if (ab === 'zettel_offen') {
       aktionEl.innerHTML = `<div class="bw-hinweis">Der Schüler schreibt die richtigen Antworten auf sein Blatt und zeigt es dir.</div>
-        <div class="status-controls"><button type="button" class="btn ok small bw-korrektur-ok">Handschriftliche Korrektur ist ok</button></div>`;
+        <div class="status-controls"><button type="button" class="btn ok small bw-korrektur-ok" data-wdh="0">Korrektur ok — endgültig erledigt</button>
+        <button type="button" class="btn secondary small bw-korrektur-ok" data-wdh="1">Korrektur ok — Wiederholung</button></div>`;
     } else if (ab === 'wiederholung_frei') {
-      aktionEl.innerHTML = '<div class="bw-hinweis">Korrektur ok. Der Schüler macht jetzt nur die falschen Aufgaben noch einmal.</div>';
+      aktionEl.innerHTML = '<div class="bw-hinweis">Korrektur ok. Der Schüler macht jetzt nur die falschen Aufgaben noch einmal.</div><div class="status-controls"><button type="button" class="btn secondary small bw-endgueltig-direkt">Endgültig erledigt</button></div>';
     } else {
       aktionEl.innerHTML = '<div class="bw-hinweis gut">Endgültig erledigt. Keine Wiederholung mehr.</div>';
     }
     pflichtEl.textContent = '';
-    if (sub._neueste === false) { aktionEl.innerHTML = '<div class="bw-hinweis">Ältere Abgabe — nur zum Ansehen. Bewertet wird immer die neueste Abgabe dieses Tests.</div>'; vorschauEl.innerHTML = ''; }
+    if (sub._neueste === false) { aktionEl.innerHTML = '<div class="bw-hinweis">Ältere Abgabe — nur zum Ansehen. Bewertet wird immer die neueste Abgabe dieses Tests.</div>' + (ab !== 'endgueltig' ? '<div class="status-controls"><button type="button" class="btn secondary small bw-endgueltig-direkt">Endgültig erledigt</button></div>' : ''); vorschauEl.innerHTML = ''; }
   }
 
   function speichereEntwurf() {
@@ -443,15 +447,27 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
     loadSubmissions(false);
   }
   aktionEl.addEventListener('click', async (ev) => {
+    if (ev.target.closest('.bw-endgueltig-direkt')) {   // Lukas 03.11.: in jedem Zustand, auch bei älteren Abgaben
+      const erg = berechneErgebnis(A, ov);
+      if (sub._neueste !== false && ab === 'offen' && !erg.offen) { abschliessen('endgueltig'); return; }   // alles bewertet: mit Punkten speichern
+      if (ab === 'offen' && sub._neueste !== false && !confirm('Diese Abgabe ist noch nicht fertig bewertet. Trotzdem endgültig erledigt? (Es werden dann keine Punkte gespeichert.)')) return;
+      const b = ev.target.closest('.bw-endgueltig-direkt'); b.disabled = true;
+      if (await setzeEndgueltig(sub.testId, slug(sub.name))) loadSubmissions(false); else { b.disabled = false; alert('Konnte nicht gespeichert werden. Bitte nochmal versuchen.'); }
+      return;
+    }
     if (sub._neueste === false) return;
+    if (ev.target.closest('.bw-heft-alle')) {   // alle noch nicht abgehakten Heft-Teilaufgaben ✓ (Falsches danach einzeln ✗)
+      A.items.forEach(it => { if (it.heft && effektiv(it, ov) == null) ov[it.id] = true; });
+      speichereEntwurf(); aktualisiere(); return;
+    }
     if (ev.target.closest('.bw-abschliessen')) abschliessen('abschliessen');
     else if (ev.target.closest('.bw-endgueltig')) abschliessen('endgueltig');
     else if (ev.target.closest('.bw-nochmal-zettel')) abschliessen('zettel');
     else if (ev.target.closest('.bw-korrektur-ok')) {
       const b = ev.target.closest('.bw-korrektur-ok'); b.disabled = true;
-      const ok = await setzeKorrekturOk(sub.testId, slug(sub.name));
+      const ok = await setzeKorrekturOk(sub.testId, slug(sub.name), b.getAttribute('data-wdh') === '1');
       if (ok) loadSubmissions(false); else { b.disabled = false; alert('Konnte nicht gespeichert werden. Bitte nochmal versuchen.'); }
     }
   });
-  if (sub._neueste === false) { aktionEl.innerHTML = '<div class="bw-hinweis">Ältere Abgabe — nur zum Ansehen. Bewertet wird immer die neueste Abgabe dieses Tests.</div>'; vorschauEl.innerHTML = ''; }
+  if (sub._neueste === false) { aktionEl.innerHTML = '<div class="bw-hinweis">Ältere Abgabe — nur zum Ansehen. Bewertet wird immer die neueste Abgabe dieses Tests.</div>' + (ab !== 'endgueltig' ? '<div class="status-controls"><button type="button" class="btn secondary small bw-endgueltig-direkt">Endgültig erledigt</button></div>' : ''); vorschauEl.innerHTML = ''; }
 }

@@ -435,7 +435,7 @@ registerTests({
    },
    {
     "num": 16,
-    "vor": "Am Aschermittwoch wird der Nubbel",
+    "vor": "In der Nacht vor Aschermittwoch wird der Nubbel",
     "nach": ".",
     "options": [
      "verbrannt",
@@ -458,8 +458,8 @@ registerTests({
    },
    {
     "num": 19,
-    "word": "Was passiert am Aschermittwoch? (der Nubbel, verbrennen) Antworte mit einem ganzen Satz.",
-    "pronomen": "Am Aschermittwoch"
+    "word": "Was passiert in der Nacht vor Aschermittwoch? (der Nubbel, verbrennen) Antworte mit einem ganzen Satz.",
+    "pronomen": "In der Nacht vor Aschermittwoch"
    },
    {
     "num": 20,

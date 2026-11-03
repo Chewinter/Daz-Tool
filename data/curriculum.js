@@ -26,7 +26,7 @@ const CURRICULUM = [
   { id: "a2_lf2", name: "Lernfeld 2: Wohnen", niveau: "A2", items: ["lf2_schritt1", "lf2_schritt2", "lf2_schritt3", "lf2_schritt4", "lf2_schritt5", "lf2_schritt6_brettspiel", "lf2_abschlusstest"] },
   { id: "a2_lf3", name: "Lernfeld 3: Körper", niveau: "A2", items: ["lf3_schritt1", "lf3_schritt2", "lf3_schritt3", "lf3_schritt4", "lf3_schritt5", "lf3_schritt6", "lf3_schritt7", "lf3_schritt8_quiz", "lf3_abschlusstest"] },
   { id: "a2_lf4", name: "Lernfeld 4: Essen", niveau: "A2", items: ["lf4_schritt1", "lf4_schritt2", "lf4_schritt3", "lf4_schritt4", "lf4_schritt5_schlange", "lf4_abschlusstest"] },
-  { id: "a2_lf5", name: "Lernfeld 5: Einkaufen", niveau: "A2", items: ["lf5_schritt1", "lf5_schritt2", "lf5_schritt3", "lf5_abschlusstest"] },
+  { id: "a2_lf5", name: "Lernfeld 5: Einkaufen", niveau: "A2", items: ["a2_lf5_blatt1", "lf5_schritt1", "a2_lf5_blatt2", "lf5_schritt2", "a2_lf5_blatt3", "lf5_schritt3", "lf5_abschlusstest"] },
   // ---- A2: Grammatik-Training ----
   { id: "a2_grammatik", name: "Grammatik-Training", niveau: "A2", items: ["a2_grammatik_block1", "a2_grammatik_block2", "a2_grammatik_block3", "a2_grammatik_block4", "a2_grammatik_block5", "a2_grammatik_block6", "a2_grammatik_block7", "a2_grammatik_block8", "a2_grammatik_block9", "a2_grammatik_block10", "a2_grammatik_block11", "a2_grammatik_block12"] },
   // ---- A2: Schreibanlässe (E-Mails und Brief) ----
