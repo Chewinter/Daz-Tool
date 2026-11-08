@@ -68,13 +68,13 @@ registerTests({
      },
      {
       "type": "text",
-      "prompt": "Wie ___ (heißen) Sie? (Höflichkeitsform)",
-      "answer": "heißen"
+      "prompt": "Wie ___ (heißen) deine Lehrerin?",
+      "answer": "heißt"
      },
      {
       "type": "text",
-      "prompt": "Sie (Plural) ___ (kommen) aus Marokko.",
-      "answer": "kommen"
+      "prompt": "Ali ___ (kommen) aus Marokko.",
+      "answer": "kommt"
      },
      {
       "type": "mc",
@@ -213,7 +213,7 @@ registerTests({
      },
      {
       "type": "text",
-      "prompt": "___ (der) Bruder, ___ (die) Schwester, ___ (das) Kind – wie heißt der Plural-Artikel? Ergänze: ___ Kinder",
+      "prompt": "Mehrzahl: der Bruder → ___ Brüder",
       "answer": "die"
      },
      {

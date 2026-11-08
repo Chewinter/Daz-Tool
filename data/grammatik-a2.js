@@ -95,8 +95,8 @@ registerActivities(
        "antwort": "Darf"
       },
       {
-       "frage": "Wir ___ noch Hausaufgaben machen. (müssen)",
-       "antwort": "müssen"
+       "frage": "Ihr ___ noch Hausaufgaben machen. (müssen)",
+       "antwort": "müsst"
       }
      ]
     },

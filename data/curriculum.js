@@ -22,9 +22,9 @@ const CURRICULUM = [
   { id: "a1_grammatik", name: "Grammatik-Training", niveau: "A1", items: ["a1_grammatik_block1", "a1_grammatik_block2", "a1_grammatik_block3", "a1_grammatik_block4", "a1_grammatik_block5", "a1_grammatik_block6", "a1_grammatik_block7", "a1_grammatik_block8", "a1_grammatik_block9"] },
   { id: "a1_check", name: "Einstufungstest A1", niveau: "A1", items: ["eingangstest_a1"] },
   // ---- A2 ----
-  { id: "a2_lf1", name: "Lernfeld 1: Freizeit", niveau: "A2", items: ["lf1_schritt1", "lf1_schritt2", "lf1_schritt3_domino", "lf1_schritt4_steigern", "lf1_schritt5_wortarten", "lf1_abschlusstest"] },
-  { id: "a2_lf2", name: "Lernfeld 2: Wohnen", niveau: "A2", items: ["lf2_schritt1", "lf2_schritt2", "lf2_schritt3", "lf2_schritt4", "lf2_schritt5", "lf2_schritt6_brettspiel", "lf2_abschlusstest"] },
-  { id: "a2_lf3", name: "Lernfeld 3: Körper", niveau: "A2", items: ["lf3_schritt1", "lf3_schritt2", "lf3_schritt3", "lf3_schritt4", "lf3_schritt5", "lf3_schritt6", "lf3_schritt7", "lf3_schritt8_quiz", "lf3_abschlusstest"] },
+  { id: "a2_lf1", name: "Lernfeld 1: Freizeit", niveau: "A2", items: ["a2_lf1_blatt1", "lf1_schritt1", "a2_lf1_blatt2", "lf1_schritt2", "lf1_schritt3_domino", "lf1_schritt4_steigern", "a2_lf1_blatt3", "lf1_schritt5_wortarten", "lf1_abschlusstest"] },
+  { id: "a2_lf2", name: "Lernfeld 2: Wohnen", niveau: "A2", items: ["a2_lf2_blatt1", "lf2_schritt1", "a2_lf2_blatt2", "lf2_schritt2", "a2_lf2_blatt3", "lf2_schritt3", "a2_lf2_blatt4", "lf2_schritt4", "a2_lf2_blatt5", "lf2_schritt5", "lf2_schritt6_brettspiel", "lf2_abschlusstest"] },
+  { id: "a2_lf3", name: "Lernfeld 3: Körper", niveau: "A2", items: ["a2_lf3_blatt1", "lf3_schritt1", "a2_lf3_blatt2", "lf3_schritt2", "a2_lf3_blatt3", "lf3_schritt3", "a2_lf3_blatt4", "lf3_schritt4", "a2_lf3_blatt5", "lf3_schritt5", "a2_lf3_blatt6", "lf3_schritt6", "a2_lf3_blatt7", "lf3_schritt7", "lf3_schritt8_quiz", "lf3_abschlusstest"] },
   { id: "a2_lf4", name: "Lernfeld 4: Essen", niveau: "A2", items: ["a2_lf4_blatt1", "lf4_schritt1", "a2_lf4_blatt2", "lf4_schritt2", "a2_lf4_blatt3", "lf4_schritt3", "a2_lf4_blatt4", "lf4_schritt4", "lf4_schritt5_schlange", "lf4_abschlusstest"] },
   { id: "a2_lf5", name: "Lernfeld 5: Einkaufen", niveau: "A2", items: ["a2_lf5_blatt1", "lf5_schritt1", "a2_lf5_blatt2", "lf5_schritt2", "a2_lf5_blatt3", "lf5_schritt3", "lf5_abschlusstest"] },
   // ---- A2: Grammatik-Training ----

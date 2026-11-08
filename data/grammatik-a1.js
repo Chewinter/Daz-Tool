@@ -441,15 +441,15 @@ registerActivities({
      "anleitung": "Ergänze den bestimmten Artikel im Akkusativ.",
      "items": [
       {
-       "frage": "Wie findest du ___ Hund? (der Hund)",
+       "frage": "Wie findest du ___ Hund? (Hund, maskulin)",
        "antwort": "den"
       },
       {
-       "frage": "Magst du ___ Buch? (das Buch)",
+       "frage": "Magst du ___ Buch? (Buch, Neutrum)",
        "antwort": "das"
       },
       {
-       "frage": "Wie findest du ___ Mathelehrer? (der Mathelehrer)",
+       "frage": "Wie findest du ___ Mathelehrer? (Mathelehrer, maskulin)",
        "antwort": "den"
       }
      ]
@@ -465,15 +465,15 @@ registerActivities({
      "anleitung": "Ergänze den unbestimmten Artikel im Akkusativ.",
      "items": [
       {
-       "frage": "Ich packe ___ Kuli. (ein Kuli)",
+       "frage": "Ich packe ___ Kuli. (Kuli, maskulin)",
        "antwort": "einen"
       },
       {
-       "frage": "Ich habe ___ Lineal. (ein Lineal)",
+       "frage": "Ich habe ___ Lineal. (Lineal, Neutrum)",
        "antwort": "ein"
       },
       {
-       "frage": "Ich sehe ___ Tafel. (eine Tafel)",
+       "frage": "Ich sehe ___ Tafel. (Tafel, feminin)",
        "antwort": "eine"
       }
      ]
@@ -803,8 +803,8 @@ registerActivities({
        "antwort": "kann"
       },
       {
-       "frage": "Wir ___ heute Fußball spielen. (wollen)",
-       "antwort": "wollen"
+       "frage": "Ihr ___ heute Fußball spielen. (wollen)",
+       "antwort": "wollt"
       }
      ]
     },

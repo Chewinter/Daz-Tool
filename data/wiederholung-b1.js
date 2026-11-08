@@ -1585,11 +1585,11 @@ registerActivities({
        "anfang": true
       },
       {
-       "frage": "___ Sie bitte Platz! (nehmen)",
+       "frage": "(du) ___ bitte Platz! (nehmen)",
        "thema": "V7",
        "id": "D22",
        "antwort": [
-        "Nehmen"
+        "Nimm"
        ],
        "streng": true,
        "anfang": true

@@ -257,7 +257,7 @@ function rendereUebersicht() {
   const body = document.getElementById('uebersichtBody');
   const schueler = uebersichtDaten;
   const A = sammleAufgaben(schueler);
-  const anzahlWartet = {}; A.wartet.forEach(x => { anzahlWartet[x.slug] = (anzahlWartet[x.slug] || 0) + 1; });
+  const anzahlWartet = {}; A.wartet.concat(A.heft).forEach(x => { anzahlWartet[x.slug] = (anzahlWartet[x.slug] || 0) + 1; });   // Heft zeigen zählt mit (08.11.)
   const hatWdh = new Set(A.wiederholen.map(x => x.slug));
 
   let h = `<div class="ub-chips">
@@ -483,4 +483,59 @@ async function ladeWdhMatrix() {
   h += '<tr><th class="wdh-kind">wiederholen</th>' + WDH_B1_THEMEN.map(t => `<td>${zahl[t.kz] || ''}</td>`).join('') + '</tr></table></div>';
   h += '<p class="hint">Grün = kann es, Gelb = noch üben, Rot = wiederholen, Grau = noch nicht bearbeitet. „!“/„✓“ = deine Entscheidung (wiederholen/nicht). Letzte Zeile: so viele Kinder sollten das Thema wiederholen.</p>';
   ziel.innerHTML = h;
+}
+
+
+// ---------------- ARBEITSBLÄTTER AUF DER SEITE EINES KINDES (Lukas 08.11.2026) ----------------
+// Arbeitsblätter haben keine Abgabe (submission:), nur einen Status. Damit sie trotzdem in der Liste des Kindes stehen,
+// kommt je begonnenem Blatt eine Karte dazu (Heft ok / Noch nicht ok / Lösung), eingereiht nach Lernpfad wie die Abgaben.
+async function haengeBlattKartenAn(listEl, slugName, abgegebeneTests, statusWerte) {
+  const werte = statusWerte || {};
+  if (!statusWerte) {
+    try { const r = await window.storage.listBySuffix(':' + slugName, true); ((r && r.items) || []).forEach(x => { werte[x.key] = x.value; }); } catch (e) { return; }
+  }
+  const blaetter = [];
+  CURRICULUM.forEach(lf => lf.items.forEach(id => {
+    if (!istArbeitsblatt(id)) return;
+    let st = null;
+    try { st = werte[`status:${id}:${slugName}`] ? JSON.parse(werte[`status:${id}:${slugName}`]) : null; } catch (e) { /* kaputt */ }
+    const z = blattZustand(id, st, abgegebeneTests || new Set());
+    if (z !== 'offen' && !(z === 'erledigt' && !st)) blaetter.push({ id, z, st: st || {} });   // nur Blätter mit eigenem Status
+  }));
+  if (!blaetter.length) return;
+  const leer = listEl.querySelector('.empty-state'); if (leer) leer.remove();
+  blaetter.forEach(({ id, z, st }) => {
+    const a = testAnzeige(id);
+    const div = document.createElement('div');
+    div.className = 'submission blatt-karte';
+    div.dataset.test = id;
+    const am = st.am || st.reviewedAt;
+    const tag = z === 'heft_zeigen' ? ['offen', 'Fertig — will dir das Heft zeigen'] : z === 'nochmal' ? ['zettel_offen', 'Heft wird überarbeitet'] : ['endgueltig', 'Heft ok'];
+    div.innerHTML = `<div class="head"><h3>${escapeHtml(STUDENTS.find(n => slug(n) === slugName) || slugName)}</h3>
+        <span class="meta"><strong>${escapeHtml(a.stufe)}</strong> · ${escapeHtml(a.titel)}${am ? ' · ' + new Date(am).toLocaleDateString('de-DE') : ''}</span></div>
+      <span class="status-tag ${tag[0]}">${tag[1]}</span>
+      ${st.comment && z === 'nochmal' ? `<div class="ub-komm">„${escapeHtml(st.comment)}“</div>` : ''}
+      <div class="status-controls">
+        ${z !== 'erledigt' ? '<button type="button" class="btn small ok bk-ok">Heft ok</button>' : ''}
+        ${z === 'heft_zeigen' ? '<button type="button" class="btn small secondary bk-nein">Noch nicht ok</button>' : ''}
+        <button type="button" class="btn small secondary bk-loesung">Lösung</button></div>
+      <div class="ub-loesung-box hidden"></div>`;
+    const knoepfe = on => div.querySelectorAll('button').forEach(b => { if (!b.classList.contains('bk-loesung')) b.disabled = !on; });
+    div.querySelectorAll('.bk-ok, .bk-nein').forEach(b => b.addEventListener('click', async () => {
+      const ok = b.classList.contains('bk-ok');
+      const kommentar = ok ? '' : prompt('Was soll im Heft noch verbessert werden? (Das Kind sieht diesen Satz.)', '');
+      if (!ok && kommentar === null) return;
+      knoepfe(false);
+      if (await setzeHeftStatus(id, slugName, ok, kommentar)) loadSubmissions(false);
+      else { knoepfe(true); alert('Konnte nicht gespeichert werden. Bitte nochmal versuchen.'); }
+    }));
+    div.querySelector('.bk-loesung').addEventListener('click', () => {
+      const box = div.querySelector('.ub-loesung-box');
+      if (!box.classList.toggle('hidden')) zeigeLoesung(id, box);
+    });
+    listEl.appendChild(div);
+  });
+  // Alle Karten (Abgaben und Blätter) nach Lernpfad, das Weiteste oben; gleiche Schritte bleiben in ihrer Reihenfolge
+  const karten = [...listEl.children].filter(e => e.dataset && e.dataset.test);
+  karten.map((e, i) => ({ e, i, r: lernpfadRang(e.dataset.test) })).sort((x, y) => y.r - x.r || x.i - y.i).forEach(x => listEl.appendChild(x.e));
 }

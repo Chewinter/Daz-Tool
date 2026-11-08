@@ -224,5 +224,125 @@ registerActivities({
   "schritt": 4,
   "test": "lf4_schritt4",
   "seiten": 5
+ },
+ "a2_lf1_blatt1": {
+  "title": "Was machst du gerne?",
+  "sub": "A2 Lernfeld 1: Freizeit — Schritt 1 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 1,
+  "test": "lf1_schritt1",
+  "seiten": 7
+ },
+ "a2_lf1_blatt2": {
+  "title": "Was machst du gerne in deiner Freizeit?",
+  "sub": "A2 Lernfeld 1: Freizeit — Schritt 2 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 2,
+  "test": "lf1_schritt2",
+  "seiten": 10
+ },
+ "a2_lf1_blatt3": {
+  "title": "Wortarten",
+  "sub": "A2 Lernfeld 1: Freizeit — Schritt 5 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 5,
+  "test": "lf1_schritt5_wortarten",
+  "seiten": 5
+ },
+ "a2_lf2_blatt1": {
+  "title": "Das ist meine Wohnung",
+  "sub": "A2 Lernfeld 2: Wohnen — Schritt 1 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 1,
+  "test": "lf2_schritt1",
+  "seiten": 4
+ },
+ "a2_lf2_blatt2": {
+  "title": "Meine, deine, unsere Wohnung",
+  "sub": "A2 Lernfeld 2: Wohnen — Schritt 2 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 2,
+  "test": "lf2_schritt2",
+  "seiten": 4
+ },
+ "a2_lf2_blatt3": {
+  "title": "Das ist unser Haus",
+  "sub": "A2 Lernfeld 2: Wohnen — Schritt 3 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 3,
+  "test": "lf2_schritt3",
+  "seiten": 4
+ },
+ "a2_lf2_blatt4": {
+  "title": "In welchem Zimmer ist …?",
+  "sub": "A2 Lernfeld 2: Wohnen — Schritt 4 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 4,
+  "test": "lf2_schritt4",
+  "seiten": 4
+ },
+ "a2_lf2_blatt5": {
+  "title": "Saubermachen",
+  "sub": "A2 Lernfeld 2: Wohnen — Schritt 5 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 5,
+  "test": "lf2_schritt5",
+  "seiten": 5
+ },
+ "a2_lf3_blatt1": {
+  "title": "Mein Gesicht",
+  "sub": "A2 Lernfeld 3: Körper — Schritt 1 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 1,
+  "test": "lf3_schritt1",
+  "seiten": 5
+ },
+ "a2_lf3_blatt2": {
+  "title": "Mein Körper",
+  "sub": "A2 Lernfeld 3: Körper — Schritt 2 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 2,
+  "test": "lf3_schritt2",
+  "seiten": 5
+ },
+ "a2_lf3_blatt3": {
+  "title": "Körperpflege",
+  "sub": "A2 Lernfeld 3: Körper — Schritt 3 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 3,
+  "test": "lf3_schritt3",
+  "seiten": 4
+ },
+ "a2_lf3_blatt4": {
+  "title": "Reflexivpronomen",
+  "sub": "A2 Lernfeld 3: Körper — Schritt 4 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 4,
+  "test": "lf3_schritt4",
+  "seiten": 5
+ },
+ "a2_lf3_blatt5": {
+  "title": "Beim Arzt",
+  "sub": "A2 Lernfeld 3: Körper — Schritt 5 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 5,
+  "test": "lf3_schritt5",
+  "seiten": 6
+ },
+ "a2_lf3_blatt6": {
+  "title": "In der Apotheke",
+  "sub": "A2 Lernfeld 3: Körper — Schritt 6 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 6,
+  "test": "lf3_schritt6",
+  "seiten": 4
+ },
+ "a2_lf3_blatt7": {
+  "title": "Konjunktionen",
+  "sub": "A2 Lernfeld 3: Körper — Schritt 7 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 7,
+  "test": "lf3_schritt7",
+  "seiten": 5
  }
 });

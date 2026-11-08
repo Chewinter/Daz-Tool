@@ -268,6 +268,7 @@ async function loadSubmissions(isBackgroundRefresh) {
 
   if (!keys.length) {
     listEl.innerHTML = '<p class="empty-state">Noch keine Einreichungen von diesem Schüler.</p>';
+    if (typeof haengeBlattKartenAn === 'function') await haengeBlattKartenAn(listEl, filterVal, new Set(), null);   // nur Arbeitsblätter fertig?
     document.getElementById('lastUpdated').textContent = 'Aktualisiert: ' + new Date().toLocaleTimeString('de-DE');
     return;
   }
@@ -508,6 +509,7 @@ async function loadSubmissions(isBackgroundRefresh) {
 
     listEl.appendChild(div);
   }
+  if (typeof haengeBlattKartenAn === 'function') await haengeBlattKartenAn(listEl, filterVal, new Set(gefiltert.map(x => x.testId)), eigene && Array.isArray(eigene.items) ? Object.fromEntries(eigene.items.map(x => [x.key, x.value])) : null);
   document.getElementById('lastUpdated').textContent = 'Zuletzt aktualisiert: ' + new Date().toLocaleTimeString('de-DE');
   if (isBackgroundRefresh) window.scrollTo(0, scrollY);
 }
