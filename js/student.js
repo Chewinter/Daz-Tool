@@ -3333,6 +3333,23 @@ function blattWortlisteHtml(b, vok) {
     return `<div class="wl-zeile${v ? '' : ' form'}"><div class="wl-de">${blattVokKnopf(x.de, x.stichwort)}</div><div class="wl-rechts">${rechts}</div></div>`;
   }).join('')}</div>`;
 }
+// Grammatik-Erklärung (Lukas 08.11.2026): zusätzlich zum Buch, erst Deutsch, dann die Sprache(n) des Kindes.
+function erklSpracheHtml(sp, titel, absaetze) {
+  return sp.map(k => {
+    const t = absaetze && absaetze[k];
+    return `<div class="blatt-erkl-sp" dir="auto"><div class="blatt-erkl-sp-kopf">${escapeHtml(SPRACHEN[k])}${t ? ': ' + escapeHtml(t[0]) : ''}</div>${t
+      ? (Array.isArray(t[1]) ? t[1] : [t[1]]).map(x => `<p dir="auto">${escapeHtml(x)}</p>`).join('') + '<p class="vok-fehlt">Übersetzung noch nicht geprüft. Stimmt etwas nicht? Sag es deiner Lehrkraft.</p>'
+      : '<p class="vok-fehlt">Für diese Sprache gibt es die Erklärung noch nicht.</p>'}</div>`;
+  }).join('');
+}
+function blattErklaerungHtml(b) {
+  const sp = meineSprachen();
+  const wahl = sp.length ? '' : `<p class="blatt-hinweis">Wähle deine Sprache, dann steht die Erklärung hier auch in deiner Sprache: <select class="wl-sprache"><option value="">—</option>${Object.keys(SPRACHEN).map(k => `<option value="${k}">${SPRACHEN[k]}</option>`).join('')}</select></p>`;
+  return `<div class="blatt-erkl"><div class="blatt-erkl-kopf">💡 Erklärung: ${blattInline(b.titel)}</div>
+    ${b.de.map(p => `<p>${blattInline(p)}</p>`).join('')}
+    ${b.bsp && b.bsp.length ? `<div class="blatt-erkl-bsp"><span class="vok-lab">Beispiele</span>${b.bsp.map(x => `<p>${escapeHtml(x)}</p>`).join('')}</div>` : ''}
+    ${erklSpracheHtml(sp, b.titel, b.sp)}${wahl}</div>`;
+}
 function blattBlockHtml(b, vok) {
   if (b.art === 'auftrag') return `<div class="blatt-auftrag wo-${b.wo}">${WO_SYMBOL[b.wo] || ''}<p><strong class="blatt-wo">${WO_TEXT[b.wo] || ''}:</strong> ${blattInline(b.text)}</p></div>`;
   if (b.art === 'text') return `<div class="blatt-text${b.bild ? ' mit-bild' : ''}">${b.bild && iconSrc(b.bild) ? `<img class="blatt-textbild" src="${iconSrc(b.bild)}" alt="">` : ''}${b.absaetze.map(a => `<p>${blattInline(a)}</p>`).join('')}</div>`;
@@ -3351,6 +3368,7 @@ function blattBlockHtml(b, vok) {
   if (b.art === 'dialog') return `<div class="blatt-dialog">${b.zeilen.map(([wer, was]) => `<div class="blatt-dialog-zeile"><span class="blatt-wer">${escapeHtml(wer)}:</span><span>${blattInline(was)}</span></div>`).join('')}</div>`;
   if (b.art === 'buchstabentexte') return `<div class="blatt-btexte">${b.texte.map((t, i) => `<div class="blatt-btext"><span class="blatt-buchstabe">${'ABCDEFGHIJ'[i]}</span><p>${blattInline(t)}</p></div>`).join('')}</div>`;
   if (b.art === 'wortliste') return blattWortlisteHtml(b, vok);
+  if (b.art === 'erklaerung') return blattErklaerungHtml(b);
   return '';
 }
 async function zeigeArbeitsblatt(a, id) {
@@ -3439,6 +3457,8 @@ function dudenKopf(stichwort, v) {
 // Vokabel antippen. Reihenfolge immer gleich (Lukas 01.11.2026): Erklärung auf Deutsch, dann Englisch, dann die
 // Herkunftssprache(n). Ohne Sprache aus der Tabelle wählt das Kind einmal selbst; das Gerät merkt es sich.
 function zeigeVokabel(b, stichwort, anker) {
+  const g = (b.grammatik || {})[stichwort];
+  if (g) return zeigeGrammatik(g, stichwort, anker);
   const v = (b.vokabeln || {})[stichwort];
   if (!v) return;
   let box = document.getElementById('vokBox');
@@ -3454,6 +3474,27 @@ function zeigeVokabel(b, stichwort, anker) {
       <div class="vok-zeile"><span class="vok-lab">Englisch</span>${escapeHtml(v.en)}</div>
       <div class="vok-zeile"><span class="vok-lab">${sp.length > 1 ? 'Meine Sprachen' : 'Meine Sprache'}</span>${zeilen}
         ${sp.length ? '<span class="vok-fehlt vok-hinweis">Stimmt etwas nicht? Sag es deiner Lehrkraft.</span>' : ''}
+        <label class="vok-wahl">${sp.length ? 'Andere Sprache' : 'Sprache wählen'} <select id="vokSprache"><option value="">—</option>${Object.keys(SPRACHEN).map(k => `<option value="${k}" ${k === sp[0] && sp.length === 1 ? 'selected' : ''}>${SPRACHEN[k]}</option>`).join('')}</select></label></div>
+    </div>`;
+    box.querySelector('.vok-zu').addEventListener('click', vokabelZu);
+    box.querySelector('#vokSprache').addEventListener('change', e => { try { localStorage.setItem('daz_sprache', e.target.value); } catch (x) { /* egal */ } zeichne(); platziereVokabel(box, anker); });
+  };
+  zeichne();
+  platziereVokabel(box, anker);
+}
+// Grammatik-Begriff antippen (Lukas 08.11.2026): erst die Erklärung auf Deutsch mit Beispielen, dann in der Sprache des Kindes.
+function zeigeGrammatik(g, stichwort, anker) {
+  let box = document.getElementById('vokBox');
+  if (!box) { box = document.createElement('div'); box.id = 'vokBox'; document.body.appendChild(box); }
+  const zeichne = () => {
+    const sp = meineSprachen(), m = /^(der|die|das) (.+)$/.exec(stichwort);
+    box.innerHTML = `<div class="vok-karte gram-karte" role="dialog" aria-label="Grammatik">
+      <button type="button" class="vok-zu" aria-label="Schließen">×</button>
+      <div class="vok-gram">Grammatik</div>
+      <div class="vok-wort">${escapeHtml(m ? m[2] + ', ' + m[1] : stichwort)}</div>
+      <div class="vok-zeile"><span class="vok-lab">Auf Deutsch erklärt</span>${escapeHtml(g.de)}</div>
+      ${g.bsp && g.bsp.length ? `<div class="vok-zeile"><span class="vok-lab">Beispiele</span>${g.bsp.map(x => `<strong class="gram-bsp">${escapeHtml(x)}</strong>`).join('')}</div>` : ''}
+      <div class="vok-zeile"><span class="vok-lab">${sp.length > 1 ? 'In meinen Sprachen' : 'In meiner Sprache'}</span>${erklSpracheHtml(sp, stichwort, g.sp)}
         <label class="vok-wahl">${sp.length ? 'Andere Sprache' : 'Sprache wählen'} <select id="vokSprache"><option value="">—</option>${Object.keys(SPRACHEN).map(k => `<option value="${k}" ${k === sp[0] && sp.length === 1 ? 'selected' : ''}>${SPRACHEN[k]}</option>`).join('')}</select></label></div>
     </div>`;
     box.querySelector('.vok-zu').addEventListener('click', vokabelZu);
