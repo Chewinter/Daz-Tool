@@ -3342,8 +3342,17 @@ function erklSpracheHtml(sp, titel, absaetze) {
       : '<p class="vok-fehlt">Für diese Sprache gibt es die Erklärung noch nicht.</p>'}</div>`;
   }).join('');
 }
-function blattErklaerungHtml(b) {
-  const sp = meineSprachen();
+let grammatikLaden = null;   // grammatik-erklaerungen.js nur einmal und erst beim ersten Arbeitsblatt laden
+function ladeGrammatik() { return window.GRAMMATIK ? Promise.resolve() : (grammatikLaden || (grammatikLaden = ladeSkript('data/grammatik-erklaerungen.js'))); }
+function grammatikBegriff(b, stichwort) {
+  const g = b.grammatik, G = window.GRAMMATIK;
+  if (G && G.begriffe && G.begriffe[stichwort]) return G.begriffe[stichwort];   // auch Fachwörter in Erklärungs-Kästen
+  return (g && !Array.isArray(g) && g[stichwort]) || null;   // ältere Blätter (Texte noch im Blatt)
+}
+function blattErklaerungHtml(b0) {
+  const R = b0.de ? b0 : ((window.GRAMMATIK || {}).regeln || {})[b0.key];
+  if (!R) return '';
+  const b = R, sp = meineSprachen();
   const wahl = sp.length ? '' : `<p class="blatt-hinweis">Wähle deine Sprache, dann steht die Erklärung hier auch in deiner Sprache: <select class="wl-sprache"><option value="">—</option>${Object.keys(SPRACHEN).map(k => `<option value="${k}">${SPRACHEN[k]}</option>`).join('')}</select></p>`;
   return `<div class="blatt-erkl"><div class="blatt-erkl-kopf">💡 Erklärung: ${blattInline(b.titel)}</div>
     ${b.de.map(p => `<p>${blattInline(p)}</p>`).join('')}
@@ -3375,7 +3384,7 @@ async function zeigeArbeitsblatt(a, id) {
   const body = document.getElementById('actBody');
   body.innerHTML = '<p class="hint">Das Arbeitsblatt wird geladen …</p>';
   let b = null, fehler = false;
-  try { [b] = await Promise.all([ladeBlatt(id), ladeBlattBilder(id)]); } catch (e) { fehler = true; }   // Bilder der Blätter erst jetzt laden
+  try { [b] = await Promise.all([ladeBlatt(id), ladeBlattBilder(id), ladeGrammatik()]); } catch (e) { fehler = true; }   // Bilder der Blätter erst jetzt laden
   if (currentActivityId !== id) return;
   if (!b) {
     body.innerHTML = fehler ? '<p class="hint">Keine Verbindung. Bitte gleich noch einmal versuchen.</p><button type="button" class="btn" id="blattNochmal">Nochmal laden</button>'
@@ -3457,7 +3466,7 @@ function dudenKopf(stichwort, v) {
 // Vokabel antippen. Reihenfolge immer gleich (Lukas 01.11.2026): Erklärung auf Deutsch, dann Englisch, dann die
 // Herkunftssprache(n). Ohne Sprache aus der Tabelle wählt das Kind einmal selbst; das Gerät merkt es sich.
 function zeigeVokabel(b, stichwort, anker) {
-  const g = (b.grammatik || {})[stichwort];
+  const g = grammatikBegriff(b, stichwort);
   if (g) return zeigeGrammatik(g, stichwort, anker);
   const v = (b.vokabeln || {})[stichwort];
   if (!v) return;
