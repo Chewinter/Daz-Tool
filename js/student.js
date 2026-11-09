@@ -474,8 +474,10 @@ async function openActivity(actId) {
   document.getElementById('actSub').textContent = a.sub;
   setzeKopfzeile('view-activity', actId);
   showView('view-activity');
-  if (!basisBilderDa()) { document.getElementById('actBody').innerHTML = '<p class="hint">Bilder werden geladen …</p>'; }
-  await ladeSchrittBilder(actId);
+  if (a.type !== 'arbeitsblatt') {   // Arbeitsblätter laden ihre eigenen Bilder (09.11.2026)
+    if (!basisBilderDa()) { document.getElementById('actBody').innerHTML = '<p class="hint">Bilder werden geladen …</p>'; }
+    await ladeSchrittBilder(actId);
+  }
   if (currentActivityId !== actId) return;
   if (a.type === 'domino') buildDomino(a);
   else if (a.type === 'quartett') buildQuartett(a);
@@ -3282,7 +3284,7 @@ function renderJetztDran() {
 // Inhalt: blatt:<id> vom Apps Script (nur mit Klassen-Code). Wird auf dem Gerät zwischengespeichert, damit ein Blatt
 // auch bei wackligem Internet sofort wieder da ist. Seite für Seite; am Ende „Fertig“ -> Lehrkraft prüft das Heft.
 const blattCache = {}, blattBilder = {};
-function ladeBlattBilder(id) { const g = schrittBildGruppe(id); return blattBilder[g] || (blattBilder[g] = ladeSkript('data/icons-blaetter-' + g + '.js')); }
+function ladeBlattBilder(id) { return blattBilder[id] || (blattBilder[id] = ladeSkript('data/icons-blatt-' + id + '.js')); }   // 09.11.: je Blatt eine Datei
 const blattLaeuft = {};   // gerade laufende Ladung (Vorladen + Antippen = nur eine Anfrage)
 function ladeBlatt(id) {
   if (blattCache[id]) return Promise.resolve(blattCache[id]);
@@ -3450,7 +3452,7 @@ function merkeSprache(text) {
   });
   if (codes.length) { try { localStorage.setItem('daz_sprache', codes.join(',')); } catch (e) { /* egal */ } }
 }
-const UNGEPRUEFT = ['so', 'am', 'ku', 'ti'];   // Übersetzungen ohne muttersprachliche Prüfung
+const UNGEPRUEFT = ['so', 'am', 'ku', 'ti', 'fa'];   // Übersetzungen ohne muttersprachliche Prüfung
 function meineSprachen() { try { return (localStorage.getItem('daz_sprache') || '').split(',').filter(k => SPRACHEN[k]); } catch (e) { return []; } }
 
 // Nomen wie im Duden: „Mantel, der“ — darunter Genus und Plural. Nur-Plural-Wörter kennzeichnen.
