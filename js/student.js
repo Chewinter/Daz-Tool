@@ -1922,6 +1922,54 @@ function ziehRunde(pool, anzahl) {
   return out;
 }
 
+// ---------------- EINSTUFUNGSTEST: WIEDERHOLUNG NUR DER FEHLER (Lukas 09.11.2026) ----------------
+// Die Lehrkraft drückt „Wiederholen“: Das Kind bekommt nur die Fragen, die falsch waren, in ihren Bereichen. Bereiche ohne
+// Fehler werden übersprungen; richtige Antworten von vorher bleiben stehen. Welche Fragen: aus dem Status (wiederholenFragen,
+// von der Lehrer-Seite gespeichert) oder — bei älterem Status ohne Liste — aus der letzten eigenen Abgabe.
+async function einstufungWiederholungStarten(t, name, si) {
+  let alt = null;
+  try {
+    let keys = [];
+    try { keys = (await window.storage.schuelerStand(slug(name))).abgaben || []; }   // dieselbe Anfrage wie beim Start
+    catch (e) { keys = ((await window.storage.list(`submission:eingangstest_a1:${slug(name)}:`, true)) || {}).keys || []; }
+    const letzte = keys.filter(k => k.indexOf(`submission:eingangstest_a1:${slug(name)}:`) === 0)
+      .sort((a, b) => Number(b.split(':').pop()) - Number(a.split(':').pop()))[0];
+    if (letzte) { const r = await window.storage.get(letzte, true); alt = r && r.value ? JSON.parse(r.value).bereichsErgebnisse : null; }
+  } catch (e) { alt = null; }
+  let fragen = si && Array.isArray(si.wiederholenFragen) ? si.wiederholenFragen : null;
+  if (!fragen && alt) {
+    fragen = [];
+    alt.forEach((b, bi) => (b.details || []).forEach(d => { if (!d.richtig) fragen.push({ b: bi, frage: d.frage }); }));
+  }
+  if (!fragen || !fragen.length) {   // nichts bekannt: wie bisher der ganze Test
+    return { testId: 'eingangstest_a1', name, bereichIndex: 0, ergebnisse: t.bereiche.map(() => null), runde: null };
+  }
+  const offen = {};
+  fragen.forEach(f => { (offen[f.b] = offen[f.b] || []).push(f.frage); });
+  const ergebnisse = t.bereiche.map((_, i) => offen[i] ? null : (alt && alt[i] ? { richtig: alt[i].richtig, gesamt: alt[i].gesamt, prozent: alt[i].prozent, details: alt[i].details } : { richtig: 0, gesamt: 0, prozent: 100, details: [] }));
+  const st = { testId: 'eingangstest_a1', name, bereichIndex: 0, ergebnisse, runde: null, wdh: { offen, alt: alt || [] } };
+  st.bereichIndex = einstufungNaechsterOffener(st, 0, t);
+  return st;
+}
+function einstufungNaechsterOffener(st, ab, t) {
+  for (let i = ab; i < t.bereiche.length; i++) if (st.wdh.offen[i]) return i;
+  return t.bereiche.length;
+}
+function einstufungWdhRunde(t, st) {
+  const bereich = t.bereiche[st.bereichIndex];
+  const gesucht = st.wdh.offen[st.bereichIndex] || [];
+  const alt = st.wdh.alt[st.bereichIndex];
+  const schonRichtig = new Set(((alt && alt.details) || []).filter(d => d.richtig).map(d => d.frage));
+  const runde = [], benutzt = new Set();
+  gesucht.forEach(prompt => {
+    let f = bereich.pool.find(q => q.prompt === prompt && !benutzt.has(q));
+    // Frage gibt es so nicht mehr (z. B. geändert): eine andere Frage desselben Bereichs, die noch nicht richtig war
+    if (!f) f = shuffleArr(bereich.pool).find(q => !benutzt.has(q) && !schonRichtig.has(q.prompt) && gesucht.indexOf(q.prompt) < 0);
+    if (f) { benutzt.add(f); runde.push(f); }
+  });
+  return runde.length ? runde : ziehRunde(bereich.pool, 1);
+}
+
 function buildEingangstest(t) {
   const mount = document.getElementById('abschlussBody');
   const name = document.getElementById('startName') ? document.getElementById('startName').value.trim() : currentActivityName;
@@ -1938,8 +1986,12 @@ function buildEingangstest(t) {
         if (res && res.value) gespeichert = JSON.parse(res.value);
       } catch (e) { /* kein gespeicherter Fortschritt vorhanden */ }
 
-      if (gespeichert && gespeichert.bereichIndex < t.bereiche.length) {
-        eingangsState = { testId: 'eingangstest_a1', name, bereichIndex: gespeichert.bereichIndex, ergebnisse: gespeichert.ergebnisse, runde: null };
+      const si = (progressCache.statusInfo || {})['eingangstest_a1'];
+      const wdhGewollt = si && si.status === 'wiederholen';
+      if (gespeichert && gespeichert.bereichIndex < t.bereiche.length && (!wdhGewollt || gespeichert.wdh)) {
+        eingangsState = { testId: 'eingangstest_a1', name, bereichIndex: gespeichert.bereichIndex, ergebnisse: gespeichert.ergebnisse, runde: null, wdh: gespeichert.wdh || null };
+      } else if (wdhGewollt) {
+        eingangsState = await einstufungWiederholungStarten(t, name, si);
       } else {
         eingangsState = { testId: 'eingangstest_a1', name, bereichIndex: 0, ergebnisse: t.bereiche.map(() => null), runde: null };
       }
@@ -1949,8 +2001,9 @@ function buildEingangstest(t) {
   }
 
   function neueRunde() {
+    if (eingangsState.bereichIndex >= t.bereiche.length) { render(); return; }
     const bereich = t.bereiche[eingangsState.bereichIndex];
-    eingangsState.runde = ziehRunde(bereich.pool, t.fragenProRunde);
+    eingangsState.runde = eingangsState.wdh ? einstufungWdhRunde(t, eingangsState) : ziehRunde(bereich.pool, t.fragenProRunde);
     render();
   }
   if (!eingangsState.runde) neueRunde();
@@ -1991,8 +2044,13 @@ function buildEingangstest(t) {
             autoCorrect: bereichsErgebnisse.filter(b => b.bestanden).length, autoTotal: t.bereiche.length,
             isPunkteTest: false, teil3: [], bereichsErgebnisse,
           };
+          if (eingangsState.wdh) eingangsSubmission.wiederholung = true;
           window.storage.set(`submission:eingangstest_a1:${slug(name)}:${Date.now()}`, JSON.stringify(eingangsSubmission), true).catch(() => {});
           window.storage.delete(progressKey, true).catch(() => {});
+          if (eingangsState.wdh) {
+            window.storage.delete(`status:eingangstest_a1:${slug(name)}`, true).catch(() => {});
+            if (progressCache.statusInfo) delete progressCache.statusInfo['eingangstest_a1'];
+          }
         } catch (e) { /* Speicher nicht verfügbar */ }
       }
       return;
@@ -2000,7 +2058,7 @@ function buildEingangstest(t) {
 
     const bereich = t.bereiche[eingangsState.bereichIndex];
     html += `<h2 style="font-family:Georgia,serif; font-size:19px; color:var(--teal-dark); margin-bottom:4px;">${bereich.name}</h2>
-    <p class="hint">Beantworte alle Fragen so gut du kannst und klicke dann auf „Abgeben“. Es gibt kein Feedback während des Tests — deine Lehrkraft bespricht die Ergebnisse später mit dir.</p>`;
+    <p class="hint">${eingangsState.wdh ? '<strong>Wiederholung:</strong> Hier stehen nur die Fragen, die beim letzten Mal noch nicht richtig waren. ' : ''}Beantworte alle Fragen so gut du kannst und klicke dann auf „Abgeben“. Es gibt kein Feedback während des Tests — deine Lehrkraft bespricht die Ergebnisse später mit dir.</p>`;
 
     eingangsState.runde.forEach((f, i) => {
       html += `<div class="et-frage" data-idx="${i}">`;
@@ -2065,12 +2123,19 @@ function buildEingangstest(t) {
       });
       const gesamt = eingangsState.runde.length;
       const prozent = Math.round((richtig / gesamt) * 100);
-      eingangsState.ergebnisse[eingangsState.bereichIndex] = { richtig, gesamt, prozent, details };
-      eingangsState.bereichIndex++;
+      let erg = { richtig, gesamt, prozent, details };
+      if (eingangsState.wdh) {   // Wiederholung: richtige Antworten von vorher bleiben, die neuen kommen dazu
+        const alt = eingangsState.wdh.alt[eingangsState.bereichIndex];
+        const alle = ((alt && alt.details) || []).filter(d => d.richtig).concat(details);
+        const r = alle.filter(d => d.richtig).length;
+        erg = { richtig: r, gesamt: alle.length, prozent: Math.round((r / Math.max(1, alle.length)) * 100), details: alle };
+      }
+      eingangsState.ergebnisse[eingangsState.bereichIndex] = erg;
+      eingangsState.bereichIndex = eingangsState.wdh ? einstufungNaechsterOffener(eingangsState, eingangsState.bereichIndex + 1, t) : eingangsState.bereichIndex + 1;
       eingangsState.runde = null;
       try {
         window.storage.set(progressKey, JSON.stringify({
-          bereichIndex: eingangsState.bereichIndex, ergebnisse: eingangsState.ergebnisse, timestamp: new Date().toISOString(),
+          bereichIndex: eingangsState.bereichIndex, ergebnisse: eingangsState.ergebnisse, wdh: eingangsState.wdh || undefined, timestamp: new Date().toISOString(),
         }), true).catch(() => {});
       } catch (e) { /* Speicher nicht verfügbar */ }
       if (eingangsState.bereichIndex < t.bereiche.length) neueRunde(); else render();

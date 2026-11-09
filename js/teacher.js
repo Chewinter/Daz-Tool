@@ -462,6 +462,10 @@ async function loadSubmissions(isBackgroundRefresh) {
       if (wiederholenOptionen.length > 1 && angehakt.length && angehakt.length < wiederholenOptionen.length) {
         payload[wiederholenFeldName] = grammatikDef ? angehakt.map(Number) : angehakt;
       }
+      if (sub.bereichsErgebnisse) {   // Einstufungstest: nur die falschen Fragen wiederholen
+        payload.wiederholenFragen = [];
+        sub.bereichsErgebnisse.forEach((b, bi) => (b.details || []).forEach(d => { if (!d.richtig) payload.wiederholenFragen.push({ b: bi, frage: d.frage }); }));
+      }
       await window.storage.set(statusKey, JSON.stringify(payload), true);
       loadSubmissions(false);
     });
