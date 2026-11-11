@@ -439,36 +439,15 @@ async function loadSubmissions(isBackgroundRefresh) {
         <h3>${escapeHtml(sub.name)}</h3>
         <span class="meta">${escapeHtml(sub.testTitle)} · ${dateStr}</span>
       </div>
-      <span class="status-tag ${statusObj.status}">${statusObj.status === 'wiederholen' ? 'Wiederholen nötig' : statusObj.status === 'weiter' ? 'Kann weitermachen' : 'Noch nicht bewertet'}</span>
+      <span class="status-tag ${ablaufStatus(statusObj, sub.testId)}">${einstufungStatusText(sub, statusObj)}</span>
       ${sub.bereichsErgebnisse ? `<div class="autoscore">${sub.autoCorrect} von ${sub.autoTotal} Bereichen mit ≥85% bestanden</div>${berichtHtml}${bereicheHtml}` : `<div class="autoscore">${(sub.isPunkteTest || sub.isGrammatikblock) ? 'Automatisch ausgewertet' : 'Teil 1/2/4 automatisch ausgewertet'}: <strong>${sub.autoCorrect} / ${sub.autoTotal}</strong> ${sub.isPunkteTest ? 'Punkte' : 'richtig'}</div>${teilDetailsHtml}${teil3Html}`}
       <textarea class="comment-input" placeholder="Kommentar für den Schüler (optional)">${escapeHtml(statusObj.comment || '')}</textarea>
       ${teilCheckboxenHtml}
-      <div class="status-controls">
-        <button class="btn ok small status-ok-btn">Kann weitermachen</button>
-        <button class="btn danger small status-danger-btn">Wiederholen nötig</button>
-      </div>
+      <div class="bw-aktion">${einstufungAktionHtml(sub, statusObj)}</div>
     `;
 
     const commentInput = div.querySelector('.comment-input');
-    div.querySelector('.status-ok-btn').addEventListener('click', async () => {
-      await window.storage.set(statusKey, JSON.stringify({ status: 'weiter', comment: commentInput.value.trim(), reviewedAt: new Date().toISOString() }), true);
-      loadSubmissions(false);
-    });
-    div.querySelector('.status-danger-btn').addEventListener('click', async () => {
-      const angehakt = [...div.querySelectorAll('.teil-wiederholen-cb:checked')].map(cb => cb.value);
-      const payload = { status: 'wiederholen', comment: commentInput.value.trim(), reviewedAt: new Date().toISOString() };
-      // Nur speichern, wenn NICHT alle vorhandenen Teile/Punkte angehakt sind — sonst ist es eine
-      // normale volle Wiederholung (bestehendes Verhalten, kein Vorausfüllen nötig).
-      if (wiederholenOptionen.length > 1 && angehakt.length && angehakt.length < wiederholenOptionen.length) {
-        payload[wiederholenFeldName] = grammatikDef ? angehakt.map(Number) : angehakt;
-      }
-      if (sub.bereichsErgebnisse) {   // Einstufungstest: nur die falschen Fragen wiederholen
-        payload.wiederholenFragen = [];
-        sub.bereichsErgebnisse.forEach((b, bi) => (b.details || []).forEach(d => { if (!d.richtig) payload.wiederholenFragen.push({ b: bi, frage: d.frage }); }));
-      }
-      await window.storage.set(statusKey, JSON.stringify(payload), true);
-      loadSubmissions(false);
-    });
+    einstufungAktionenVerbinden(div, sub, statusObj, statusKey, commentInput);
 
     }
 

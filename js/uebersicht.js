@@ -35,7 +35,7 @@ async function setzeKorrekturOk(testId, slugName, mitWiederholung) {
   const key = `status:${testId}:${slugName}`;
   let obj = null;
   try { const r = await window.storage.get(key, true); obj = JSON.parse(r.value); } catch (e) { return false; }
-  if (!obj || ablaufStatus(obj) !== 'zettel_offen') return false;
+  if (!obj || ablaufStatus(obj, testId) !== 'zettel_offen') return false;
   const neu = Object.assign({}, obj, { status: mitWiederholung ? korrekturOkStatus(obj) : 'endgueltig', zettel: true, zettelAm: new Date().toISOString() });
   try { await window.storage.set(key, JSON.stringify(neu), true); return neu; } catch (e) { return false; }
 }
@@ -149,7 +149,7 @@ async function ladeUebersichtsdaten() {
 // Aktuelle Station eines Schülers — gleiche Regel wie auf der Schüler-Seite (sequenziell, Bestandsschutz, manuelle Freischaltung)
 function berechnePosition(s) {
   const istAct = id => curriculumItemInfo(id).kind === 'activity';
-  const erledigt = id => istArbeitsblatt(id) ? s.blatt[id] === 'erledigt' : istAct(id) ? s.doneActs.has(id) : (s.done.has(id) && ablaufStatus(s.status[id]) === 'endgueltig');
+  const erledigt = id => istArbeitsblatt(id) ? s.blatt[id] === 'erledigt' : istAct(id) ? s.doneActs.has(id) : (s.done.has(id) && ablaufStatus(s.status[id], id) === 'endgueltig');
   const hat = CURRICULUM.map(lf => lf.items.some(id => istArbeitsblatt(id) ? s.blatt[id] !== 'offen' : istAct(id) ? s.doneActs.has(id) : s.done.has(id)));
   const spaeter = hat.map((_, i) => hat.slice(i + 1).some(Boolean));
   let pos = CURRICULUM.length - 1;
@@ -176,7 +176,7 @@ function sammleAufgaben(schueler) {
       const st = s.status[tid];
       const a = testAnzeige(tid);
       const basis = { name: s.name, slug: s.slug, testId: tid, stufe: a.stufe, titel: a.titel };
-      const ab = ablaufStatus(st);
+      const ab = ablaufStatus(st, tid);
       const bewertetTs = st && st.reviewedAt ? new Date(st.reviewedAt).getTime() : s.latest[tid];
       if (ab === 'offen') wartet.push({ ...basis, ts: s.latest[tid], wdh: !!(st && st.wiederholung), heft: !!(st && st.heft), heftGesehen: !!(st && st.heftGesehen) });
       else if (ab === 'wiederholung_frei') wiederholen.push({ ...basis, ts: bewertetTs, kommentar: st.comment || '', teile: st.wiederholenTeile || st.punkteWiederholen || null });
@@ -204,7 +204,7 @@ function zellStatus(s, id) {
   }
   const st = s.status[id];
   if (s.done.has(id)) {
-    const ab = ablaufStatus(st);
+    const ab = ablaufStatus(st, id);
     if (ab === 'wiederholung_frei') return { cls: 'wdh', t: 'Wiederholung frei (liegt beim Schüler)' };
     if (ab === 'zettel_offen') return { cls: 'zettel', t: 'Korrektur auf dem Blatt offen' };
     if (ab === 'endgueltig') return { cls: 'fertig', t: 'endgültig erledigt' };

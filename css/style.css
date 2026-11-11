@@ -846,6 +846,11 @@ body.pruefkonto .status-pill.rot { background: var(--bg); color: var(--ink-soft)
 .gram-karte .blatt-erkl-sp { border-top: none; padding-top: 0; margin-top: 4px; }
 .gram-karte .blatt-erkl-sp p { margin: 3px 0; }
 
+/* Nochmal ansehen (11.11.2026): nur lesen, nichts abgeben */
+.ansehen-hinweis { background: #e8f0fb; color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 0 0 16px; line-height: 1.45; }
+.nur-ansehen #submitBtn, .nur-ansehen #saveLaterBtn, .nur-ansehen #grammatikAbgabeBereich, .nur-ansehen #progressRestoredNotice { display: none !important; }
+.nur-ansehen .img-opt, .nur-ansehen .mc-opt, .nur-ansehen .wo-karte { cursor: default; }
+
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
   .ub-chip { padding: 6px 12px; border-radius: 999px; background: #EFEBDD; font-size: 14px; }

@@ -471,3 +471,53 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
   });
   if (sub._neueste === false) { aktionEl.innerHTML = '<div class="bw-hinweis">Ältere Abgabe — nur zum Ansehen. Bewertet wird immer die neueste Abgabe dieses Tests.</div>' + (ab !== 'endgueltig' ? '<div class="status-controls"><button type="button" class="btn secondary small bw-endgueltig-direkt">Endgültig erledigt</button></div>' : ''); vorschauEl.innerHTML = ''; }
 }
+
+// ---------------- EINSTUFUNGSTEST IM KORREKTUR-ABLAUF (Lukas 11.11.2026, Phase 0.3) ----------------
+// Wie bei jedem Test: Bewertung abschließen (mit Fehlern: Rückgabe, das Kind korrigiert im Heft) -> „Korrektur ok —
+// endgültig erledigt“ oder „Korrektur ok — Wiederholung“ (nur die falschen Fragen, wiederholenFragen wie seit 09.11.).
+// Die Bereichs-Ansicht mit „Als richtig werten“ bleibt in teacher.js; hier nur Status-Text, Knöpfe und Speichern.
+function einstufungFalsche(sub) {
+  const f = [];
+  (sub.bereichsErgebnisse || []).forEach((b, bi) => (b.details || []).forEach(d => { if (!d.richtig) f.push({ b: bi, bereich: b.name || '', d }); }));
+  return f;
+}
+function einstufungStatusText(sub, st) {
+  const ab = ablaufStatus(st, sub.testId);
+  return ab === 'zettel_offen' ? 'Rückgabe — Korrektur im Heft offen' : ab === 'wiederholung_frei' ? 'Korrektur ok — Wiederholung liegt beim Kind'
+    : ab === 'endgueltig' ? 'Endgültig erledigt' : (st && st.wiederholung) ? 'Wiederholung abgegeben — bitte prüfen' : 'Noch nicht bewertet';
+}
+function einstufungAktionHtml(sub, st) {
+  if (sub._neueste === false) return '<div class="bw-hinweis">Ältere Abgabe — nur zum Ansehen. Bewertet wird immer die neueste Abgabe.</div>';
+  const ab = ablaufStatus(st, sub.testId), n = einstufungFalsche(sub).length;
+  if (ab === 'offen') return `<div class="bw-hinweis${n ? '' : ' gut'}">${n ? n + ' Antwort' + (n === 1 ? '' : 'en') + ' falsch.' : 'Alles richtig.'}</div><div class="status-controls">
+    <button type="button" class="btn ok small einst-abschliessen">${n ? 'Bewertung abschließen — Rückgabe: Korrektur im Heft' : 'Bewertung abschließen — alles richtig, erledigt'}</button>
+    <button type="button" class="btn secondary small einst-endgueltig">Endgültig erledigt</button></div>`;
+  if (ab === 'zettel_offen') return `<div class="bw-hinweis">Das Kind schreibt die richtigen Antworten ins Heft und zeigt es dir.</div><div class="status-controls">
+    <button type="button" class="btn ok small einst-korrektur-ok" data-wdh="0">Korrektur ok — endgültig erledigt</button>
+    <button type="button" class="btn secondary small einst-korrektur-ok" data-wdh="1">Korrektur ok — Wiederholung</button></div>`;
+  if (ab === 'wiederholung_frei') return '<div class="bw-hinweis">Korrektur ok. Das Kind macht jetzt nur die falschen Fragen noch einmal.</div><div class="status-controls"><button type="button" class="btn secondary small einst-endgueltig">Endgültig erledigt</button></div>';
+  return '<div class="bw-hinweis gut">Endgültig erledigt. Keine Wiederholung mehr.</div>';
+}
+function einstufungAktionenVerbinden(div, sub, st, statusKey, commentInput) {
+  div.addEventListener('click', async ev => {
+    const b = ev.target.closest('.einst-abschliessen, .einst-endgueltig, .einst-korrektur-ok');
+    if (!b || b.disabled) return;
+    b.disabled = true;
+    let ok = false;
+    if (b.classList.contains('einst-endgueltig')) ok = !!(await setzeEndgueltig(sub.testId, slug(sub.name)));
+    else if (b.classList.contains('einst-korrektur-ok')) ok = !!(await setzeKorrekturOk(sub.testId, slug(sub.name), b.getAttribute('data-wdh') === '1'));
+    else {   // Bewertung abschließen: Ergebnis für das Kind („Ergebnis ansehen“) + Status in EINER Anfrage
+      const falsche = einstufungFalsche(sub), kommentar = commentInput.value.trim(), jetzt = new Date().toISOString();
+      const alle = (sub.bereichsErgebnisse || []).reduce((s, x) => s + ((x.details || []).length), 0);
+      const review = { v: 2, testId: sub.testId, name: sub.name, titel: anzeigeTitel(sub.testId, sub.testTitle), art: 'einstufung', reviewedAt: jetzt, kommentar,
+        ergebnis: falsche.length ? 'zettel' : 'erledigt', korrektur: !!falsche.length, richtig: alle - falsche.length, gesamt: alle,
+        fehler: falsche.map(x => ({ teil: x.bereich, frage: x.d.frage, antwort: x.d.antwort, korrektAntwort: x.d.korrekt || '' })), saetze: [] };
+      const status = { status: falsche.length ? 'zettel_offen' : 'endgueltig', comment: kommentar, reviewedAt: jetzt, reviewKey: reviewKeyFuer(sub), ergebnis: review.ergebnis };
+      if (falsche.length) status.wiederholenFragen = falsche.map(x => ({ b: x.b, frage: x.d.frage }));
+      try { await window.storage.setMany([{ key: reviewKeyFuer(sub), value: JSON.stringify(review) }, { key: statusKey, value: JSON.stringify(status) }], true); ok = true; }
+      catch (e) { ok = false; }
+    }
+    if (ok) loadSubmissions(false);
+    else { b.disabled = false; alert('Konnte nicht gespeichert werden. Bitte nochmal versuchen.'); }
+  });
+}

@@ -122,6 +122,8 @@ async function refreshProgress() {
     });
   }
 
+  erledigteSpieleAufDemGeraet(sl).forEach(id => doneActs.add(id));   // noch unterwegs zum Backend: zählt schon (11.11.2026)
+
   // Manuell freigeschalteter Zugriff (Quereinstieg) — NICHT als erledigt gewertet, nur zugänglich
   if (maRes.status === 'fulfilled' && maRes.value && maRes.value.value) {
     try { manualAccessUpTo = aufloeseManualAccessIndex(JSON.parse(maRes.value.value)); } catch (e) { /* skip */ }
@@ -167,7 +169,7 @@ async function refreshProgress() {
   function isDoneLocal(id, kind) {
     if (kind === 'activity') return doneActs.has(id);
     if (!doneTests.has(id)) return false;
-    const ab = ablaufStatus(statusInfo[id]);
+    const ab = ablaufStatus(statusInfo[id], id);
     if (!KORREKTUR_SPERRT_WEITER || (ab !== 'zettel_offen' && ab !== 'wiederholung_frei')) return true;
     // "Muss wiederholt werden": zählt erst wieder als erledigt (schaltet den nächsten Schritt frei),
     // wenn seit der Bewertung neu abgegeben wurde.
@@ -230,11 +232,7 @@ function getDisplayStatus(id, kind) {
   }
   if (!progressCache.doneTests.has(id)) return 'unerledigt';
   const si = (progressCache.statusInfo || {})[id];
-  if (id === 'eingangstest_a1') { // Einstufungstest: eigener Ablauf (Bereiche), unverändert
-    const s = si && si.status;
-    return (s === 'weiter' || s === 'endgueltig') ? 'erledigt' : s === 'wiederholen' ? 'wiederholen' : 'wirdgeprueft';
-  }
-  const ab = ablaufStatus(si);
+  const ab = ablaufStatus(si, id);   // Einstufungstest seit 11.11.2026 im selben Ablauf
   return ab === 'endgueltig' ? 'erledigt' : ab === 'wiederholung_frei' ? 'wiederholen' : ab === 'zettel_offen' ? 'zettel' : 'wirdgeprueft';
 }
 
@@ -423,7 +421,7 @@ async function renderLernfeldItems(lfIdx, name) {
         <p>${sub || ''}</p>
         ${statusBadge}
         ${kommentar ? `<div class="repeat-badge">${escapeHtml(kommentar)}</div>` : ''}
-        ${ergebnisBtnHtml}
+        ${ergebnisBtnHtml}${kannNochmalAnsehen(id, info.kind, status) ? '<button type="button" class="btn small secondary ansehen-btn" style="margin-top:8px;">Nochmal ansehen</button>' : ''}
       </div>
       ${hauptKnopf ? `<button class="btn small haupt-btn ${status !== 'unerledigt' ? 'secondary' : ''}">${hauptKnopf}</button>` : ''}
     `;
@@ -432,6 +430,7 @@ async function renderLernfeldItems(lfIdx, name) {
       if (isActivity || isGrammatik || info.kind === 'blatt') openActivity(id); else startTest(id, name);
     });
     const eb = card.querySelector('.ergebnis-btn'); if (eb) eb.addEventListener('click', () => zeigeErgebnis(id, name));
+    const ab = card.querySelector('.ansehen-btn'); if (ab) ab.addEventListener('click', () => nochmalAnsehen(id, name, ab));
     listEl.appendChild(card);
   }
   if (!listEl.children.length) {
@@ -457,16 +456,35 @@ refreshProgress();
 let currentActivityId = null;
 let currentActivityName = "";
 
+const spielGemeldet = new Set();   // activitydone-Schlüssel, die in dieser Sitzung schon gemeldet wurden
 function markActivityDone(activityId) {
   const name = currentActivityName || document.getElementById('startName').value.trim();
-  if (!name) return;
-  try {
-    window.storage.set(`activitydone:${activityId}:${slug(name)}`, JSON.stringify({ timestamp: new Date().toISOString() }), true).catch(() => {});
-  } catch (e) { /* Speicher nicht verfügbar */ }
+  if (!name || !activityId) return;
+  if (progressCache.name === name && progressCache.doneActs) progressCache.doneActs.add(activityId);   // sofort, ohne Internet
+  const key = `activitydone:${activityId}:${slug(name)}`;
+  if (spielGemeldet.has(key)) return;   // render() läuft am Ende öfter — nur einmal senden
+  spielGemeldet.add(key);
+  try { imHintergrundSenden([{ key, value: JSON.stringify({ timestamp: new Date().toISOString() }) }]); } catch (e) { /* Speicher nicht verfügbar */ }
+}
+// Wie eine Abgabe über den Postausgang (student_blatt.js), aber ohne Warten und ohne Hinweis im Abgabe-Bildschirm
+function imHintergrundSenden(items) {
+  const id = String(Date.now()) + Math.random().toString(36).slice(2, 6);
+  const gemerkt = postausgangSetzen(postausgang().concat([{ id, items, am: Date.now() }]));
+  unterwegs.add(id);
+  speichereVieleMitRetry(items, 3).then(() => { if (gemerkt) postausgangSetzen(postausgang().filter(x => x.id !== id)); },
+    () => nachsendenPlanen(20000)).finally(() => unterwegs.delete(id));
+}
+function erledigteSpieleAufDemGeraet(sl) {   // im Postausgang wartende oder in dieser Sitzung gemeldete Spiele dieses Kindes
+  const ids = new Set();
+  const nimm = k => { const t = String(k).split(':'); if (t[0] === 'activitydone' && t[2] === sl) ids.add(t[1]); };
+  postausgang().forEach(x => x.items.forEach(it => nimm(it.key)));
+  spielGemeldet.forEach(nimm);
+  return ids;
 }
 
-async function openActivity(actId) {
+async function openActivity(actId, ansehenAbgabe) {
   const a = ACTIVITIES[actId];
+  grammatikAnsehen = (a && a.type === 'grammatikblock' && ansehenAbgabe) || null; nurAnsehenModus('view-activity', !!grammatikAnsehen);
   wiederholungsRunde = false;
   currentActivityId = actId;
   currentActivityName = document.getElementById('startName').value.trim();
@@ -494,6 +512,7 @@ async function openActivity(actId) {
   else if (a.type === 'arbeitsblatt') zeigeArbeitsblatt(a, actId);
   else if (a.type === 'grammatikblock') {
     document.getElementById('actBody').innerHTML = '<p class="hint">Lädt …</p>';
+    if (grammatikAnsehen) { buildGrammatikblock(a, { gesperrt: {}, daten: {}, hinweis: '', teilweise: false }); ansehenGrammatikFuellen(a); return; }
     const wiederholung = await ermittleGrammatikWiederholungsfilter(actId, currentActivityName, a);
     buildGrammatikblock(a, wiederholung);
     grammatikAutosaveStarten();
@@ -1193,8 +1212,9 @@ function buildSchlangenbauen(a) {
       versuche++;
       if (checkAcceptable(val, runde.korrekt)) {
         gesammelt++;
+        if (gesammelt >= 3) markActivityDone(currentActivityId);   // 3 richtige Sätze = einmal durchgespielt (11.11.2026)
         fb.className = 'feedback show good'; fb.style.background = 'var(--good-bg)'; fb.style.color = 'var(--good)';
-        fb.textContent = `✓ Richtig! „${runde.korrekt}"`;
+        fb.textContent = `✓ Richtig! „${runde.korrekt}"${gesammelt === 3 ? ' Der nächste Schritt ist jetzt frei.' : ''}`;
       } else {
         fb.className = 'feedback show bad'; fb.style.background = 'var(--bad-bg)'; fb.style.color = 'var(--bad)';
         fb.textContent = `✗ Nicht ganz. Richtig wäre: „${runde.korrekt}"`;
@@ -1210,6 +1230,8 @@ function buildQuizkarten(a) {
   const body = document.getElementById('actBody');  let stapel = a.karten.slice().sort(() => 0.5 - Math.random());
   let gesammelt = 0;
   let zeigeAntwort = false;
+  const beantwortet = new Set();   // jede Karte einmal beantwortet = durchgespielt (11.11.2026)
+  function merke(karte) { beantwortet.add(karte); if (beantwortet.size >= a.karten.length) markActivityDone(currentActivityId); }
 
   function resetGame() {
     stapel = a.karten.slice().sort(() => 0.5 - Math.random());
@@ -1222,6 +1244,7 @@ function buildQuizkarten(a) {
     const done = stapel.length === 0;
     if (done) markActivityDone(currentActivityId);
     let html = `<div class="quiz-stapel-info"><span>Stapel: ${stapel.length} Karten</span><span>Gesammelt: ${gesammelt} 🏆</span></div>`;
+    if (!done && beantwortet.size >= a.karten.length) html += `<p class="hint quiz-durch">✓ Du hast jede Karte einmal gesehen. Der nächste Schritt ist frei. Du kannst weiterspielen, bis du alle Karten weißt.</p>`;
 
     if (done) {
       html += `<div class="domino-done"><div class="big-icon">🏆</div><h2 style="font-family:Georgia,serif;">Stapel geschafft!</h2><p style="color:var(--ink-soft);">Du hast ${gesammelt} von ${a.karten.length} Karten gewusst.</p><button class="btn" id="quizRestart" style="margin-top:14px;">Nochmal spielen</button></div>`;
@@ -1251,12 +1274,13 @@ function buildQuizkarten(a) {
     } else {
       document.getElementById('gewusstBtn').addEventListener('click', () => {
         gesammelt++;
-        stapel.shift();
+        merke(stapel.shift());
         zeigeAntwort = false;
         render();
       });
       document.getElementById('nichtGewusstBtn').addEventListener('click', () => {
         const karte = stapel.shift();
+        merke(karte);
         stapel.push(karte);
         zeigeAntwort = false;
         render();
@@ -1457,7 +1481,8 @@ function setzeTeilHinweis(secId, text) {
   if (p.dataset.standard === undefined) p.dataset.standard = p.textContent;
   p.textContent = text || p.dataset.standard;
 }
-async function startTest(testId, name) {
+async function startTest(testId, name, ansehenAbgabe) {
+  testAnsehen = ansehenAbgabe || null; nurAnsehenModus('view-test', !!testAnsehen);   // „Nochmal ansehen“
   autosaveAbbrechen(); autosaveZuletzt = 0; autosaveNutzerAktiv = false; wiederholungsRunde = false;
   currentTestId = testId;
   currentStudentName = name;
@@ -1481,12 +1506,12 @@ async function startTest(testId, name) {
   if (isAbschluss) {
     abschlussState = { punkte: 0, felderGesamt: 0, felderBeantwortet: 0 };
     ABSCHLUSS_BUILDER[t.type](t);
-    teilweiseGesperrt = await wendeAbschlussWiederholungAn(t, testId, name);
+    teilweiseGesperrt = testAnsehen ? false : await wendeAbschlussWiederholungAn(t, testId, name);
   } else if (isEingangstest) {
     buildEingangstest(t);
   } else {
     testState = { teil1: {}, teil2: {}, teil3: {}, teil4: {} };
-    const wiederholung = await ermittleWiederholungsfilter(testId, name, t);
+    const wiederholung = testAnsehen ? { gesperrt: { teil1: false, teil2: false, teil3: false, teil4: false }, daten: {}, hinweis: '' } : await ermittleWiederholungsfilter(testId, name, t);
     buildTeil1(t.teil1, wiederholung.gesperrt.teil1, wiederholung.daten.teil1);
     buildTeil2(t.teil2, wiederholung.gesperrt.teil2, wiederholung.daten.teil2);
     buildTeil3(t.teil3, wiederholung.gesperrt.teil3, wiederholung.daten.teil3);
@@ -1504,7 +1529,8 @@ async function startTest(testId, name) {
   setzeTeilHinweis('teil2sec', t.teil2Hint);
   updateProgress();
   document.getElementById('saveLaterBtn').classList.toggle('hidden', isEingangstest);
-  if (!isEingangstest && !teilweiseGesperrt) {
+  if (testAnsehen) ansehenTestFuellen(testId, name);
+  else if (!isEingangstest && !teilweiseGesperrt) {
     restoreTestProgressIfAny(testId, name);
   }
   showView('view-test');
@@ -1516,6 +1542,7 @@ function progressKeyFor(testId, name) {
 }
 
 async function saveTestProgressNow(silent) {
+  if (testAnsehen) return false;   // „Nochmal ansehen“: nie speichern
   const payload = baueTestEntwurf();
   if (!payload) return;
   const key = progressKeyFor(currentTestId, currentStudentName);
@@ -1552,12 +1579,12 @@ function baueTestEntwurf() {
   return payload;
 }
 
-async function restoreTestProgressIfAny(testId, name) {
+async function restoreTestProgressIfAny(testId, name, vorgabe) {   // vorgabe: Antworten einer Abgabe („Nochmal ansehen“)
   let res = null;
-  try { res = await window.storage.get(progressKeyFor(testId, name), true); } catch (e) { /* kein Entwurf auf dem Server oder kein Netz */ }
+  if (!vorgabe) try { res = await window.storage.get(progressKeyFor(testId, name), true); } catch (e) { /* kein Entwurf auf dem Server oder kein Netz */ }
   let payload = null;
   try { payload = res && res.value ? JSON.parse(res.value) : null; } catch (e) { payload = null; }
-  payload = neuererEntwurf(payload, lokalLesen(progressKeyFor(testId, name)));
+  payload = vorgabe || neuererEntwurf(payload, lokalLesen(progressKeyFor(testId, name)));
   if (!payload || currentTestId !== testId) return;
 
   const t = TESTS[testId];
@@ -1621,7 +1648,7 @@ async function restoreTestProgressIfAny(testId, name) {
     });
   }
 
-  noticeEl.innerHTML = `<div class="fortschritt-geladen-hinweis">↩️ Dein bisheriger Fortschritt von ${payload.gespeichertAm ? new Date(payload.gespeichertAm).toLocaleString('de-DE') : 'deinem letzten Versuch'} wurde geladen. Mach einfach weiter!</div>`;
+  if (!vorgabe) noticeEl.innerHTML = `<div class="fortschritt-geladen-hinweis">↩️ Dein bisheriger Fortschritt von ${payload.gespeichertAm ? new Date(payload.gespeichertAm).toLocaleString('de-DE') : 'deinem letzten Versuch'} wurde geladen. Mach einfach weiter!</div>`;
   updateProgress();
 }
 
@@ -1887,7 +1914,7 @@ function updateProgress() {
 // Läuft leicht verzögert (nicht bei jedem einzelnen Tastendruck), um den Speicher nicht zu überlasten.
 let autosaveTimer = null;
 function autosaveTestProgressDebounced() {
-  if (!currentTestId || !currentStudentName) return;
+  if (!currentTestId || !currentStudentName || testAnsehen) return;   // „Nochmal ansehen“: nie speichern
   if (!autosaveNutzerAktiv) return; // bloßes Öffnen eines Tests schreibt noch keinen Entwurf
   testEntwurfLokalSichern();         // sofort auf dem Gerät; ans Apps Script höchstens alle 20 s (unten)
   if (autosaveTimer) return;        // es ist schon ein Speichern geplant
@@ -1987,7 +2014,7 @@ function buildEingangstest(t) {
       } catch (e) { /* kein gespeicherter Fortschritt vorhanden */ }
 
       const si = (progressCache.statusInfo || {})['eingangstest_a1'];
-      const wdhGewollt = si && si.status === 'wiederholen';
+      const wdhGewollt = si && ablaufStatus(si, 'eingangstest_a1') === 'wiederholung_frei';   // erst nach „Korrektur ok — Wiederholung“
       if (gespeichert && gespeichert.bereichIndex < t.bereiche.length && (!wdhGewollt || gespeichert.wdh)) {
         eingangsState = { testId: 'eingangstest_a1', name, bereichIndex: gespeichert.bereichIndex, ergebnisse: gespeichert.ergebnisse, runde: null, wdh: gespeichert.wdh || null };
       } else if (wdhGewollt) {
@@ -2045,12 +2072,10 @@ function buildEingangstest(t) {
             isPunkteTest: false, teil3: [], bereichsErgebnisse,
           };
           if (eingangsState.wdh) eingangsSubmission.wiederholung = true;
-          window.storage.set(`submission:eingangstest_a1:${slug(name)}:${Date.now()}`, JSON.stringify(eingangsSubmission), true).catch(() => {});
+          imHintergrundSenden([{ key: `submission:eingangstest_a1:${slug(name)}:${Date.now()}`, value: JSON.stringify(eingangsSubmission) },
+            { key: `status:eingangstest_a1:${slug(name)}`, value: JSON.stringify(eingangsState.wdh ? { status: 'offen', wiederholung: true } : { status: 'offen' }) }]);
           window.storage.delete(progressKey, true).catch(() => {});
-          if (eingangsState.wdh) {
-            window.storage.delete(`status:eingangstest_a1:${slug(name)}`, true).catch(() => {});
-            if (progressCache.statusInfo) delete progressCache.statusInfo['eingangstest_a1'];
-          }
+          if (progressCache.statusInfo) delete progressCache.statusInfo['eingangstest_a1'];
         } catch (e) { /* Speicher nicht verfügbar */ }
       }
       return;
@@ -3062,7 +3087,7 @@ function baueGrammatikEntwurf() {
 }
 let gbAutosave = { aktiv: false, id: '', name: '', timer: null, zuletzt: 0, laufend: Promise.resolve() };
 function gbEntwurfKey() { return `testprogress:${gbAutosave.id}:${slug(gbAutosave.name)}`; }
-function gbNochOffen() { return gbAutosave.aktiv && currentActivityId === gbAutosave.id && !!document.querySelector('#actBody .gb-input'); }
+function gbNochOffen() { return !grammatikAnsehen && gbAutosave.aktiv && currentActivityId === gbAutosave.id && !!document.querySelector('#actBody .gb-input'); }
 function grammatikAutosaveStarten() {
   clearTimeout(gbAutosave.timer);
   gbAutosave = { aktiv: true, id: currentActivityId, name: currentActivityName, timer: null, zuletzt: 0, laufend: gbAutosave.laufend };
@@ -3319,13 +3344,14 @@ function renderJetztDran() {
   }
   // Was sonst noch offen ist, aber nicht die Hauptaufgabe: kurze Erinnerungen
   const extra = [];
-  A.heft.filter(x => x !== haupt).forEach(x => extra.push(`Zeig deiner Lehrkraft dein Heft: ${escapeHtml(anzeigeTitel(x.id, curriculumItemInfo(x.id).title))}`));
+  const ansehenKnopf = id => ` <button type="button" class="btn small secondary jetzt-ansehen" data-id="${id}">Nochmal ansehen</button>`;   // 11.11.2026
+  A.heft.filter(x => x !== haupt).forEach(x => extra.push(`Zeig deiner Lehrkraft dein Heft: ${escapeHtml(anzeigeTitel(x.id, curriculumItemInfo(x.id).title))}${ansehenKnopf(x.id)}`));
   Object.keys(progressCache.statusInfo || {}).forEach(id => {   // Grammatik-Hybrid: abgegebener Block mit Heft-Aufgaben
     const st = progressCache.statusInfo[id];
     const stufe = (/^(a1|a2|b1)_grammatik/.exec(id) || [])[1];   // „Grammatik-Block 3“ gibt es in A1, A2 und B1 — Stufe dazuschreiben
-    if (st && st.heft && !st.heftGesehen && !istArbeitsblatt(id) && ablaufStatus(st) === 'offen' && ACTIVITIES[id]) extra.push(`Zeig deiner Lehrkraft dein Heft: ${stufe ? stufe.toUpperCase() + ' ' : ''}${escapeHtml(anzeigeTitel(id, ACTIVITIES[id].title))}`);
+    if (st && st.heft && !st.heftGesehen && !istArbeitsblatt(id) && ablaufStatus(st) === 'offen' && ACTIVITIES[id]) extra.push(`Zeig deiner Lehrkraft dein Heft: ${stufe ? stufe.toUpperCase() + ' ' : ''}${escapeHtml(anzeigeTitel(id, ACTIVITIES[id].title))}${ansehenKnopf(id)}`);
   });
-  A.zettel.forEach(x => extra.push(`Korrigiere auf deinem Blatt: ${escapeHtml(anzeigeTitel(x.id, curriculumItemInfo(x.id).title))} <button type="button" class="btn small secondary jetzt-ergebnis" data-id="${x.id}">Ergebnis ansehen</button>`));
+  A.zettel.forEach(x => extra.push(`Korrigiere auf deinem Blatt: ${escapeHtml(anzeigeTitel(x.id, curriculumItemInfo(x.id).title))} <button type="button" class="btn small secondary jetzt-ergebnis" data-id="${x.id}">Ergebnis ansehen</button>${ansehenKnopf(x.id)}`));
   if (extra.length) html += `<div class="jetzt-extra"><div class="jetzt-extra-kopf">Außerdem noch offen</div>${extra.map(t => `<div class="jetzt-extra-zeile">${t}</div>`).join('')}</div>`;
   const wartend = postausgang().length;
   if (wartend) html = `<div class="jetzt-post">${WO_SYMBOL.post}<span>${wartend === 1 ? 'Eine Abgabe wartet' : wartend + ' Abgaben warten'} auf Internet und ${wartend === 1 ? 'wird' : 'werden'} automatisch gesendet.</span></div>` + html;
@@ -3338,6 +3364,7 @@ function renderJetztDran() {
     if (haupt.kind === 'blatt') { ladeBlatt(haupt.id).catch(() => {}); ladeBlattBilder(haupt.id); }
   }, 400);
   el.querySelectorAll('.jetzt-ergebnis').forEach(b => b.addEventListener('click', () => zeigeErgebnis(b.getAttribute('data-id'), name)));
+  el.querySelectorAll('.jetzt-ansehen').forEach(b => b.addEventListener('click', () => nochmalAnsehen(b.getAttribute('data-id'), name, b)));
   document.getElementById('jetztAlles').addEventListener('click', () => {
     const zu = alles.classList.toggle('hidden');
     try { sessionStorage.setItem('daz_alles', zu ? '0' : '1'); } catch (e) { /* egal */ }
@@ -3680,4 +3707,112 @@ function zeigeEinstieg(testId) {
     box.innerHTML = `<button type="button" class="vok-zu" aria-label="Schließen">×</button><img src="${img.src}" alt="">`;
     box.addEventListener('click', () => box.remove()); document.body.appendChild(box);
   }));
+}
+
+// ---------------- NOCHMAL ANSEHEN (Lukas 11.11.2026, Phase 0.2) ----------------
+// Nach der Abgabe korrigiert das Kind im Heft und muss dafür die Aufgaben wieder sehen. „Nochmal ansehen“ baut den Test
+// (oder Grammatik-Block) genau wie beim Bearbeiten auf, trägt die Antworten der LETZTEN Abgabe ein und sperrt alles:
+// kein Abgeben, kein Autosave, keine Schreibanfrage. Arbeitsblätter werden einfach wieder geöffnet (der Zustand bleibt).
+var testAnsehen = null, grammatikAnsehen = null;   // die Abgabe, die gerade nur angesehen wird (sonst null)
+function kannNochmalAnsehen(id, kind, status) {
+  if (kind === 'activity' || kind === 'blatt' || status === 'unerledigt') return false;
+  return !(ACTIVITIES[id] && ACTIVITIES[id].type === 'wdhauswertung');
+}
+function nurAnsehenModus(view, an, abgabe) {
+  const v = document.getElementById(view); if (!v) return;
+  v.classList.toggle('nur-ansehen', !!an);
+  const w = v.querySelector('.wrap');
+  let b = w.querySelector('.ansehen-hinweis');
+  if (an && !b) { b = document.createElement('div'); b.className = 'ansehen-hinweis'; w.insertBefore(b, w.firstChild); }
+  if (!b) return;
+  b.classList.toggle('hidden', !an);
+  const am = abgabe && abgabe.timestamp ? new Date(abgabe.timestamp).toLocaleDateString('de-DE') : '';
+  b.innerHTML = an ? `<strong>Nur ansehen.</strong> So hast du ${am ? 'am ' + am + ' ' : ''}abgegeben. Hier kannst du nichts ändern. Schreibe deine Korrektur in dein Heft.` : '';
+}
+// Klicks/Tippen in der gesperrten Ansicht abfangen (Bild-Auswahl, Wortkarten …). Programmatische Ereignisse beim Füllen
+// (isTrusted = false) laufen durch. Erlaubt: Einstiegsbild vergrößern, Hinweis.
+['view-test', 'view-activity'].forEach(vid => {
+  const w = document.getElementById(vid).querySelector('.wrap');
+  ['click', 'keydown', 'input', 'change'].forEach(ev => w.addEventListener(ev, e => {
+    if (!e.isTrusted || !document.getElementById(vid).classList.contains('nur-ansehen')) return;
+    if (e.target.closest && e.target.closest('#einstieg, .ansehen-hinweis')) return;
+    e.stopPropagation(); e.preventDefault();
+  }, true));
+});
+function ansehenSperren(container) {
+  document.querySelectorAll(container + ' input, ' + container + ' textarea, ' + container + ' select').forEach(el => { el.disabled = true; });
+}
+// Letzte Abgabe dieses Kindes: noch im Postausgang (ohne Internet abgegeben) oder vom Backend (nur lesen)
+async function letzteAbgabe(id, name) {
+  const sl = slug(name), pre = `submission:${id}:${sl}:`, zeit = k => Number(String(k).split(':')[3]) || 0;
+  let lokal = null;
+  postausgang().forEach(x => x.items.forEach(it => { if (String(it.key).indexOf(pre) === 0 && it.value && (!lokal || zeit(it.key) > zeit(lokal.key))) lokal = it; }));
+  let keys = [];
+  try { keys = (await window.storage.schuelerStand(sl)).abgaben || []; }
+  catch (e) { try { keys = ((await window.storage.list(pre, true)) || {}).keys || []; } catch (e2) { keys = []; } }
+  const neueste = keys.filter(k => k.indexOf(pre) === 0 && !k.endsWith('_manuell')).sort((a, b) => zeit(b) - zeit(a))[0];
+  if (neueste && (!lokal || zeit(neueste) > zeit(lokal.key))) {
+    const r = await window.storage.get(neueste, true);
+    if (r && r.value) return JSON.parse(r.value);
+  }
+  return lokal ? JSON.parse(lokal.value) : null;
+}
+async function nochmalAnsehen(id, name, knopf) {
+  name = name || document.getElementById('startName').value.trim();
+  const info = curriculumItemInfo(id);
+  if (info.kind === 'blatt') return openActivity(id);
+  const alt = knopf ? knopf.textContent : '';
+  if (knopf) { knopf.disabled = true; knopf.textContent = 'Lädt …'; }
+  let sub = null;
+  try { sub = await letzteAbgabe(id, name); } catch (e) { sub = null; }
+  if (knopf) { knopf.disabled = false; knopf.textContent = alt; }
+  if (!sub) { alert('Deine Abgabe konnte gerade nicht geladen werden. Bitte versuche es gleich noch einmal.'); return; }
+  if (info.kind === 'grammatik') return openActivity(id, sub);
+  if (TESTS[id] && TESTS[id].type === 'eingangstest') return zeigeEinstufungAnsehen(id, sub);
+  return startTest(id, name, sub);
+}
+async function ansehenTestFuellen(testId, name) {
+  const sub = testAnsehen;
+  nurAnsehenModus('view-test', true, sub);
+  let payload = null;
+  if (sub.felderAntworten) payload = { kind: 'abschluss', felder: sub.felderAntworten };
+  else if (sub.raState) {
+    const ra = JSON.parse(JSON.stringify(sub.raState));
+    ['teil1', 'teil2', 'teil3', 'teil4'].forEach(k => { ra[k] = ra[k] || {}; });
+    const roh = {};
+    (sub.teil3 || []).forEach(s => { if (s && s.num != null && !ra.teil3[s.num] && s.satz && !s.leer) roh[s.num] = s.satz; });   // ältere Abgaben
+    payload = { kind: 'normal', testVersion: sub.testVersion || 1, testState: ra, teil3Rohtext: roh };
+  }
+  if (payload) await restoreTestProgressIfAny(testId, name, payload);
+  if (testAnsehen !== sub) return;   // inzwischen etwas anderes geöffnet
+  ansehenSperren('#view-test .wrap');
+}
+function ansehenGrammatikFuellen(a) {
+  const sub = grammatikAnsehen;
+  nurAnsehenModus('view-activity', true, sub);
+  let ra = sub.raState;
+  if (!ra) {   // ältere Abgaben: aus den Einzelergebnissen
+    ra = {};
+    (sub.teilDetails || []).forEach(d => { if (d.punktNr != null && d.itemIdx != null) (ra[d.punktNr] = ra[d.punktNr] || [])[d.itemIdx] = /^\((keine Antwort|im Heft)\)$/.test(d.antwort) ? '' : d.antwort; });
+  }
+  a.punkte.forEach((p, pi) => (ra[p.nr] || []).forEach((wert, ii) => {
+    const el = document.querySelector(`#actBody .gb-input[data-key="gb-${pi}-${ii}"]`);
+    if (el && wert) { el.value = wert; if (el.closest('.wo-feld')) wortkartenAusWert(el); }
+  }));
+  ansehenSperren('#view-activity .wrap');
+}
+// Einstufungstest: Fragen werden je Runde zufällig gezogen -> die abgegebenen Fragen mit den eigenen Antworten als Liste
+function zeigeEinstufungAnsehen(id, sub) {
+  const body = document.getElementById('ergBody');
+  document.getElementById('ergTitel').textContent = TESTS[id].title || 'Einstufungstest';
+  document.getElementById('ergSub').textContent = sub.timestamp ? 'Abgegeben am ' + new Date(sub.timestamp).toLocaleDateString('de-DE') : '';
+  setzeKopfzeile('view-ergebnis', id);
+  let h = `<div class="ansehen-hinweis"><strong>Nur ansehen.</strong> Das waren deine Fragen und deine Antworten. Hier kannst du nichts ändern.</div>`;
+  (sub.bereichsErgebnisse || []).forEach(b => {
+    if (!b || !(b.details || []).length) return;
+    h += `<h3 class="erg-h">${escapeHtml(b.name || '')}</h3>`;
+    b.details.forEach(d => { h += `<div class="erg-fehler ansehen-frage"><div>${escapeHtml(d.frage || '')}</div><div class="erg-deine">Deine Antwort: „${escapeHtml(d.antwort || '')}“</div></div>`; });
+  });
+  body.innerHTML = h;
+  showView('view-ergebnis');
 }

@@ -401,9 +401,12 @@ async function holeViele(keys) {
 // Ältere gespeicherte Werte werden übersetzt: 'wiederholen' -> Zettel noch offen (bzw. Wiederholung frei, wenn der
 // Zettel schon abgehakt war); 'weiter' -> erledigt (bzw. Zettel offen, wenn eine Papier-Korrektur noch nicht abgehakt war).
 const ABLAUF_STATUS = ['offen', 'zettel_offen', 'wiederholung_frei', 'endgueltig'];
-function ablaufStatus(st) {
+// id (optional): Der Einstufungstest hatte bis 11.11.2026 einen eigenen Ablauf ohne Heft-Korrektur. Dort hieß
+// 'wiederholen' „sofort digital wiederholen“ und 'weiter' „fertig“ — alte Werte so lesen (Kinder nicht zurückwerfen).
+function ablaufStatus(st, id) {
   if (!st || !st.status) return 'offen';
   if (ABLAUF_STATUS.indexOf(st.status) >= 0) return st.status;
+  if (id === 'eingangstest_a1' && (st.status === 'wiederholen' || st.status === 'weiter')) return st.status === 'wiederholen' ? 'wiederholung_frei' : 'endgueltig';
   if (st.status === 'wiederholen') return st.zettel ? 'wiederholung_frei' : 'zettel_offen';
   if (st.status === 'weiter') return (st.korrektur && !st.zettel) ? 'zettel_offen' : 'endgueltig';
   return 'offen';
@@ -411,7 +414,7 @@ function ablaufStatus(st) {
 // Was nach dem Haken "Handschriftliche Korrektur ist ok" gilt: Wiederholung frei — außer bei alten Bewertungen, die
 // nicht wissen, welche Aufgaben falsch waren (dann gibt es nichts gezielt zu wiederholen: erledigt).
 function korrekturOkStatus(st) {
-  const hatDaten = st && (st.wiederholenVokabel || st.wiederholenFelder || st.wiederholenGrammatik || (st.wiederholenTeile && st.wiederholenTeile.length) || (st.punkteWiederholen && st.punkteWiederholen.length));
+  const hatDaten = st && (st.wiederholenVokabel || st.wiederholenFelder || st.wiederholenGrammatik || (st.wiederholenTeile && st.wiederholenTeile.length) || (st.punkteWiederholen && st.punkteWiederholen.length) || (st.wiederholenFragen && st.wiederholenFragen.length));
   return hatDaten ? 'wiederholung_frei' : 'endgueltig';
 }
 // Soll eine Rückgabe (Zettel offen / Wiederholung frei) den NÄCHSTEN Schritt sperren? Bisher hat nur "Wiederholen nötig"
