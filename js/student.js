@@ -397,7 +397,7 @@ async function renderLernfeldItems(lfIdx, name) {
         : status === 'wiederholen'
           ? `<span class="status-pill gelb">Mache nur die falschen Aufgaben noch einmal.</span>`
           : status === 'zettel'
-            ? `<span class="status-pill gelb">✎ Schreibe die richtigen Antworten auf dein Blatt.</span>`
+            ? `<span class="status-pill gelb">✎ Schreibe die Korrektur in dein Heft.</span>`
             : status === 'wirdgeprueft'
               ? `<span class="status-pill blau">⏳ wird geprüft</span>`
               : hatPausiertenFortschritt
@@ -2648,10 +2648,10 @@ async function zeigeErgebnis(id, name) {
   }
   // Text je Zustand (Ablauf Korrektur/Rückgabe, Texte A8): Rückgabe -> nur auf Papier korrigieren; erst nach dem Haken
   // der Lehrkraft gibt es die digitale Wiederholung; danach "Fertig!".
-  const ab = ablaufStatus(si);
+  const ab = ablaufStatus(si, id);
   const hatFehler = !!((rv.fehler && rv.fehler.length) || (rv.saetze && rv.saetze.length));
-  if (ab === 'zettel_offen') {
-    h += `<div class="erg-box erg-schritte"><strong>Du hast Fehler gemacht.</strong> Schreibe die richtigen Antworten auf dein Blatt. Zeige dein Blatt deiner Lehrkraft.</div>`;
+  if (ab === 'zettel_offen') {   // 12.11.2026: Korrektur im Heft (vorher „auf dein Blatt“)
+    h += `<div class="erg-box erg-schritte"><strong>Du hast Fehler gemacht.</strong> Schreibe die Korrektur in dein Heft. Zeige dein Heft deiner Lehrkraft.</div>`;
   } else if (ab === 'wiederholung_frei') {
     h += `<div class="erg-box erg-schritte"><strong>Mache nur diese Aufgaben noch einmal.</strong></div>`;
   } else if (ab === 'endgueltig') {
@@ -2660,7 +2660,10 @@ async function zeigeErgebnis(id, name) {
     h += `<div class="erg-box gut"><strong>Alles richtig. Gut gemacht!</strong></div>`;
   }
   if (rv.kommentar) h += `<div class="erg-kommentar"><strong>Hinweis von deiner Lehrkraft:</strong><br>${escapeHtml(rv.kommentar).replace(/\n/g, '<br>')}</div>`;
-  if (rv.fehler && rv.fehler.length) {
+  const kkDaten = await ladeKorrektur(id).catch(() => null);   // Korrektur-Karten (12.11.2026, src-js/korrektur.js) — Phase 1: A2 LF5
+  const kkHtml = korrekturListeHtml(id, rv, kkDaten, meineSprachen());
+  if (kkHtml) h += kkHtml;
+  if (!kkHtml && rv.fehler && rv.fehler.length) {
     h += `<h3 class="erg-h">Das war falsch</h3>`;
     let letzterTeil = null;
     const grossGezeigt = new Set();   // großes Bild (z. B. Körperfigur) nur einmal
@@ -2671,7 +2674,7 @@ async function zeigeErgebnis(id, name) {
       h += `<div class="erg-fehler"><div>${escapeHtml(f.frage)}</div>${b.aufgabe}<div class="erg-deine">Deine Antwort: ${b.deine || `„${escapeHtml(f.antwort)}“`}</div>${(f.loesung || f.korrektAntwort) ? `<div class="erg-richtig">Richtig: ${b.richtig}„${escapeHtml(f.loesung || f.korrektAntwort)}“</div>` : ''}${f.hinweis ? `<div class="erg-hinweis">Hinweis: ${escapeHtml(f.hinweis)}</div>` : ''}</div>`;
     });
   }
-  if (rv.saetze && rv.saetze.length) {
+  if (!kkHtml && rv.saetze && rv.saetze.length) {
     h += `<h3 class="erg-h">Diese Sätze bitte verbessern</h3>`;
     rv.saetze.forEach(s => { h += `<div class="erg-fehler"><div>${escapeHtml(s.frage)}</div><div class="erg-deine">Dein Satz: „${escapeHtml(s.satz)}“</div>${(s.loesung || s.vorschlag) ? `<div class="erg-richtig">So heißt der Satz richtig: „${escapeHtml(s.loesung || s.vorschlag)}“</div>` : ''}${s.hinweis ? `<div class="erg-hinweis">Hinweis: ${escapeHtml(s.hinweis)}</div>` : ''}</div>`; });
   }
@@ -3351,7 +3354,7 @@ function renderJetztDran() {
     const stufe = (/^(a1|a2|b1)_grammatik/.exec(id) || [])[1];   // „Grammatik-Block 3“ gibt es in A1, A2 und B1 — Stufe dazuschreiben
     if (st && st.heft && !st.heftGesehen && !istArbeitsblatt(id) && ablaufStatus(st) === 'offen' && ACTIVITIES[id]) extra.push(`Zeig deiner Lehrkraft dein Heft: ${stufe ? stufe.toUpperCase() + ' ' : ''}${escapeHtml(anzeigeTitel(id, ACTIVITIES[id].title))}${ansehenKnopf(id)}`);
   });
-  A.zettel.forEach(x => extra.push(`Korrigiere auf deinem Blatt: ${escapeHtml(anzeigeTitel(x.id, curriculumItemInfo(x.id).title))} <button type="button" class="btn small secondary jetzt-ergebnis" data-id="${x.id}">Ergebnis ansehen</button>${ansehenKnopf(x.id)}`));
+  A.zettel.forEach(x => extra.push(`Korrigiere in deinem Heft: ${escapeHtml(anzeigeTitel(x.id, curriculumItemInfo(x.id).title))} <button type="button" class="btn small secondary jetzt-ergebnis" data-id="${x.id}">Ergebnis ansehen</button>${ansehenKnopf(x.id)}`));
   if (extra.length) html += `<div class="jetzt-extra"><div class="jetzt-extra-kopf">Außerdem noch offen</div>${extra.map(t => `<div class="jetzt-extra-zeile">${t}</div>`).join('')}</div>`;
   const wartend = postausgang().length;
   if (wartend) html = `<div class="jetzt-post">${WO_SYMBOL.post}<span>${wartend === 1 ? 'Eine Abgabe wartet' : wartend + ' Abgaben warten'} auf Internet und ${wartend === 1 ? 'wird' : 'werden'} automatisch gesendet.</span></div>` + html;

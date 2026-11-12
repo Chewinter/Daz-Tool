@@ -851,6 +851,60 @@ body.pruefkonto .status-pill.rot { background: var(--bg); color: var(--ink-soft)
 .nur-ansehen #submitBtn, .nur-ansehen #saveLaterBtn, .nur-ansehen #grammatikAbgabeBereich, .nur-ansehen #progressRestoredNotice { display: none !important; }
 .nur-ansehen .img-opt, .nur-ansehen .mc-opt, .nur-ansehen .wo-karte { cursor: default; }
 
+/* Korrektur-Karten (Phase 1, 12.11.2026) */
+.kk-intro { margin: 4px 0 14px; line-height: 1.45; }
+.kk-karte { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 0 0 16px; background: #fff; line-height: 1.45; }
+.kk-aufgabe { margin-bottom: 10px; }
+.kk-frage, .kk-satz { margin: 0 0 8px; font-size: 16px; }
+.kk-satz { font-size: 17px; }
+.kk-luecke { background: #FFF4D6; border-radius: 6px; padding: 1px 6px; }
+.kk-luecke s { color: var(--bad); }
+.kk-bilder { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.kk-wahl { margin: 0; text-align: center; border: 2px solid var(--line); border-radius: 8px; padding: 4px; font-size: 12px; }
+.kk-wahl img { width: 100%; max-width: 90px; height: auto; }
+.kk-wahl.kk-ok { border-color: var(--good); background: var(--good-bg); }
+.kk-wahl.kk-falsch { border-color: var(--bad); background: var(--bad-bg); }
+.kk-bild { max-width: 100%; height: auto; }
+.kk-bild-gross.kk-bild-breit { max-width: 100%; }
+.kk-bild-gross { display: block; max-width: 220px; width: 100%; height: auto; margin: 0 auto 8px; }
+.kk-gv { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.kk-gv > img { width: 110px; height: auto; }
+.kk-gv .kk-wahl { width: 76px; }
+.kk-pfeil { font-size: 22px; }
+.kk-svg { display: block; width: 100%; max-width: 420px; height: auto; margin: 6px auto; color: var(--ink); }
+.kk-verb { border-collapse: collapse; width: 100%; max-width: 360px; font-size: 16px; }
+.kk-verb th, .kk-verb td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+.kk-verb th { width: 30%; font-weight: 400; color: var(--ink-soft); }
+.kk-verb tr.kk-verb-falsch td:nth-child(2) { font-weight: 700; color: var(--good); }
+.kk-verb tr.kk-verb-falsch td:nth-child(3) { color: var(--bad); }
+.kk-zeile { margin: 4px 0; }
+.kk-lab { font-weight: 700; }
+.kk-deine { color: var(--bad); }
+.kk-richtig { color: var(--good); }
+.kk-form { background: #FFF4D6; border-radius: 8px; padding: 8px 10px; margin: 8px 0; }
+.kk-form p { margin: 2px 0; }
+.kk-wort { border-left: 0; background: #F2EFE6; border-radius: 8px; padding: 8px 10px; margin: 8px 0; }
+.kk-gram { color: var(--ink-soft); font-size: 13px; }
+.kk-erkl { margin-top: 2px; }
+.kk-bsp { font-style: italic; margin-top: 2px; }
+.kk-sp { margin-top: 2px; }
+.kk-sp-name { font-weight: 700; font-size: 13px; color: var(--teal-dark); }
+.kk-warum { margin: 10px 0 6px; }
+.kk-warum-kopf { font-weight: 700; font-size: 16px; color: var(--teal-dark); margin-bottom: 2px; }
+.kk-warum p { margin: 3px 0; }
+.kk-sp-block { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--line); }
+.kk-sp-block p { margin: 2px 0; }
+.kk-sp-fehlt { color: var(--ink-soft); font-size: 13px; }
+.kk-regel { margin: 8px 0; background: #EAF2F0; border-radius: 8px; padding: 8px 10px; }
+.kk-regel summary { cursor: pointer; font-weight: 700; min-height: 32px; }
+.kk-regel p { margin: 4px 0; }
+.kk-regel-bsp p { font-style: italic; }
+.kk-lehrkraft { margin: 8px 0; background: #EEF3FB; border-radius: 8px; padding: 8px 10px; }
+.kk-heft { margin-top: 10px; padding: 10px; border: 2px solid var(--teal); border-radius: 8px; }
+.bw-karten-box { margin-top: 10px; }
+.bw-karten-kopf { margin: 6px 0 10px; font-size: 14px; }
+.bw-karten-kopf select { font-size: 14px; }
+
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
   .ub-chip { padding: 6px 12px; border-radius: 999px; background: #EFEBDD; font-size: 14px; }

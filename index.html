@@ -7,7 +7,7 @@
 <script>
   // ==== VERSION — nach JEDER Änderung an css/js/data hier hochzählen (z. B. 20260924b), damit Browser die neuen
   //      Dateien sofort laden und nicht mit alten mischen. In index.html UND lehrkraft.html gleich halten. ====
-  var APP_V = '20261111a';
+  var APP_V = '20261112b';
   document.write('<link rel="stylesheet" href="css/style.css?v=' + APP_V + '">');
 </script>
 </head>
@@ -164,6 +164,7 @@
     'data/icons-gruppen.js',
     'data/einstieg.js',
     'js/tests-common.js',
+    'js/korrektur.js',
     'js/student.js'
   ].forEach(function (src) { document.write('<script src="' + src + '?v=' + APP_V + '"><\/script>'); });
 </script>

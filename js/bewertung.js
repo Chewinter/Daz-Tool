@@ -314,6 +314,9 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
     } else {
       aktionEl.innerHTML = '<div class="bw-hinweis gut">Endgültig erledigt. Keine Wiederholung mehr.</div>';
     }
+    // Korrektur-Karten (12.11.2026): so sieht das Kind die Rückgabe
+    if (ab !== 'offen' && statusObj.reviewKey && sub._neueste !== false && typeof korrekturLernfeld === 'function' && korrekturLernfeld(sub.testId))
+      aktionEl.insertAdjacentHTML('beforeend', '<div class="status-controls"><button type="button" class="btn secondary small bw-karten">So sieht das Kind die Korrektur</button></div><div class="bw-karten-box"></div>');
     pflichtEl.textContent = '';
     if (sub._neueste === false) { aktionEl.innerHTML = '<div class="bw-hinweis">Ältere Abgabe — nur zum Ansehen. Bewertet wird immer die neueste Abgabe dieses Tests.</div>' + (ab !== 'endgueltig' ? '<div class="status-controls"><button type="button" class="btn secondary small bw-endgueltig-direkt">Endgültig erledigt</button></div>' : ''); vorschauEl.innerHTML = ''; }
   }
@@ -393,8 +396,8 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
     const gewaehlt = [...new Set(falscheItems.map(it => it.teil))];
     const teileErg = erg.teile.map(x => ({ id: x.id, titel: x.titel, richtig: x.richtig, gesamt: x.gesamt, punkte: x.punkte, max: x.max, wiederholen: neu === 'zettel_offen' && gewaehlt.indexOf(x.id) >= 0 }));
     const hinw = it => { const f = fb[it.id]; return f ? { loesung: (f.loesung || '').trim(), hinweis: (f.fehler || '').trim() } : { loesung: '', hinweis: '' }; };
-    const fehler = A.items.filter(it => !it.satz && effektiv(it, ov) === false).map(it => ({ teil: (A.teile.find(x => x.id === it.teil) || {}).titel || '', frage: it.frage, antwort: it.antwort, korrektAntwort: it.korrektAntwort || '', teilId: it.teil, num: it.num, bild: it.bild || null, bildGross: it.bildGross || null, ...hinw(it) })); // teilId+num: damit die Schüler-Seite das Bild zur Aufgabe findet
-    const saetze = A.items.filter(it => it.satz && effektiv(it, ov) === false).map(it => ({ frage: it.frage, satz: it.antwort, vorschlag: it.korrektAntwort || '', ...hinw(it) }));
+    const fehler = A.items.filter(it => !it.satz && effektiv(it, ov) === false).map(it => ({ teil: (A.teile.find(x => x.id === it.teil) || {}).titel || '', frage: it.frage, antwort: it.antwort, korrektAntwort: it.korrektAntwort || '', teilId: it.teil, num: it.num, key: it.key || null, bild: it.bild || null, bildGross: it.bildGross || null, ...hinw(it) })); // teilId+num: damit die Schüler-Seite das Bild zur Aufgabe findet
+    const saetze = A.items.filter(it => it.satz && effektiv(it, ov) === false).map(it => ({ frage: it.frage, satz: it.antwort, vorschlag: it.korrektAntwort || '', teilId: it.teil, num: it.num, ...hinw(it) }));   // teilId+num: Korrektur-Karte (12.11.2026)
     const felder = istAbschluss ? A.items.filter(it => it.key).map(it => ({ key: it.key, korrekt: effektiv(it, ov) === true })) : [];
     const ergebnis = neu === 'zettel_offen' ? 'zettel' : 'erledigt';
     const review = { v: 2, testId: sub.testId, name: sub.name, titel: titelAnzeige, art: A.art, reviewedAt: new Date().toISOString(), kommentar, ergebnis, korrektur: neu === 'zettel_offen',
@@ -447,6 +450,7 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
     loadSubmissions(false);
   }
   aktionEl.addEventListener('click', async (ev) => {
+    if (ev.target.closest('.bw-karten')) { zeigeKartenLehrkraft(sub, statusObj, aktionEl.querySelector('.bw-karten-box')); return; }
     if (ev.target.closest('.bw-endgueltig-direkt')) {   // Lukas 03.11.: in jedem Zustand, auch bei älteren Abgaben
       const erg = berechneErgebnis(A, ov);
       if (sub._neueste !== false && ab === 'offen' && !erg.offen) { abschliessen('endgueltig'); return; }   // alles bewertet: mit Punkten speichern
@@ -520,4 +524,20 @@ function einstufungAktionenVerbinden(div, sub, st, statusKey, commentInput) {
     if (ok) loadSubmissions(false);
     else { b.disabled = false; alert('Konnte nicht gespeichert werden. Bitte nochmal versuchen.'); }
   });
+}
+
+// ---------------- KORREKTUR-KARTEN AUS SICHT DES KINDES (Lukas 12.11.2026, Phase 1) ----------------
+async function zeigeKartenLehrkraft(sub, st, box) {
+  if (!box) return;
+  if (box.innerHTML) { box.innerHTML = ''; return; }   // zweiter Klick: wieder zu
+  box.innerHTML = '<p class="bw-hinweis">Lädt …</p>';
+  let rv = null;
+  try { rv = JSON.parse((await window.storage.get(st.reviewKey, true)).value); } catch (e) { rv = null; }
+  const daten = await ladeKorrektur(sub.testId);
+  const zeichne = sp => {
+    box.innerHTML = `<div class="bw-karten-kopf">So sieht ${escapeHtml(sub.name)} die Korrektur. Sprache dazu: <select class="bw-karten-sp"><option value="">nur Deutsch</option>${Object.keys(KK_SPRACHEN).map(k => `<option value="${k}"${k === sp ? ' selected' : ''}>${KK_SPRACHEN[k]}</option>`).join('')}</select></div>`
+      + (rv ? (korrekturListeHtml(sub.testId, rv, daten, sp ? [sp] : []) || '<p class="bw-hinweis gut">Keine Fehler.</p>') : '<p class="bw-hinweis">Die Bewertung konnte nicht geladen werden.</p>');
+    box.querySelector('.bw-karten-sp').addEventListener('change', e => zeichne(e.target.value));
+  };
+  zeichne('');
 }

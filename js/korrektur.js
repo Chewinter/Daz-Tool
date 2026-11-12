@@ -1,0 +1,270 @@
+/* ==========================================================================
+   korrektur.js — Korrektur-Karten nach einem Test (Phase 1, Lukas 11./12.11.2026). Schüler- UND Lehrkraft-Seite.
+   Für jede falsche Aufgabe eine Karte: die Aufgabe wie im Test (Bild, Lückensatz, Verbzeile …), „Das hast du geschrieben“,
+   „So ist es richtig“, Hinweis zu Artikel / Fall / Groß- und Kleinschreibung (Lukas 12.11.: kommt IMMER vor), das Wort wie
+   im Duden, „Warum?“ erst Deutsch, dann die Sprache des Kindes, ggf. der Regel-Kasten, „Ins Heft“.
+   Texte: data/korrektur-<lernfeld>.js (gen_korrektur.py). Fehlt eine Karte, gibt es trotzdem Aufgabe + Lösung (nie leer).
+   ========================================================================== */
+const KORREKTUR_LERNFELDER = ['a2_lf5', 'a2_lf4'];   // Lernfelder mit fertigen Karten (Phase 1: A2 LF5 Muster, dann LF4)
+const KK_SPRACHEN = { ar: 'Arabisch', uk: 'Ukrainisch', ru: 'Russisch', tr: 'Türkisch', fa: 'Persisch', sq: 'Albanisch', bg: 'Bulgarisch', es: 'Spanisch', so: 'Somali', am: 'Amharisch', ti: 'Tigrinya', ku: 'Kurdisch (Sorani)' };
+const KK_PERSONEN = ['ich', 'du', 'er/sie/es', 'wir', 'ihr', 'sie/Sie'];
+const KK_ARTIKEL = ['der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einen', 'einem', 'einer', 'eines'];
+const KK_GENUS = { der: 'maskulin', die: 'feminin', das: 'neutral' };
+
+function korrekturLernfeld(testId) {
+  const lf = (typeof CURRICULUM !== 'undefined' ? CURRICULUM : []).find(s => s.items.indexOf(testId) >= 0);
+  return lf && KORREKTUR_LERNFELDER.indexOf(lf.id) >= 0 ? lf.id : null;
+}
+const kkGeladen = {};
+function kkSkript(pfad) {
+  return kkGeladen[pfad] || (kkGeladen[pfad] = new Promise(res => {
+    const s = document.createElement('script');
+    s.src = pfad + '?v=' + (typeof APP_V !== 'undefined' ? APP_V : '');
+    s.onload = res; s.onerror = res; document.head.appendChild(s);
+  }));
+}
+// Karten eines Tests laden: data/korrektur-<test>.js (je Test eine Datei, Schul-WLAN) ruft korrekturDaten(...) auf.
+// Rückgabe: Daten des Lernfelds (alle schon geladenen Tests) oder null (dann alte Liste)
+window.KORREKTUR = window.KORREKTUR || {};
+function korrekturDaten(lf, test, d) {
+  const L = window.KORREKTUR[lf] || (window.KORREKTUR[lf] = { karten: {}, vok: {}, regeln: {} });
+  L.karten[test] = d.karten; Object.assign(L.vok, d.vok); Object.assign(L.regeln, d.regeln);
+}
+async function ladeKorrektur(testId) {
+  const lf = korrekturLernfeld(testId);
+  if (!lf) return null;
+  await kkSkript('data/korrektur-' + testId + '.js');   // Regel-Kästen stehen mit drin (nicht die ganze grammatik-erklaerungen.js laden)
+  return (window.KORREKTUR[lf] && window.KORREKTUR[lf].karten[testId]) ? window.KORREKTUR[lf] : null;
+}
+function kkInline(s) {   // **fett**; bdi: deutsche Wörter in arabischer/persischer Schrift richtig einordnen; [[Wort|Stichwort]] -> Wort
+  return escapeHtml(String(s || '')).replace(/\*\*([^*]+)\*\*/g, '<strong><bdi>$1</bdi></strong>').replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, '$1');
+}
+// Welche Karte gehört zu diesem Fehler? Schritt-Tests: „teil1:5“. Lernfeld-Test: aus dem Feld-Schlüssel.
+function korrekturSchluessel(testId, f) {
+  if (f.key) {
+    let m = /^v\d+-\d+-(.+)-(praesens|perfekt)-(\d+)$/.exec(f.key); if (m) return m[2] + ':' + m[1];   // Lernfeld-Test 4: alle Personen
+    m = /^besch\d*-(\d+)-[ap]$/.exec(f.key); if (m) return 'besch:' + m[1];                       // Einzahl + Mehrzahl = eine Karte
+    m = /^dial-(\d+)$/.exec(f.key); if (m) return 'dial:' + m[1];
+    m = /^v\d+-\d+-(.+)-perfekt$/.exec(f.key); if (m) return 'perfekt:' + m[1];
+    m = /^v\d+-\d+-(.+)-(\d+)$/.exec(f.key); if (m) return 'praesens:' + m[1];
+    m = /^gv-(\d+)$/.exec(f.key); if (m) return 'gv:' + m[1];
+    m = /^sa\d*-(\d+)$/.exec(f.key); if (m) return 'sa:' + m[1];
+    return f.key;
+  }
+  const t = (typeof TESTS !== 'undefined' && TESTS[testId]) || {};
+  if (f.teilId && /^teil\d$/.test(f.teilId) && f.num != null) return f.teilId + ':' + f.num;
+  // ältere Bewertungen ohne Teil/Nummer: über den Fragetext
+  const such = (teil, fn) => { const it = (t[teil] || []).find(fn); return it ? teil + ':' + it.num : null; };
+  return such('teil1', i => 'Bildzuordnung: ' + i.word === f.frage) || such('teil2', i => `${i.vor} ___ ${i.nach}` === f.frage)
+    || such('teil4', i => typeof teil4FrageText === 'function' && teil4FrageText(t, i) === f.frage)
+    || such('teil3', i => f.satz != null && (i.word === f.frage || (i.pronomen && f.frage && f.frage.indexOf(i.word) >= 0))) || null;
+}
+
+// ---- Artikel, Fall, Groß-/Kleinschreibung: ohne KI aus der Antwort ablesbar (Lukas 12.11.2026) ----
+function kkNorm(s) { return String(s || '').trim().replace(/\s+/g, ' ').replace(/[.!?]+$/, ''); }
+function kkAbstand(a, b) {   // Levenshtein, klein
+  const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i].concat(Array(n).fill(0)));
+  for (let j = 1; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[m][n];
+}
+function korrekturFormHinweis(antwort, richtig) {
+  const a = kkNorm(antwort), r = kkNorm(String(richtig || '').split(' / ')[0]);
+  if (!a || !r || a === r || /^\((keine Antwort|kein Satz|im Heft)/.test(a)) return [];
+  const aw = a.split(' '), rw = r.split(' ');
+  const out = [];
+  const rArt = rw.length > 1 && KK_ARTIKEL.indexOf(rw[0].toLowerCase()) >= 0;
+  if (rArt && rw.length === 2) {   // Beschriften: „der Döner“
+    const nomen = rw[1], gen = KK_GENUS[rw[0].toLowerCase()];
+    const aArt = aw.length > 1 && KK_ARTIKEL.indexOf(aw[0].toLowerCase()) >= 0;
+    const aNomen = aArt ? aw.slice(1).join(' ') : a;
+    const nomenGleich = aNomen.toLowerCase() === nomen.toLowerCase();
+    const nomenFast = nomenGleich || kkAbstand(aNomen.toLowerCase(), nomen.toLowerCase()) <= 2;   // anderes Wort gewählt -> kein Artikel-Hinweis
+    if (!aArt && nomenGleich) out.push(`Das Wort stimmt, aber der **Artikel fehlt**: **${rw[0]}** ${nomen}. Lerne jedes Nomen mit Artikel.`);
+    else if (aArt && nomenFast && aw[0].toLowerCase() !== rw[0].toLowerCase()) {
+      const fall = ['den', 'dem', 'des', 'einen', 'einem', 'einer', 'eines'].indexOf(aw[0].toLowerCase()) >= 0;
+      out.push(fall ? `„${aw[0]}“ ist eine Form für einen anderen **Fall**. Beim Beschriften steht der Artikel im Nominativ: **${rw[0]}** ${nomen}${gen ? ' (' + gen + ')' : ''}.`
+        : `**Falscher Artikel**: nicht „${aw[0]}“, sondern **${rw[0]}** ${nomen}${gen ? ' (' + gen + ')' : ''}.`);
+    }
+    if (nomenGleich && aNomen !== nomen && aNomen.toLowerCase() === nomen.toLowerCase()) out.push(`**Nomen schreibt man groß**: ${nomen}.`);
+    if (!nomenGleich && kkAbstand(aNomen.toLowerCase(), nomen.toLowerCase()) <= 2) out.push(`Fast richtig. Achte auf die **Schreibweise**: ${nomen}.`);
+    return out;
+  }
+  // Sätze und andere Antworten: Wort für Wort, wenn gleich lang
+  if (aw.length === rw.length) {
+    aw.forEach((w, i) => {
+      const s = rw[i];
+      if (w === s) return;
+      if (w.toLowerCase() === s.toLowerCase()) {
+        out.push(s[0] === s[0].toUpperCase() && s[0] !== s[0].toLowerCase()
+          ? (i === 0 ? `Der Satz beginnt **groß**: ${s}.` : `**${s}** schreibt man groß (Nomen).`)
+          : `**${s}** schreibt man klein.`);
+      } else if (KK_ARTIKEL.indexOf(w.toLowerCase()) >= 0 && KK_ARTIKEL.indexOf(s.toLowerCase()) >= 0 && (aw[i + 1] || '').toLowerCase() === (rw[i + 1] || '').toLowerCase()) {
+        out.push(`**Artikel**: nicht „${w}“, sondern **${s}** ${rw[i + 1] || ''}.`);
+      }
+    });
+  } else if (aw.length === rw.length - 1 && rArt && aw.join(' ').toLowerCase() === rw.slice(1).join(' ').toLowerCase()) {
+    out.push(`Der **Artikel fehlt**: **${rw[0]}** ${rw.slice(1).join(' ')}.`);
+  }
+  return out;
+}
+
+// ---- kleine Zeichnungen ----
+function kkZeichnung(z) {
+  if (!z) return '';
+  if (z === 'treppe_hoch') return `<svg class="kk-svg" viewBox="0 0 260 130" role="img" aria-label="Treppe nach oben"><path d="M20 115h45v-28h45v-28h45v-28h80" fill="none" stroke="currentColor" stroke-width="4"/>
+    <defs><marker id="kkp" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" refX="7" refY="7" orient="auto"><path d="M0 0L14 7L0 14z" fill="#c0392b"/></marker></defs>
+    <path d="M45 100 L170 30" stroke="#c0392b" stroke-width="4" marker-end="url(#kkp)"/>
+    <text x="118" y="92" font-size="17" fill="#c0392b" font-weight="700">hinauf ↑</text><text x="190" y="22" font-size="14">2. Stock</text></svg>`;
+  let m = /^tageslinie:(\w+)$/.exec(z);
+  if (m) {
+    const T = [['morgen', 'Morgen', 'Frühstück'], ['mittag', 'Mittag', 'Mittagessen'], ['nachmittag', 'Nachmittag', 'Kaffee und Kuchen'], ['abend', 'Abend', 'Abendessen']];
+    return `<svg class="kk-svg" viewBox="0 0 320 90" role="img" aria-label="Tageslinie"><line x1="20" y1="45" x2="300" y2="45" stroke="currentColor" stroke-width="3"/>${T.map((t, i) => {
+      const x = 30 + i * 85, an = t[0] === m[1];
+      return `<circle cx="${x}" cy="45" r="${an ? 9 : 6}" fill="${an ? '#c0392b' : 'currentColor'}"/><text x="${x}" y="28" font-size="13" text-anchor="middle" font-weight="${an ? 700 : 400}">${t[1]}</text>
+        <text x="${x}" y="72" font-size="${an ? 12 : 10}" text-anchor="middle" fill="${an ? '#c0392b' : 'currentColor'}" font-weight="${an ? 700 : 400}">${t[2]}</text>`;
+    }).join('')}</svg>`;
+  }
+  m = /^muenze:(\w+)$/.exec(z);
+  if (m) {   // alle Münzen von groß nach klein, die gesuchte mit Pfeil (Farben wie echt: 2 € / 1 € zweifarbig, gold, kupferrot)
+    const M = [['2e', '2 €', 'silber', 'gold', 30], ['1e', '1 €', 'gold', 'silber', 28], ['50c', '50 ct', 'gold', 'gold', 27], ['20c', '20 ct', 'gold', 'gold', 25],
+      ['10c', '10 ct', 'gold', 'gold', 22], ['5c', '5 ct', 'kupfer', 'kupfer', 24], ['2c', '2 ct', 'kupfer', 'kupfer', 21], ['1c', '1 ct', 'kupfer', 'kupfer', 18]];
+    const F = { silber: '#c9ccd1', gold: '#d9b44a', kupfer: '#c0703f' };
+    return `<svg class="kk-svg" viewBox="0 0 520 110" role="img" aria-label="Euro-Münzen">${M.map((x, i) => {
+      const cx = 34 + i * 64, an = x[0] === m[1];
+      return `<circle cx="${cx}" cy="58" r="${x[4]}" fill="${F[x[2]]}" stroke="#555" stroke-width="1.5"/><circle cx="${cx}" cy="58" r="${x[4] * 0.62}" fill="${F[x[3]]}"/>
+        <text x="${cx}" y="62" font-size="11" text-anchor="middle" font-weight="700">${x[1]}</text>${an ? `<text x="${cx}" y="18" font-size="20" text-anchor="middle" fill="#c0392b">↓</text>` : ''}`;
+    }).join('')}</svg>`;
+  }
+  return '';
+}
+
+// ---- Bausteine der Karte ----
+function kkBild(n, cls) { return (n && typeof ICONS !== 'undefined' && ICONS[n]) ? `<img class="${cls || 'kk-bild'}" src="${iconSrc(n)}" alt="">` : ''; }
+function kkVokHtml(st, v, sprachen) {
+  if (!st || !v) return '';
+  const m = /^(der|die|das) (.+)$/.exec(st);
+  const kopf = m ? `<strong>${escapeHtml(m[2])}, ${m[1]}</strong> <span class="kk-gram">${st === 'die Lebensmittel' ? 'meist Plural' : KK_GENUS[m[1]] + ' · ' + (v.pl ? 'Plural: ' + escapeHtml(v.pl) : 'kein Plural')}</span>`
+    : `<strong>${escapeHtml(st)}</strong>`;
+  const ueb = sprachen.map(k => v.sp && v.sp[k] ? `<div class="kk-sp" dir="auto"><span class="kk-sp-name">${KK_SPRACHEN[k]}:</span> ${escapeHtml(v.sp[k])}</div>` : '').join('');
+  return `<div class="kk-wort">${kopf}${v.erkl ? `<div class="kk-erkl">${escapeHtml(v.erkl)}</div>` : ''}${v.bsp ? `<div class="kk-bsp">${escapeHtml(v.bsp)}</div>` : ''}${ueb}</div>`;
+}
+function kkRegelHtml(key, sprachen, daten) {
+  const R = ((daten && daten.regeln) || {})[key] || ((window.GRAMMATIK || {}).regeln || {})[key];
+  if (!R) return '';
+  return `<details class="kk-regel"><summary>💡 Regel: ${kkInline(R.titel)}</summary>${R.de.map(p => `<p>${kkInline(p)}</p>`).join('')}
+    ${(R.bsp || []).length ? `<div class="kk-regel-bsp">${R.bsp.map(x => `<p>${escapeHtml(x)}</p>`).join('')}</div>` : ''}
+    ${sprachen.map(k => { const t = R.sp && R.sp[k]; return t ? `<div class="kk-sp-block" dir="auto"><div class="kk-sp-name">${KK_SPRACHEN[k]}: ${escapeHtml(t[0])}</div>${[].concat(t[1]).map(x => `<p dir="auto">${escapeHtml(x)}</p>`).join('')}</div>` : ''; }).join('')}</details>`;
+}
+function kkIconWort(t, icon) {   // Name eines Bildes als Wort (über die Aufgabe, in der es die richtige Lösung ist)
+  const it = (t.teil1 || []).find(i => i.icons[i.correct] === icon);
+  return it ? it.word : String(icon || '').replace(/^S_lf\d+_schritt\d+_/, '').replace(/_\d+$/, '').replace(/_/g, ' ').replace(/ae/g, 'ä').replace(/oe/g, 'ö').replace(/ue/g, 'ü');
+}
+// Die Aufgabe so, wie sie im Test war. Liefert { html, deine, richtig } (deine/richtig ersetzen den Text, z. B. durch Bilder)
+function korrekturAufgabe(testId, f, fehlerGruppe) {
+  const t = (typeof TESTS !== 'undefined' && TESTS[testId]) || {};
+  const key = korrekturSchluessel(testId, f) || '';
+  const [teil, nr] = key.split(':');
+  const it = /^teil\d$/.test(teil) ? (t[teil] || []).find(i => String(i.num) === nr) : null;
+  if (teil === 'teil1' && it) {
+    const gewaehlt = it.icons.find(n => n.replace(/_/g, ' ') === f.antwort);
+    return { html: `<p class="kk-frage">Welches Bild passt zu <strong>${escapeHtml(it.word)}</strong>?</p><div class="kk-bilder">${it.icons.map((n, i) =>
+      `<figure class="kk-wahl${i === it.correct ? ' kk-ok' : n === gewaehlt ? ' kk-falsch' : ''}">${kkBild(n)}<figcaption>${i === it.correct ? '✓ richtig' : n === gewaehlt ? '✗ deine Wahl' : '&nbsp;'}</figcaption></figure>`).join('')}</div>`,
+      deine: gewaehlt ? `„${escapeHtml(kkIconWort(t, gewaehlt))}“` : null, richtig: `„${escapeHtml(it.word)}“`, lab: 'Du hast gewählt:' };
+  }
+  if (teil === 'teil2' && it) {
+    const r = it.options[it.correct];
+    return { html: `${it.bildGross ? kkBild(it.bildGross, 'kk-bild-gross kk-bild-breit') : ''}<p class="kk-satz">${escapeHtml(it.vor)} <span class="kk-luecke">${f.antwort && f.antwort !== '(keine Antwort)' ? `<s>${escapeHtml(f.antwort)}</s> ` : ''}<strong>${escapeHtml(r)}</strong></span> ${escapeHtml(it.nach)}</p>`, deine: null, richtig: null };
+  }
+  if (teil === 'teil4' && it) return { html: `${kkBild(it.bild, 'kk-bild-gross')}<p class="kk-frage">${it.beschrifte ? 'Beschrifte das Bild.' : escapeHtml(typeof teil4FrageText === 'function' ? teil4FrageText(t, it) : it.word)}</p>`, deine: null, richtig: null };
+  if (teil === 'teil3' && it) return { html: `<p class="kk-frage">Schreibe einen Satz: <strong>${escapeHtml(it.pronomen || '')} …</strong> (${escapeHtml(it.word)})</p>`, deine: null, richtig: null };
+  if (teil === 'praesens' || teil === 'perfekt') {   // Lernfeld-Test: die ganze Verbzeile, die falschen Personen markiert
+    const verb = nr, tab = (t.tabellen || []).find(x => (x.praesens && x.praesens[verb]) || (x.forms && x.forms[verb]));
+    const formen = !tab ? null : tab.forms ? (tab.forms[verb] || {})[teil] : (teil === 'praesens' ? tab.praesens[verb] : null);
+    if (formen) {
+      const pers = g => Number((/-(\d+)$/.exec(g.key || '') || [])[1]);
+      const falsch = new Set(fehlerGruppe.map(pers));
+      return { html: `<p class="kk-frage"><strong>${escapeHtml(verb)}</strong> im ${teil === 'praesens' ? 'Präsens' : 'Perfekt'}</p><table class="kk-verb">${formen.map((form, i) =>
+        `<tr class="${falsch.has(i) ? 'kk-verb-falsch' : ''}"><th>${KK_PERSONEN[i]}</th><td>${escapeHtml(form)}</td><td>${falsch.has(i) ? '✗ ' + escapeHtml((fehlerGruppe.find(g => pers(g) === i) || {}).antwort || '') : ''}</td></tr>`).join('')}</table>`, deine: null, richtig: null, gruppe: true };
+    }
+    if (tab) return { html: `<p class="kk-frage"><strong>${escapeHtml(verb)}</strong> im Perfekt (ich)</p>`, deine: null, richtig: null };
+  }
+  if (teil === 'besch' && t.beschriftung_items) {   // Bild mit Artikel in Einzahl und Mehrzahl beschriften
+    const b = t.beschriftung_items[Number(nr)];
+    if (b) {
+      const ant = suf => (fehlerGruppe.find(g => (g.key || '').endsWith('-' + suf)) || {}).antwort;
+      const zeile = (lab, suf) => ant(suf) != null ? `${lab}: „${escapeHtml(ant(suf))}“` : `${lab}: ✓`;
+      return { html: `${kkBild(b.bild, 'kk-bild-gross')}<p class="kk-frage">Beschrifte mit Artikel in der Einzahl und Mehrzahl.</p>`,
+        deine: zeile('Einzahl', 'a') + ' · ' + zeile('Mehrzahl', 'p'), richtig: `<strong>${escapeHtml(b.artikel + ' ' + b.wort)}</strong> · <strong>${escapeHtml(b.plural)}</strong>` };
+    }
+  }
+  if (teil === 'dial' && t.dialog_luecken) {
+    const d = t.dialog_luecken[Number(nr)];
+    if (d) return { html: `${d.bild ? kkBild(d.bild, 'kk-bild') : ''}<p class="kk-satz"><strong>${escapeHtml(d.sprecher)}</strong> ${escapeHtml(d.start)} <span class="kk-luecke">…</span></p>`,
+      deine: f.antwort ? `„${escapeHtml(d.start + ' ' + f.antwort)}“` : null, richtig: `„${escapeHtml(d.start + ' ' + d.antwort)}“` };
+  }
+  if (teil === 'gv' && t.verbinden_bilder) {
+    const g = t.verbinden_bilder.geschaefte[Number(nr)], P = t.verbinden_bilder.produkte;
+    if (g) {
+      const bild = n => (P.find(p => p.name === n) || {}).bild;
+      return { html: `<div class="kk-gv">${kkBild(g.bild)}<span class="kk-pfeil">→</span>${g.pflicht.concat(g.auch).map(n => `<figure class="kk-wahl kk-ok">${kkBild(bild(n))}<figcaption>${escapeHtml(n)}</figcaption></figure>`).join('')}</div>
+        <p class="kk-frage">Was verkauft <strong>${escapeHtml(g.geschaeft)}</strong>?</p>`, deine: null, richtig: escapeHtml(g.pflicht.concat(g.auch).join(', ')) };
+    }
+  }
+  if (f.bild) return { html: kkBild(f.bild, 'kk-bild-gross') + `<p class="kk-frage">${escapeHtml(f.frage || '')}</p>`, deine: null, richtig: null };
+  return { html: `<p class="kk-frage">${escapeHtml(f.frage || '')}</p>`, deine: null, richtig: null };
+}
+function korrekturKarteHtml(testId, daten, f, sprachen, gruppe) {
+  gruppe = gruppe || [f];
+  const key = korrekturSchluessel(testId, f);
+  const c = daten && daten.karten[testId] && daten.karten[testId][key];
+  const A = korrekturAufgabe(testId, f, gruppe);
+  const istSatz = f.satz != null;
+  const antwort = istSatz ? f.satz : f.antwort, loesung = istSatz ? (f.loesung || f.vorschlag) : (f.loesung || f.korrektAntwort);
+  const form = A.gruppe ? [] : gruppe.length > 1 ? [].concat(...gruppe.map(g => korrekturFormHinweis(g.antwort, g.loesung || g.korrektAntwort))) : korrekturFormHinweis(antwort, loesung);
+  const leer = !antwort || /^\((keine Antwort|kein Satz)/.test(antwort);
+  let h = `<article class="kk-karte" data-kk="${escapeHtml(key || '')}"${c ? '' : ' data-kk-fehlt="1"'}>`;
+  h += `<div class="kk-aufgabe">${A.html}${kkZeichnung(c && c.zeige !== 'verbzeile' ? c.zeige : '')}</div>`;
+  if (!A.gruppe) {
+    h += `<div class="kk-zeile kk-deine"><span class="kk-lab">${A.lab || 'Das hast du geschrieben:'}</span> ${leer ? '<em>nichts</em>' : (A.deine || `„${escapeHtml(antwort)}“`)}</div>`;
+    if (loesung || A.richtig) h += `<div class="kk-zeile kk-richtig"><span class="kk-lab">So ist es richtig:</span> ${A.richtig || `„${escapeHtml(loesung)}“`}</div>`;
+  }
+  if (form.length) h += `<div class="kk-form">${form.map(x => `<p>⚠ ${kkInline(x)}</p>`).join('')}</div>`;
+  if (c && c.vok) h += kkVokHtml(c.vok, daten.vok[c.vok], sprachen);
+  if (c) {
+    h += `<div class="kk-warum"><div class="kk-warum-kopf">Warum?</div>${c.warum.map(p => `<p>${kkInline(p)}</p>`).join('')}`;
+    sprachen.forEach(k => {
+      const u = c.ueb && c.ueb[k];
+      h += u ? `<div class="kk-sp-block" dir="auto"><div class="kk-sp-name">${KK_SPRACHEN[k]}</div>${u.map(p => `<p dir="auto">${kkInline(p)}</p>`).join('')}</div>`
+        : `<div class="kk-sp-block kk-sp-fehlt">${KK_SPRACHEN[k]}: Diese Erklärung gibt es noch nicht in deiner Sprache.</div>`;
+    });
+    if (sprachen.some(k => c.ueb && c.ueb[k])) h += '<p class="kk-sp-fehlt">Übersetzung noch nicht geprüft. Stimmt etwas nicht? Sag es deiner Lehrkraft.</p>';
+    h += `</div>`;
+    if (c.regel) h += kkRegelHtml(c.regel, sprachen, daten);
+  }
+  if (f.hinweis) h += `<div class="kk-lehrkraft"><span class="kk-lab">Hinweis deiner Lehrkraft:</span> ${escapeHtml(f.hinweis)}</div>`;
+  h += `<div class="kk-heft">✏️ <span class="kk-lab">Ins Heft:</span> ${c ? kkInline(c.heft) : 'Schreibe die richtige Lösung mit Artikel in dein Heft.'}</div></article>`;
+  return h;
+}
+// Alle Karten einer Bewertung. Leerer Text = für diesen Test gibt es (noch) keine Karten -> alte Liste anzeigen.
+function korrekturListeHtml(testId, rv, daten, sprachen) {
+  if (!daten || !daten.karten[testId]) return '';
+  const alle = (rv.fehler || []).concat((rv.saetze || []).map(s => Object.assign({ teilId: s.teilId || 'teil3' }, s)));
+  if (!alle.length) return '';
+  const gruppen = [], nachKey = {};
+  alle.forEach(f => {   // gleiche Karte (z. B. mehrere Personen eines Verbs) nur einmal
+    const k = korrekturSchluessel(testId, f);
+    const zus = k && /^(praesens|perfekt|besch):/.test(k);
+    if (zus && nachKey[k]) { nachKey[k].push(f); return; }
+    const g = [f]; gruppen.push(g); if (zus) nachKey[k] = g;
+  });
+  return `<h3 class="erg-h">Das war falsch — ${gruppen.length} ${gruppen.length === 1 ? 'Aufgabe' : 'Aufgaben'}</h3>
+    <p class="kk-intro">Lies bei jeder Aufgabe, <strong>warum</strong> es so richtig ist. Dann schreibe die Korrektur in dein Heft.</p>`
+    + gruppen.map(g => korrekturKarteHtml(testId, daten, g[0], sprachen, g)).join('');
+}
+// Für Prüfungen: Aufgaben eines Tests ohne Karte
+function korrekturLuecken(testId, daten) {
+  const t = TESTS[testId], k = (daten && daten.karten[testId]) || {}, fehlt = [];
+  ['teil1', 'teil2', 'teil3', 'teil4'].forEach(teil => (t[teil] || []).forEach(i => { if (!k[teil + ':' + i.num]) fehlt.push(teil + ':' + i.num); }));
+  return fehlt;
+}
