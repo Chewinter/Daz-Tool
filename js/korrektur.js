@@ -5,7 +5,7 @@
    im Duden, „Warum?“ erst Deutsch, dann die Sprache des Kindes, ggf. der Regel-Kasten, „Ins Heft“.
    Texte: data/korrektur-<lernfeld>.js (gen_korrektur.py). Fehlt eine Karte, gibt es trotzdem Aufgabe + Lösung (nie leer).
    ========================================================================== */
-const KORREKTUR_LERNFELDER = ['a2_lf5', 'a2_lf4'];   // Lernfelder mit fertigen Karten (Phase 1: A2 LF5 Muster, dann LF4)
+const KORREKTUR_LERNFELDER = ['a2_lf5', 'a2_lf4', 'a2_lf3', 'a2_lf2', 'a2_lf1'];   // Lernfelder mit fertigen Karten (Phase 1: A2 LF5 Muster, dann LF4)
 const KK_SPRACHEN = { ar: 'Arabisch', uk: 'Ukrainisch', ru: 'Russisch', tr: 'Türkisch', fa: 'Persisch', sq: 'Albanisch', bg: 'Bulgarisch', es: 'Spanisch', so: 'Somali', am: 'Amharisch', ti: 'Tigrinya', ku: 'Kurdisch (Sorani)' };
 const KK_PERSONEN = ['ich', 'du', 'er/sie/es', 'wir', 'ihr', 'sie/Sie'];
 const KK_ARTIKEL = ['der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einen', 'einem', 'einer', 'eines'];
@@ -49,6 +49,12 @@ function korrekturSchluessel(testId, f) {
     m = /^v\d+-\d+-(.+)-(\d+)$/.exec(f.key); if (m) return 'praesens:' + m[1];
     m = /^gv-(\d+)$/.exec(f.key); if (m) return 'gv:' + m[1];
     m = /^sa\d*-(\d+)$/.exec(f.key); if (m) return 'sa:' + m[1];
+    // Lernfeld-Tests A2 1–3 (13.11.2026): Konjugation je Verb (ganze Zeile), Steigern/Frage+Antwort/Körper je Zeile = eine Karte
+    m = /^konj-\d+-(.+)-\d+$/.exec(f.key); if (m) return 'konj:' + m[1];
+    m = /^(steig|fa|fak)-(\d+)-[ksfa]$/.exec(f.key); if (m) return m[1] + ':' + m[2];
+    m = /^koerper-(\d+)-[em]$/.exec(f.key); if (m) return 'koerper:' + m[1];
+    m = /^satzbau-(\d+)-\d+$/.exec(f.key); if (m) return 'satzbau:' + m[1];
+    m = /^(geg|farbe|praep|wa|vs|sb)-(\d+)$/.exec(f.key); if (m) return m[1] + ':' + m[2];
     return f.key;
   }
   const t = (typeof TESTS !== 'undefined' && TESTS[testId]) || {};
@@ -189,6 +195,8 @@ function korrekturAufgabe(testId, f, fehlerGruppe) {
     }
     if (tab) return { html: `<p class="kk-frage"><strong>${escapeHtml(verb)}</strong> im Perfekt (ich)</p>`, deine: null, richtig: null };
   }
+  const LT = korrekturAufgabeLT(t, teil, nr, f, fehlerGruppe);
+  if (LT) return LT;
   if (teil === 'besch' && t.beschriftung_items) {   // Bild mit Artikel in Einzahl und Mehrzahl beschriften
     const b = t.beschriftung_items[Number(nr)];
     if (b) {
@@ -254,7 +262,7 @@ function korrekturListeHtml(testId, rv, daten, sprachen) {
   const gruppen = [], nachKey = {};
   alle.forEach(f => {   // gleiche Karte (z. B. mehrere Personen eines Verbs) nur einmal
     const k = korrekturSchluessel(testId, f);
-    const zus = k && /^(praesens|perfekt|besch):/.test(k);
+    const zus = k && /^(praesens|perfekt|besch|konj|steig|fa|fak|koerper|satzbau):/.test(k);
     if (zus && nachKey[k]) { nachKey[k].push(f); return; }
     const g = [f]; gruppen.push(g); if (zus) nachKey[k] = g;
   });
@@ -266,5 +274,81 @@ function korrekturListeHtml(testId, rv, daten, sprachen) {
 function korrekturLuecken(testId, daten) {
   const t = TESTS[testId], k = (daten && daten.karten[testId]) || {}, fehlt = [];
   ['teil1', 'teil2', 'teil3', 'teil4'].forEach(teil => (t[teil] || []).forEach(i => { if (!k[teil + ':' + i.num]) fehlt.push(teil + ':' + i.num); }));
+  korrekturLTSchluessel(t).forEach(x => { if (!k[x]) fehlt.push(x); });
   return fehlt;
+}
+// Alle Karten-Schlüssel der Lernfeld-Tests A2 1–3 (für die Vollständigkeits-Prüfung)
+function korrekturLTSchluessel(t) {
+  const out = [], n = (pre, arr) => (arr || []).forEach((_, i) => out.push(pre + ':' + i));
+  (t.konjugation || []).forEach(g => g.verbs.forEach(v => out.push('konj:' + v)));
+  n('geg', t.gegenteile); n('steig', t.steigern); n('farbe', t.male_an); n('fa', t.frage_antwort); n('wa', t.wortarten_zeile);
+  n('fak', t.frage_antwort_koerper); n('vs', t.vervollstaendige);
+  if (t.praepositionen) n('praep', t.praepositionen.antworten);
+  if (t.satzbau && t.satzbau.aufgaben) n('satzbau', t.satzbau.aufgaben); else if (Array.isArray(t.satzbau)) n('sb', t.satzbau);
+  (t.koerper_items || []).forEach(it => out.push('koerper:' + it.nr));
+  return out;
+}
+// Die Aufgabe eines Lernfeld-Tests A2 1–3, wie sie im Test war (13.11.2026)
+function korrekturAufgabeLT(t, teil, nr, f, gruppe) {
+  const i = Number(nr), E = escapeHtml, ant = suf => (gruppe.find(g => (g.key || '').endsWith('-' + suf)) || {}).antwort;
+  const zeile = (lab, suf) => ant(suf) != null ? `${lab}: „${E(ant(suf))}“` : `${lab}: ✓`;
+  if (teil === 'konj' && t.konjugation) {
+    const g = t.konjugation.find(x => x.forms[nr]);
+    if (!g) return null;
+    const pers = x => Number((/-(\d+)$/.exec(x.key || '') || [])[1]);
+    const falsch = new Set(gruppe.map(pers));
+    return { html: `<p class="kk-frage"><strong>${E(nr)}</strong> im Präsens</p><table class="kk-verb">${g.forms[nr].map((form, k) =>
+      `<tr class="${falsch.has(k) ? 'kk-verb-falsch' : ''}"><th>${KK_PERSONEN[k]}</th><td>${E([].concat(form).join(' / '))}</td><td>${falsch.has(k) ? '✗ ' + E((gruppe.find(x => pers(x) === k) || {}).antwort || '') : ''}</td></tr>`).join('')}</table>`,
+      deine: null, richtig: null, gruppe: true };
+  }
+  if (teil === 'geg' && t.gegenteile && t.gegenteile[i]) return { html: `<p class="kk-frage">Finde das Gegenteil: <strong>${E(t.gegenteile[i].word)}</strong> → …</p>`, deine: null, richtig: null };
+  if (teil === 'steig' && t.steigern && t.steigern[i]) {
+    const s = t.steigern[i];
+    return { html: `<p class="kk-frage">Steigere: <strong>${E(s.positiv)}</strong> → … → …</p>`, deine: zeile('Komparativ', 'k') + ' · ' + zeile('Superlativ', 's'),
+      richtig: `<strong>${E(s.positiv)}</strong> → <strong>${E(s.komparativ)}</strong> → <strong>${E(s.superlativ)}</strong>` };
+  }
+  if (teil === 'farbe' && t.male_an && t.male_an[i]) {
+    const F = { Nomen: ['rot', '#B23B33'], Adjektiv: ['grün', '#3F7D50'], Verb: ['blau', '#2C5C9E'], Artikel: ['grau', '#6B6659'] }, w = t.male_an[i];
+    const farbe = k => F[k] ? `<span style="color:${F[k][1]};font-weight:700">■ ${E(k)} (${F[k][0]})</span>` : '<em>keine Farbe</em>';
+    return { html: `<p class="kk-frage">Male an: Welche Wortart ist <strong>${E(w.word)}</strong>?</p>`, deine: farbe(f.antwort), richtig: farbe(w.kategorie), lab: 'Du hast gewählt:' };
+  }
+  if (teil === 'fa' && t.frage_antwort && t.frage_antwort[i]) {
+    const r = t.frage_antwort[i];
+    return { html: `<p class="kk-frage">${E(r.person)} · <strong>${E(r.was)}</strong> · ${r.jaNein === 'ja' ? 'Ja ✓' : 'Nein ✗'}</p>`, deine: zeile('Frage', 'f') + '<br>' + zeile('Antwort', 'a'),
+      richtig: `„${E(r.frage)}“<br>„${E(r.antwort)}“` };
+  }
+  if (teil === 'praep' && t.praepositionen) {
+    const P = t.praepositionen;
+    const satz = P.text_teile.map(x => { const m = /^___(\d)___$/.exec(x); if (!m) return E(x); const k = Number(m[1]) - 1;
+      return k === i ? `<span class="kk-luecke">${f.antwort && f.antwort !== '(keine Antwort)' ? `<s>${E(f.antwort)}</s> ` : ''}<strong>${E(P.antworten[k])}</strong></span>` : E(P.antworten[k]); }).join(' ');
+    return { html: `<p class="kk-satz">${satz}</p>`, deine: null, richtig: null };
+  }
+  if (teil === 'satzbau' && t.satzbau && t.satzbau.aufgaben && t.satzbau.aufgaben[i]) {
+    const a = t.satzbau.aufgaben[i];
+    const deine = gruppe.map(x => `„${E(x.antwort || '')}“`).join('<br>');
+    const richtig = [0, 1, 2].map(k => typeof computeSatzbauAnswer === 'function' ? computeSatzbauAnswer(a.nomen, a.adjektiv, k) : '').filter(Boolean).map(x => `„${E([].concat(x)[0])}“`).join('<br>');
+    return { html: `<p class="kk-frage">Bilde drei Sätze mit <strong>${E(a.nomen)}</strong> + <strong>${E(a.adjektiv)}</strong>.</p>`, deine, richtig: richtig || null };
+  }
+  if (teil === 'wa' && t.wortarten_zeile && t.wortarten_zeile[i]) {
+    const z = t.wortarten_zeile;
+    return { html: `<p class="kk-satz">${z.map((w, k) => k === i ? `<span class="kk-luecke"><strong>${E(w.word)}</strong></span>` : E(w.word)).join(' ')}.</p><p class="kk-frage">Welche Wortart ist <strong>${E(z[i].word)}</strong>?</p>`, deine: null, richtig: null };
+  }
+  if (teil === 'koerper' && t.koerper_items) {
+    const it = t.koerper_items.find(x => String(x.nr) === nr);
+    if (!it) return null;
+    return { html: `${kkBild(t.koerper_bild, 'kk-bild-gross')}<p class="kk-frage">Nr. ${E(nr)}: Schreibe das Körperteil mit Artikel in der Einzahl und Mehrzahl.</p>`,
+      deine: zeile('Einzahl', 'e') + ' · ' + zeile('Mehrzahl', 'm'), richtig: `<strong>${E(it.einzahl)}</strong> · <strong>${E(it.mehrzahl)}</strong>` };
+  }
+  if (teil === 'fak' && t.frage_antwort_koerper && t.frage_antwort_koerper[i]) {
+    const r = t.frage_antwort_koerper[i];
+    const frage = r.frageAntwortGegeben ? r.frageAntwortGegeben + ' ' + r.frageLuecke : r.frage;
+    return { html: `${kkBild(r.bild, 'kk-bild')}<p class="kk-frage">${E(r.trait)}: Frage und antworte.</p>`, deine: zeile('Frage', 'f') + '<br>' + zeile('Antwort', 'a'),
+      richtig: `„${E(frage)}“<br>„${E(r.antwort)}“` };
+  }
+  if (teil === 'vs' && t.vervollstaendige && t.vervollstaendige[i]) {
+    const v = t.vervollstaendige[i];
+    return { html: `<p class="kk-satz"><strong>${E(v.start)}</strong> <span class="kk-luecke">…</span></p>`, deine: f.antwort ? `„${E(v.start + ' ' + f.antwort)}“` : null, richtig: `„${E(v.start + ' ' + v.antwort)}“` };
+  }
+  if (teil === 'sb' && Array.isArray(t.satzbau) && t.satzbau[i]) return { html: `<p class="kk-frage">Bilde einen Satz aus: <em>${t.satzbau[i].woerter.map(E).join(' • ')}</em></p>`, deine: null, richtig: null };
+  return null;
 }

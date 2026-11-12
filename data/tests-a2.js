@@ -2554,9 +2554,9 @@ registerTests({
     "vor": "Ihr",
     "nach": "die Wäsche.",
     "options": [
-     "wäscht",
+     "wascht",
      "waschen",
-     "wäschst"
+     "wäscht"
     ],
     "correct": 0
    },

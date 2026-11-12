@@ -662,9 +662,22 @@ function t3Enthaelt(tokens, w, art) {
   const k = w.slice(0, Math.max(3, w.length - 2));   // Nomen: Plural-/Kasusendungen erlaubt (Deo/Deos, Haus/Häuser)
   return tokens.some(t => t === w || (t.indexOf(k) === 0 && t.length <= w.length + 3));
 }
+// Umlaut bei unregelmäßigen Verben (13.11.2026): T3_WORT vergleicht ohne Umlaut, darum hier eigens auf der Rohform:
+// du/er brauchen den Umlaut (du fährst, er fährt), ihr hat keinen (ihr fahrt). Fehlt er oder steht er falsch -> falsch.
+const T3_UMLAUT = { du: { fahrst: 'fährst', schlafst: 'schläfst', tragst: 'trägst', laufst: 'läufst', waschst: 'wäschst', fallst: 'fällst', haltst: 'hältst', gefallst: 'gefällst' },
+  er: { fahrt: 'fährt', schlaft: 'schläft', tragt: 'trägt', lauft: 'läuft', wascht: 'wäscht', fallt: 'fällt', gefallt: 'gefällt' },
+  ihr: { 'fährt': 'fahrt', 'schläft': 'schlaft', 'trägt': 'tragt', 'läuft': 'lauft', 'wäscht': 'wascht', 'fällt': 'fallt' } };
+function t3UmlautFehler(person, rohVerb) {
+  const v = String(rohVerb || '').toLowerCase().replace(/[^\p{L}]/gu, '');
+  for (const p of String(person || '').split('|')) { const r = T3_UMLAUT[p] && T3_UMLAUT[p][v]; if (r) return r; }
+  return null;
+}
+// Vorgabe vor dem Feld ohne Erklärung in Klammern: „Sie (Plural)“ -> „Sie“ (Lukas 12./13.11.2026: doppelte Eingabe ist kein Fehler)
+function t3VorgabeKern(v) { return String(v || '').replace(/\s*\([^)]*\)/g, '').trim(); }
 function pruefeTeil3(item, satz) {
   if (typeof window !== 'undefined' && window.TEIL3_IMMER_RICHTIG) return { korrekt: true, grund: 'Testmodus' };   // nur in den automatischen Tests (test_site.py)
-  const anfang = String(item.pronomen || '');
+  const anfangRoh = String(item.pronomen || '');
+  const anfang = t3VorgabeKern(anfangRoh);
   const s = String(satz || '').trim();
   const rest = anfang && s.indexOf(anfang) === 0 ? s.slice(anfang.length).trim() : s;
   const tokens = T3_WORT(s).split(' ').filter(Boolean);
@@ -688,10 +701,12 @@ function pruefeTeil3(item, satz) {
   }
   if (pf.art === 'frei') return { korrekt: null, grund: 'freie Antwort' };
   // Verb an Position 2 passt zum Subjekt? (nur wenn der Satzanfang ein eindeutiges Subjekt ist und noch kein Verb enthält)
-  const person = t3Person(anfang);
+  const person = /\((Plural|Mehrzahl)\)/i.test(anfangRoh) && /^sie$/i.test(anfang) ? 'wir' : /\(Einzahl\)/i.test(anfangRoh) && /^sie$/i.test(anfang) ? 'er' : t3Person(anfang);
   if (person === 'mitverb') return { korrekt: true, grund: 'automatisch geprüft' };
   if (!person) return { korrekt: null, grund: 'Subjekt nicht eindeutig' };
   const v = restTokens[0];
+  const uml = t3UmlautFehler(person, (rest.split(/\s+/)[0] || ''));
+  if (uml) return { korrekt: false, grund: 'Verbform: „' + uml + '“ (Umlaut beachten)' };
   if (t3VerbPasst(person, v)) return { korrekt: true, grund: 'automatisch geprüft' };
   return { korrekt: null, grund: 'Verbform nach „' + anfang + '“ prüfen' };
 }

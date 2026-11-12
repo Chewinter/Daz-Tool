@@ -3247,7 +3247,7 @@ function wortzaehlerAktualisieren(ta) {
 // ins Feld, darf das kein Fehler sein: dann den Text des Kindes nehmen, sonst Vorgabe + Text. Groß/klein der Vorgabe zählt
 // dabei nicht (das Kind schreibt am Feldanfang oft groß), wohl aber im Rest.
 function mitVorgabe(vorgabe, rest) {
-  const v = String(vorgabe || '').trim(), r = String(rest || '').trim();
+  const v = String(vorgabe || '').replace(/\s*\([^)]*\)/g, '').trim(), r = String(rest || '').trim();   // „Sie (Plural)“ -> „Sie“
   if (!v) return r;
   const glatt = s => s.replace(/[„“"'.,!?…]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
   const gv = glatt(v), gr = glatt(r);
