@@ -79,10 +79,10 @@ function renderClockSVG(hour, minute, size) {
   </svg>`;
 }
 
-function checkAcceptable(value, acceptable) {
-  const v = normalize(value);
+function checkAcceptable(value, acceptable) {   // Groß/klein zählt (Lukas 12.11.2026)
+  const v = normalizeGross(value);
   const list = Array.isArray(acceptable) ? acceptable : [acceptable];
-  return list.some(a => normalize(a) === v);
+  return list.some(a => normalizeGross(a) === v);
 }
 
 // Levenshtein-Distanz: Anzahl der Einzelzeichen-Änderungen (einfügen/löschen/ersetzen) zwischen zwei Wörtern
@@ -738,7 +738,7 @@ function pruefeFeld(meta, wert) {
   // Antippen-Auswahl: der Wert IST eine der Optionen -> genau vergleichen (sonst wären "ß" und "ss" gleich)
   if (meta.auswahl) return liste.some(a => vereinheitlicheText(a) === vereinheitlicheText(wert));
   if (meta.exakt) { const v = normalizeExakt(wert); return liste.some(a => normalizeExakt(a) === v); }
-  if (meta.zeichen) { const v = normalizeZeichen(wert); return liste.some(a => normalizeZeichen(a) === v); }
+  if (meta.zeichen) { const v = normalizeGrossZeichen(wert); return liste.some(a => normalizeGrossZeichen(a) === v); }
   return checkAcceptable(wert, meta.acceptable);
 }
 // Fisher-Yates: gemischte Kopie

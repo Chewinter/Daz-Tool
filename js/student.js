@@ -491,6 +491,7 @@ async function openActivity(actId, ansehenAbgabe) {
   document.getElementById('actTitle').textContent = anzeigeTitel(actId, a.title);
   document.getElementById('actSub').textContent = a.sub;
   setzeKopfzeile('view-activity', actId);
+  setzeBildQuelle('view-activity', actId);
   showView('view-activity');
   if (a.type !== 'arbeitsblatt') {   // Arbeitsblätter laden ihre eigenen Bilder (09.11.2026)
     if (!basisBilderDa()) { document.getElementById('actBody').innerHTML = '<p class="hint">Bilder werden geladen …</p>'; }
@@ -1366,7 +1367,7 @@ function buildArtikelTabelle(a) {
     row.querySelectorAll('input').forEach(input => {
       input.addEventListener('blur', () => {
         const field = input.getAttribute('data-field');
-        const correct = normalize(input.value) === normalize(item[field]);
+        const correct = normalizeGross(input.value) === normalizeGross(item[field]);
         input.style.borderColor = input.value.trim() === '' ? 'var(--line)' : (correct ? 'var(--good)' : 'var(--bad)');
       });
     });
@@ -1386,7 +1387,7 @@ function buildVerbenBestimmen(a) {
     `;
     const input = row.querySelector('input');
     input.addEventListener('blur', () => {
-      const correct = normalize(input.value) === normalize(item.antwort);
+      const correct = normalizeGross(input.value) === normalizeGross(item.antwort);
       input.style.borderColor = input.value.trim() === '' ? 'var(--line)' : (correct ? 'var(--good)' : 'var(--bad)');
     });
     mount.appendChild(row);
@@ -1492,6 +1493,7 @@ async function startTest(testId, name, ansehenAbgabe) {
   document.getElementById('testSub').textContent = t.sub;
   setzeKopfzeile('view-test', testId);
   zeigeEinstieg(testId);   // Szene aus dem Buch über dem Test (02.11.2026)
+  setzeBildQuelle('view-test', testId);   // ARASAAC-Hinweis, falls der Test solche Bilder zeigt
 
   const isAbschluss = istAbschlusstest(t); // alle Abschlusstest-Typen (siehe ABSCHLUSS_BUILDER in tests-common.js)
   const isEingangstest = t.type === 'eingangstest';
@@ -1790,7 +1792,7 @@ function buildTeil3(items, gesperrt, vorherigeDaten) {
     textarea.addEventListener('blur', async () => {
       const satzRest = textarea.value.trim();
       if (!satzRest) { testState.teil3[item.num] = undefined; updateProgress(); return; }
-      const vollerSatz = item.pronomen ? `${item.pronomen} ${satzRest}` : satzRest;
+      const vollerSatz = item.pronomen ? mitVorgabe(item.pronomen, satzRest) : satzRest;   // Vorgabe nicht doppelt
       if (testState.teil3[item.num] && testState.teil3[item.num].satz === vollerSatz) return; // schon geprüft
       // Bewusst KEIN sichtbares Feedback während des Tests. Geprüft wird nach festen Regeln (pruefeTeil3): eindeutig falsch,
       // eindeutig richtig oder unklar (null) — Unklares und jedes Urteil kann die Lehrkraft in der Bewertung ändern.
@@ -1868,7 +1870,7 @@ function buildTeil4(items, labelOverride, hintOverride, gesperrt, vorherigeDaten
       if (!val) { status.textContent = ''; input.style.borderColor = 'var(--line)'; testState.teil4[item.num] = undefined; updateProgress(); return; }
       // exakt:true = Groß-/Kleinschreibung und ß zählen (Schreibaufgaben in den A1-Tests)
       const korrekt = mitLueckenKontext(input, input.value, w => item.exakt ? normalizeExakt(w) === normalizeExakt(item.correct)
-        : [item.correct].concat(item.akzeptiert || []).some(a => normalize(a) === normalize(w))); // akzeptiert: weitere richtige Antworten
+        : [item.correct].concat(item.akzeptiert || []).some(a => normalizeGross(a) === normalizeGross(w))); // akzeptiert: weitere richtige Antworten; Groß/klein zählt
       // Bewusst KEIN sichtbares Feedback (kein Häkchen, keine Farbe) während des Vokabeltests —
       // der Rand bleibt neutral, damit nichts auf richtig/falsch hindeutet.
       status.textContent = '';
@@ -2127,9 +2129,9 @@ function buildEingangstest(t) {
         } else if (f.type === 'clock') {
           const input = mount.querySelector(`.et-input[data-idx="${i}"]`);
           gegebeneAntwort = input ? input.value.trim() : '';
-          const val = normalize(gegebeneAntwort);
-          const acc = f.acceptable || [normalize(f.answer)];
-          istRichtig = acc.some(a => normalize(a) === val);
+          const val = normalizeGross(gegebeneAntwort);   // Groß/klein zählt (12.11.2026)
+          const acc = f.acceptable || [f.answer];
+          istRichtig = acc.some(a => normalizeGross(a) === val);
           if (!istRichtig) moeglicherTippfehler = istWahrscheinlichTippfehler(gegebeneAntwort, acc);
         } else {
           const input = mount.querySelector(`.et-input[data-idx="${i}"]`);
@@ -2255,7 +2257,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
       if (testState.teil3[item.num]) return;
       const itemEl = document.querySelectorAll('#teil3items .item')[i];
       const ta = itemEl && itemEl.querySelector('.satz-input');
-      if (ta && ta.value.trim()) { const vs = item.pronomen ? `${item.pronomen} ${ta.value.trim()}` : ta.value.trim(); const pr = pruefeTeil3(item, vs);
+      if (ta && ta.value.trim()) { const vs = item.pronomen ? mitVorgabe(item.pronomen, ta.value.trim()) : ta.value.trim(); const pr = pruefeTeil3(item, vs);
         testState.teil3[item.num] = { checked: true, word: item.word, pronomen: item.pronomen, satz: vs, korrekt: pr.korrekt, feedback: 'Automatische Prüfung: ' + pr.grund, verbesserung: '' }; }
     });
     const teil3List = t.teil3.map(item => testState.teil3[item.num]
@@ -3239,6 +3241,40 @@ function wortzaehlerAktualisieren(ta) {
 ['input', 'blur'].forEach(ev => document.addEventListener(ev, e => { if (e.target && e.target.tagName === 'TEXTAREA') wortzaehlerAktualisieren(e.target); }, true));
 
 
+
+// ---------------- DOPPELTE EINGABE (Lukas 12.11.2026) ----------------
+// Vor dem Feld steht ein Satzanfang (z. B. „Ich“ oder „Trotzdem kaufe ich manchmal im“). Schreibt das Kind ihn noch einmal
+// ins Feld, darf das kein Fehler sein: dann den Text des Kindes nehmen, sonst Vorgabe + Text. Groß/klein der Vorgabe zählt
+// dabei nicht (das Kind schreibt am Feldanfang oft groß), wohl aber im Rest.
+function mitVorgabe(vorgabe, rest) {
+  const v = String(vorgabe || '').trim(), r = String(rest || '').trim();
+  if (!v) return r;
+  const glatt = s => s.replace(/[„“"'.,!?…]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const gv = glatt(v), gr = glatt(r);
+  if (gr === gv || gr.indexOf(gv + ' ') === 0) {
+    const worte = v.split(/\s+/).length;   // die Vorgabe-Wörter des Kindes durch die Vorgabe ersetzen (Schreibweise der Vorgabe)
+    return v + ' ' + r.split(/\s+/).slice(worte).join(' ');
+  }
+  return v + ' ' + r;
+}
+
+
+// ---------------- BILDQUELLE ARASAAC (Lizenz CC BY-NC-SA, bilder_quellen.md, Lukas 12.11.2026) ----------------
+// Zeigt ein Test oder Spiel ein ARASAAC-Bild, steht unten der Pflicht-Hinweis. Neue ARASAAC-Bilder hier eintragen.
+const ARASAAC_BILDER = ['A15_Ort_die_Schule', 'A15_Ort_die_Turnhalle', 'A15_Ort_der_Pausenhof', 'A15_Ort_der_Sportplatz', 'A15_Ort_das_Fenster',
+  'A15_Ort_die_Buecherei', 'A15_Ort_die_Aula', 'A15_Ort_die_Mensa'];
+const ARASAAC_HINWEIS = 'Bilder: Piktogramm-Urheber Sergio Palao. Herkunft: ARASAAC (http://www.arasaac.org). Lizenz: CC (BY-NC-SA). Eigentümer: Regierung von Aragon (Spanien).';
+function setzeBildQuelle(viewId, id) {
+  const w = document.querySelector('#' + viewId + ' .wrap');
+  if (!w) return;
+  let p = w.querySelector('.bild-quelle');
+  if (!p) { p = document.createElement('p'); p.className = 'bild-quelle'; w.appendChild(p); }
+  const daten = JSON.stringify((typeof TESTS !== 'undefined' && TESTS[id]) || (typeof ACTIVITIES !== 'undefined' && ACTIVITIES[id]) || {});
+  const mit = ARASAAC_BILDER.some(n => daten.indexOf('"' + n + '"') >= 0);
+  p.textContent = mit ? ARASAAC_HINWEIS : '';
+  p.classList.toggle('hidden', !mit);
+}
+
 // ---------------- PRÜFKONTO (Lukas 01.11.2026) ----------------
 // „TEst“ ist Lukas' Überprüfungskonto: alles freigeschaltet (refreshProgress), jeder Schritt in der Lernpfad-Karte und
 // in der Liste antippbar, Liste aufgeklappt, keine roten „noch offen“-Markierungen. Für die Kinder ändert sich nichts.
@@ -3579,10 +3615,11 @@ function zeigeVokabel(b, stichwort, anker) {
       ${v.bsp ? `<div class="vok-zeile"><span class="vok-lab">Beispiel</span><strong>${escapeHtml(v.bsp)}</strong></div>` : ''}
       <div class="vok-zeile"><span class="vok-lab">Englisch</span>${escapeHtml(v.en)}</div>
       <div class="vok-zeile"><span class="vok-lab">${sp.length > 1 ? 'Meine Sprachen' : 'Meine Sprache'}</span>${zeilen}
-        ${sp.length ? '<span class="vok-fehlt vok-hinweis">Stimmt etwas nicht? Sag es deiner Lehrkraft.</span>' : ''}
+        ${sp.filter(k => v.sp && v.sp[k]).map(k => `<button type="button" class="btn small secondary vok-melden" data-sp="${k}">${uebGemeldet(stichwort, k) ? '✓ Gemeldet. Danke!' : sp.length > 1 ? 'Wort auf ' + SPRACHEN[k] + ' ist falsch' : 'Wort in meiner Sprache ist falsch'}</button>`).join('')}
         <label class="vok-wahl">${sp.length ? 'Andere Sprache' : 'Sprache wählen'} <select id="vokSprache"><option value="">—</option>${Object.keys(SPRACHEN).map(k => `<option value="${k}" ${k === sp[0] && sp.length === 1 ? 'selected' : ''}>${SPRACHEN[k]}</option>`).join('')}</select></label></div>
     </div>`;
     box.querySelector('.vok-zu').addEventListener('click', vokabelZu);
+    box.querySelectorAll('.vok-melden').forEach(k => k.addEventListener('click', () => { meldeUebersetzung(b, stichwort, k.getAttribute('data-sp'), v.sp[k.getAttribute('data-sp')]); setTimeout(() => { zeichne(); platziereVokabel(box, anker); }, 0); }));   // erst nach dem Klick neu zeichnen, sonst gilt er als „daneben“ und schließt die Karte
     box.querySelector('#vokSprache').addEventListener('change', e => { try { localStorage.setItem('daz_sprache', e.target.value); } catch (x) { /* egal */ } zeichne(); platziereVokabel(box, anker); });
   };
   zeichne();
@@ -3818,4 +3855,19 @@ function zeigeEinstufungAnsehen(id, sub) {
   });
   body.innerHTML = h;
   showView('view-ergebnis');
+}
+
+// ---------------- MELDEKNOPF „Wort in meiner Sprache ist falsch“ (Lukas 12.11.2026) ----------------
+// Die Meldung geht still über den Postausgang (kommt auch nach, wenn das Internet weg war) als uebmeldung:<zeit>:<kind>.
+// Die Lehrkraft sieht alle Meldungen gesammelt in der Klassenübersicht und prüft die Übersetzungen danach.
+function uebGemeldetSet() { try { return JSON.parse(localStorage.getItem('daz_uebgemeldet') || '[]'); } catch (e) { return []; } }
+function uebGemeldet(wort, sp) { return uebGemeldetSet().indexOf(sp + '|' + wort) >= 0; }
+function meldeUebersetzung(b, wort, sp, text) {
+  if (uebGemeldet(wort, sp)) return;
+  try { localStorage.setItem('daz_uebgemeldet', JSON.stringify(uebGemeldetSet().concat([sp + '|' + wort]))); } catch (e) { /* egal */ }
+  const name = currentActivityName || '';
+  try {
+    imHintergrundSenden([{ key: `uebmeldung:${Date.now()}:${slug(name)}`, value: JSON.stringify({ wort, sprache: sp, spracheName: SPRACHEN[sp] || sp,
+      text: text || '', blatt: (b && b.id) || '', name, am: new Date().toISOString() }) }]);
+  } catch (e) { /* Speicher nicht verfügbar */ }
 }

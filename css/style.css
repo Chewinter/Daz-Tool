@@ -905,6 +905,10 @@ body.pruefkonto .status-pill.rot { background: var(--bg); color: var(--ink-soft)
 .bw-karten-kopf { margin: 6px 0 10px; font-size: 14px; }
 .bw-karten-kopf select { font-size: 14px; }
 
+/* Bildquelle ARASAAC unter Tests/Spielen (12.11.2026) */
+.bild-quelle { font-size: 12px; color: var(--ink-soft); margin: 18px 0 6px; line-height: 1.4; }
+.vok-melden { display: block; margin-top: 8px; font-size: 13px; }
+
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
   .ub-chip { padding: 6px 12px; border-radius: 999px; background: #EFEBDD; font-size: 14px; }
@@ -962,4 +966,7 @@ body.pruefkonto .status-pill.rot { background: var(--bg); color: var(--ink-soft)
 .bw-heft { display: inline-block; font-size: 11px; font-weight: 700; color: #fff; background: var(--teal); border-radius: 6px; padding: 1px 6px; margin-right: 6px; vertical-align: 1px; }
 .bw-heft-loesung { color: var(--teal-dark); font-weight: 600; margin-top: 2px; }
 .bw-heftzeile { background: var(--good-bg); }
+.ub-vokheft table { border-collapse: collapse; margin: 4px 0 10px; font-size: 14px; }
+.ub-vokheft td { border-bottom: 1px solid var(--line, #ddd); padding: 3px 10px 3px 0; vertical-align: top; }
+.ub-vokheft td:first-child { font-weight: 700; white-space: nowrap; }
 

@@ -7,6 +7,7 @@
    ========================================================================== */
 
 let uebersichtDaten = null;
+let uebMeldungen = [];   // Meldungen „Wort in meiner Sprache ist falsch“ (Lukas 12.11.2026), noch nicht geprüft
 
 function altersText(ts) {
   const ms = Date.now() - Number(ts);
@@ -87,7 +88,9 @@ async function zeigeLoesung(id, box) {
   box.innerHTML = '<p class="ub-leer">Lösung wird geladen …</p>';
   try {
     if (!loesungCache[id]) { const r = await window.storage.get('loesung:' + id, true); loesungCache[id] = JSON.parse(r.value); }
-    box.innerHTML = loesungCache[id].teile.map(t => `<div class="ub-loesung-teil"><strong>${escapeHtml(t.titel)}</strong><ol>${t.zeilen.map(z => `<li>${escapeHtml(z)}</li>`).join('')}</ol></div>`).join('');
+    const vh = loesungCache[id].vokabelheft || [];   // Lukas 12.11.2026: Abgleich mit dem Vokabelheft
+    box.innerHTML = (vh.length ? `<div class="ub-loesung-teil ub-vokheft"><strong>Vokabelheft (${vh.length} Wörter): links das Wort, rechts der Satz</strong><table>${
+      vh.map(v => `<tr><td>${escapeHtml(v[0])}</td><td>${escapeHtml(v[1] || '')}</td></tr>`).join('')}</table></div>` : '') + loesungCache[id].teile.map(t => `<div class="ub-loesung-teil"><strong>${escapeHtml(t.titel)}</strong><ol>${t.zeilen.map(z => `<li>${escapeHtml(z)}</li>`).join('')}</ol></div>`).join('');
   } catch (e) { box.innerHTML = '<p class="ub-leer">Keine Lösung gefunden (noch nicht hochgeladen?).</p>'; }
 }
 
@@ -97,9 +100,11 @@ async function ladeUebersichtsdaten() {
   // die Abgabe-Schlüssel und — samt Wert — alles, was mit status:/testprogress:/manualaccess:/activitydone: beginnt.
   const [subRes, sammel] = await Promise.all([
     window.storage.list('submission:', true),
-    window.storage.listByPrefix(['status:', 'testprogress:', 'manualaccess:', 'activitydone:'], true).catch(() => null),
+    window.storage.listByPrefix(['status:', 'testprogress:', 'manualaccess:', 'activitydone:', 'uebmeldung:'], true).catch(() => null),
   ]);
   const sammelItems = sammel && Array.isArray(sammel.items) ? sammel.items : null;
+  uebMeldungen = (sammelItems || []).filter(x => String(x.key).indexOf('uebmeldung:') === 0)
+    .map(x => { try { return Object.assign({ key: x.key }, JSON.parse(x.value)); } catch (e) { return null; } }).filter(x => x && !x.geprueft);
   const actRes = sammelItems ? { keys: sammelItems.map(x => x.key).filter(k => k.indexOf('activitydone:') === 0) } : await window.storage.list('activitydone:', true);
   const schueler = STUDENTS.map(n => ({ name: n, slug: slug(n), done: new Set(), doneActs: new Set(), latest: {}, status: {}, pausiert: {}, manualIdx: -1 }));
   const bySlug = {}; schueler.forEach(s => { bySlug[s.slug] = s; });
@@ -307,6 +312,7 @@ function rendereUebersicht() {
   h += A.pausiert.length ? A.pausiert.map(x => zeileHtmlUeb(x, '')).join('') : '<p class="ub-leer">Keine.</p>';
 
   h += rendereMatrixHtml(schueler);
+  h += meldungenHtml();
   body.innerHTML = h;
 
   body.querySelectorAll('.mx-zelle[data-test]').forEach(c => c.addEventListener('click', () => oeffneSchueler(c.getAttribute('data-slug'), c.getAttribute('data-test'))));
@@ -356,6 +362,35 @@ function rendereUebersicht() {
     if (neu) merke(z, neu); else { sperre(z, false); alert('Konnte nicht gespeichert werden. Bitte nochmal versuchen.'); }
   }));
 }
+
+// Gemeldete Übersetzungen: je Sprache und Wort eine Zeile, mit Anzahl. „Geprüft“ markiert alle Meldungen dieser Zeile.
+function meldungenGruppen() {
+  const g = {};
+  uebMeldungen.forEach(m => { const k = m.sprache + '|' + m.wort; (g[k] = g[k] || { m, keys: [], namen: new Set(), blaetter: new Set() }).keys.push(m.key); g[k].namen.add(m.name); if (m.blatt) g[k].blaetter.add(m.blatt); });
+  return Object.values(g).sort((a, b) => (a.m.spracheName + a.m.wort).localeCompare(b.m.spracheName + b.m.wort));
+}
+function meldungenHtml() {
+  const gr = meldungenGruppen();
+  if (!gr.length) return '';
+  return `<h2 class="ub-h">Gemeldete Übersetzungen (${gr.length})</h2><p class="ub-legende">Kinder haben gemeldet: „Wort in meiner Sprache ist falsch“. Bitte prüfen; „Geprüft“ blendet die Zeile aus.</p>` +
+    gr.map((x, i) => `<div class="ub-zeile ub-meldung" data-i="${i}"><div class="ub-info"><strong>${escapeHtml(x.m.wort)}</strong> · ${escapeHtml(x.m.spracheName)}: <span dir="auto">${escapeHtml(x.m.text)}</span>
+      <div class="ub-komm">${x.keys.length}× gemeldet (${[...x.namen].map(escapeHtml).join(', ')})${x.blaetter.size ? ' · ' + [...x.blaetter].map(escapeHtml).join(', ') : ''}</div></div>
+      <div class="ub-knopf"><button type="button" class="btn small secondary ub-meldung-ok">Geprüft</button></div></div>`).join('');
+}
+async function meldungGeprueft(gruppe) {
+  const jetzt = new Date().toISOString();
+  const items = uebMeldungen.filter(m => gruppe.keys.indexOf(m.key) >= 0).map(m => { const o = Object.assign({}, m); delete o.key; o.geprueft = jetzt; return { key: m.key, value: JSON.stringify(o) }; });
+  for (const it of items) await window.storage.set(it.key, it.value, true);
+  uebMeldungen = uebMeldungen.filter(m => gruppe.keys.indexOf(m.key) < 0);
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest && e.target.closest('.ub-meldung-ok');
+  if (!b) return;
+  const gr = meldungenGruppen()[Number(b.closest('.ub-meldung').getAttribute('data-i'))];
+  if (!gr) return;
+  b.disabled = true;
+  try { await meldungGeprueft(gr); rendereUebersicht(); } catch (x) { b.disabled = false; alert('Konnte nicht gespeichert werden. Bitte nochmal versuchen.'); }
+});
 
 async function ladeUebersicht(still) {
   const body = document.getElementById('uebersichtBody');

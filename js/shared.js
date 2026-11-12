@@ -66,6 +66,10 @@ function ohneEndzeichen(s) { const o = s.replace(/[\s.!?;:,"']+$/, ''); return o
 function normalizeExakt(s) { return ohneEndzeichen(vereinheitlicheText(s)); }
 function normalizeZeichen(s) { return vereinheitlicheText(s).toLowerCase().replace(/ß/g, "ss"); }
 function normalize(s) { return ohneEndzeichen(normalizeZeichen(s)); }
+// Lukas 12.11.2026: Groß-/Kleinschreibung zählt beim Bewerten IMMER (normalizeGross). Nachsichtig bleiben nur ß/ss,
+// Satzzeichen am Ende und Leerzeichen. normalize (klein) nur noch für Suche, Tippfehler-Hinweise u. Ä.
+function normalizeGrossZeichen(s) { return vereinheitlicheText(s).replace(/ß/g, "ss"); }
+function normalizeGross(s) { return ohneEndzeichen(normalizeGrossZeichen(s)); }
 
 // ==================== SPEICHER-BACKEND (Google Apps Script) ====================
 // Auf GitHub Pages gibt es kein window.storage (das war eine Claude-Artifact-Funktion). Diese Schicht bildet
@@ -622,7 +626,13 @@ function t3VerbPasst(person, v) {
   return person.split('|').some(p => T3_FINIT[p].test(v));
 }
 // Pflichtwörter: bei "Wort"-Aufgaben das Wort (Nomen ohne Artikel; Verb über den Stamm), bei Fragen die Angabe in Klammern
+// Lukas 12.11.2026 (A2 LF3 Schritt 7): Satzanfang endet auf eine Konjunktion (weil, obwohl …), das „Wort“ ist nur die Art
+// des Nebensatzes („Grund“, „Gegensatz“) und muss NICHT im Satz stehen. Geprüft wird stattdessen: Verb am Ende.
+const T3_NEBENSATZ = /\b(weil|obwohl|dass|wenn|ob|damit|als|nachdem|bevor|während|waehrend|da|falls)\s*$/i;
+const T3_FINIT_NS = ['bin', 'bist', 'ist', 'sind', 'seid', 'habe', 'hast', 'hat', 'haben', 'habt', 'kann', 'kannst', 'konnen', 'konnt', 'muss', 'musst', 'mussen',
+  'musst', 'will', 'willst', 'wollen', 'wollt', 'darf', 'darfst', 'durfen', 'soll', 'sollst', 'sollen', 'mochte', 'mochtest', 'mochten', 'mag', 'magst', 'war', 'warst', 'waren', 'wird', 'wirst', 'werden'];
 function t3Pflicht(item) {
+  if (T3_NEBENSATZ.test(String(item.pronomen || ''))) return { art: 'nebensatz', woerter: [] };
   const word = String(item.word || '');
   const klammer = (word.match(/\(([^)]*)\)/) || [])[1];
   if (klammer) return { art: 'angabe', woerter: T3_WORT(klammer).split(' ').filter(x => x && !T3_FUELL.test(x) && !T3_ARTIKEL.test(x)) };
@@ -662,6 +672,12 @@ function pruefeTeil3(item, satz) {
   if (!restTokens.length) return { korrekt: false, grund: 'kein Satz geschrieben' };
   if (tokens.length < 3) return { korrekt: false, grund: 'zu kurz (kein ganzer Satz)' };
   const pf = t3Pflicht(item);
+  if (pf.art === 'nebensatz') {   // „…, weil ich müde bin“: Verb am Ende (sicher erkannt nur bei häufigen Formen, sonst prüft die Lehrkraft)
+    if (restTokens.length < 2) return { korrekt: false, grund: 'Nebensatz zu kurz' };
+    if (T3_FINIT_NS.indexOf(restTokens[restTokens.length - 1]) >= 0) return { korrekt: true, grund: 'automatisch geprüft (Verb am Ende)' };
+    if (restTokens.length >= 3 && T3_FINIT_NS.indexOf(restTokens[1]) >= 0) return { korrekt: false, grund: 'Verb muss im Nebensatz ans Ende' };
+    return { korrekt: null, grund: 'Nebensatz: Verb am Ende? bitte prüfen' };
+  }
   const fehlt = pf.woerter.filter(w => !t3Enthaelt(tokens, w, pf.art));
   if (fehlt.length && pf.art !== 'verb') return { korrekt: false, grund: 'fehlt: ' + fehlt.join(', ') };
   if (fehlt.length) {
