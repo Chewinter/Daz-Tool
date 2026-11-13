@@ -225,6 +225,38 @@ registerActivities({
   "test": "lf4_schritt4",
   "seiten": 5
  },
+ "a1_lf5_blatt1": {
+  "title": "Meine Schule",
+  "sub": "A1 Lernfeld 5: Schule — Schritt 1 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 1,
+  "test": "a1_lf5_schritt1",
+  "seiten": 7
+ },
+ "a1_lf5_blatt2": {
+  "title": "Was ist das?",
+  "sub": "A1 Lernfeld 5: Schule — Schritt 2 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 2,
+  "test": "a1_lf5_schritt2",
+  "seiten": 7
+ },
+ "a1_lf5_blatt3": {
+  "title": "Wer ist das? Was ist das?",
+  "sub": "A1 Lernfeld 5: Schule — Schritt 3 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 3,
+  "test": "a1_lf5_schritt3",
+  "seiten": 4
+ },
+ "a1_lf5_blatt4": {
+  "title": "Wo ist das Heft?",
+  "sub": "A1 Lernfeld 5: Schule — Schritt 4 (Arbeitsblatt: lesen, ins Heft schreiben)",
+  "type": "arbeitsblatt",
+  "schritt": 4,
+  "test": "a1_lf5_schritt4",
+  "seiten": 6
+ },
  "a2_lf1_blatt1": {
   "title": "Was machst du gerne?",
   "sub": "A2 Lernfeld 1: Freizeit — Schritt 1 (Arbeitsblatt: lesen, ins Heft schreiben)",

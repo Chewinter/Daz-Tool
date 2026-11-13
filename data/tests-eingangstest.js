@@ -243,8 +243,9 @@ registerTests({
       "prompt": "Wie viel Uhr ist es?",
       "answer": "drei Uhr",
       "acceptable": [
-       "drei uhr",
-       "es ist drei uhr"
+       "drei Uhr",
+       "Drei Uhr",
+       "Es ist drei Uhr"
       ]
      },
      {
@@ -255,7 +256,8 @@ registerTests({
       "answer": "halb sieben",
       "acceptable": [
        "halb sieben",
-       "es ist halb sieben"
+       "Halb sieben",
+       "Es ist halb sieben"
       ]
      },
      {
@@ -263,11 +265,15 @@ registerTests({
       "hour": 9,
       "minute": 15,
       "prompt": "Wie viel Uhr ist es?",
-      "answer": "viertel nach neun",
+      "answer": "Viertel nach neun",
       "acceptable": [
+       "Viertel nach neun",
+       "Es ist Viertel nach neun",
        "viertel nach neun",
-       "es ist viertel nach neun",
-       "neun uhr fünfzehn"
+       "Es ist viertel nach neun",
+       "neun Uhr fünfzehn",
+       "Neun Uhr fünfzehn",
+       "Es ist neun Uhr fünfzehn"
       ]
      },
      {
@@ -275,10 +281,15 @@ registerTests({
       "hour": 11,
       "minute": 45,
       "prompt": "Wie viel Uhr ist es?",
-      "answer": "viertel vor zwölf",
+      "answer": "Viertel vor zwölf",
       "acceptable": [
+       "Viertel vor zwölf",
+       "Es ist Viertel vor zwölf",
        "viertel vor zwölf",
-       "es ist viertel vor zwölf"
+       "Es ist viertel vor zwölf",
+       "elf Uhr fünfundvierzig",
+       "Elf Uhr fünfundvierzig",
+       "Es ist elf Uhr fünfundvierzig"
       ]
      },
      {
@@ -288,10 +299,13 @@ registerTests({
       "prompt": "Wie viel Uhr ist es?",
       "answer": "zwölf Uhr",
       "acceptable": [
-       "zwölf uhr",
-       "es ist zwölf uhr",
-       "mittag",
-       "mitternacht"
+       "zwölf Uhr",
+       "Zwölf Uhr",
+       "Es ist zwölf Uhr",
+       "Mittag",
+       "Es ist Mittag",
+       "Mitternacht",
+       "Es ist Mitternacht"
       ]
      },
      {
@@ -302,7 +316,8 @@ registerTests({
       "answer": "halb fünf",
       "acceptable": [
        "halb fünf",
-       "es ist halb fünf"
+       "Halb fünf",
+       "Es ist halb fünf"
       ]
      },
      {
@@ -310,10 +325,15 @@ registerTests({
       "hour": 2,
       "minute": 15,
       "prompt": "Wie viel Uhr ist es?",
-      "answer": "viertel nach zwei",
+      "answer": "Viertel nach zwei",
       "acceptable": [
+       "Viertel nach zwei",
+       "Es ist Viertel nach zwei",
        "viertel nach zwei",
-       "es ist viertel nach zwei"
+       "Es ist viertel nach zwei",
+       "zwei Uhr fünfzehn",
+       "Zwei Uhr fünfzehn",
+       "Es ist zwei Uhr fünfzehn"
       ]
      },
      {
@@ -321,10 +341,15 @@ registerTests({
       "hour": 7,
       "minute": 45,
       "prompt": "Wie viel Uhr ist es?",
-      "answer": "viertel vor acht",
+      "answer": "Viertel vor acht",
       "acceptable": [
+       "Viertel vor acht",
+       "Es ist Viertel vor acht",
        "viertel vor acht",
-       "es ist viertel vor acht"
+       "Es ist viertel vor acht",
+       "sieben Uhr fünfundvierzig",
+       "Sieben Uhr fünfundvierzig",
+       "Es ist sieben Uhr fünfundvierzig"
       ]
      },
      {

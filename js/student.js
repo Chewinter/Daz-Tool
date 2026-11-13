@@ -2136,7 +2136,7 @@ function buildEingangstest(t) {
         } else {
           const input = mount.querySelector(`.et-input[data-idx="${i}"]`);
           gegebeneAntwort = input ? input.value.trim() : '';
-          istRichtig = mitLueckenKontext(input, gegebeneAntwort, w => checkAcceptable(w, f.answer));
+          istRichtig = mitLueckenKontext(input, gegebeneAntwort, w => checkAcceptable(w, f.answer)) || checkAcceptable(einstufungKern(f.prompt, gegebeneAntwort), f.answer);   // Frage steht nicht am Feld -> einstufungKern (13.11.)
           if (!istRichtig) moeglicherTippfehler = istWahrscheinlichTippfehler(gegebeneAntwort, f.answer);
         }
         if (istRichtig) richtig++;
@@ -3258,6 +3258,25 @@ function mitVorgabe(vorgabe, rest) {
   return v + ' ' + r;
 }
 
+// Einstufungstest (13.11.2026): Lückensatz wie „Er ___ (kommen) aus Polen.“ — schreibt das Kind den ganzen Satz
+// („Er kommt aus Polen.“) oder das ganze Wort bei „grün___“ („grüner“), zählt nur die Lücke. Groß/klein der Vorgabe zählt nicht,
+// die Lücke selbst wird streng geprüft.
+function einstufungKern(prompt, antwort) {
+  const a = String(antwort || '').trim();
+  const satz = String(prompt || '').split(/(?<=[.?!])\s+/).find(x => x.indexOf('___') >= 0);
+  if (!satz || !a) return a;
+  const teile = satz.split('___'), vorRoh = teile[0], nachRoh = teile[1] || '';
+  const ohne = x => x.replace(/\([^)]*\)\s*:?/g, ' ').replace(/→/g, ' ');
+  const worte = x => x.trim().split(/\s+/).filter(Boolean);
+  const gl = w => String(w).replace(/[„“"'.,!?…]/g, '').toLowerCase();
+  const vw = worte(ohne(vorRoh)), nw = worte(ohne(nachRoh)).filter(w => gl(w));
+  const stamm = vw.length && /\S$/.test(vorRoh) ? vw.pop() : '';   // Wortteil direkt vor der Lücke („grün___“)
+  let rw = worte(a.replace(/[.?!]+\s*$/, ''));
+  if (vw.length && rw.length > vw.length && vw.every((w, i) => gl(w) === gl(rw[i]))) rw = rw.slice(vw.length);
+  if (stamm && rw.length && rw[0].toLowerCase().indexOf(stamm.toLowerCase()) === 0 && rw[0].length > stamm.length) rw[0] = rw[0].slice(stamm.length);
+  if (nw.length && rw.length > nw.length && nw.every((w, i) => gl(w) === gl(rw[rw.length - nw.length + i]))) rw = rw.slice(0, rw.length - nw.length);
+  return rw.join(' ') || a;
+}
 
 // ---------------- BILDQUELLE ARASAAC (Lizenz CC BY-NC-SA, bilder_quellen.md, Lukas 12.11.2026) ----------------
 // Zeigt ein Test oder Spiel ein ARASAAC-Bild, steht unten der Pflicht-Hinweis. Neue ARASAAC-Bilder hier eintragen.
@@ -3270,7 +3289,7 @@ function setzeBildQuelle(viewId, id) {
   let p = w.querySelector('.bild-quelle');
   if (!p) { p = document.createElement('p'); p.className = 'bild-quelle'; w.appendChild(p); }
   const daten = JSON.stringify((typeof TESTS !== 'undefined' && TESTS[id]) || (typeof ACTIVITIES !== 'undefined' && ACTIVITIES[id]) || {});
-  const mit = ARASAAC_BILDER.some(n => daten.indexOf('"' + n + '"') >= 0);
+  const mit = ARASAAC_BILDER.concat(window.ARASAAC_NAMEN || []).some(n => daten.indexOf('"' + n + '"') >= 0);   // A2 seit 13.11.2026
   p.textContent = mit ? ARASAAC_HINWEIS : '';
   p.classList.toggle('hidden', !mit);
 }

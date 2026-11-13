@@ -974,9 +974,13 @@ registerTests({
     "word": "9:15",
     "correct": "viertel nach neun",
     "akzeptiert": [
+     "Viertel nach neun",
      "neun Uhr fünfzehn",
+     "Neun Uhr fünfzehn",
      "einundzwanzig Uhr fünfzehn",
+     "Einundzwanzig Uhr fünfzehn",
      "Es ist viertel nach neun",
+     "Es ist Viertel nach neun",
      "Es ist neun Uhr fünfzehn",
      "Es ist einundzwanzig Uhr fünfzehn"
     ]
@@ -986,9 +990,13 @@ registerTests({
     "word": "9:45",
     "correct": "viertel vor zehn",
     "akzeptiert": [
+     "Viertel vor zehn",
      "neun Uhr fünfundvierzig",
+     "Neun Uhr fünfundvierzig",
      "einundzwanzig Uhr fünfundvierzig",
+     "Einundzwanzig Uhr fünfundvierzig",
      "Es ist viertel vor zehn",
+     "Es ist Viertel vor zehn",
      "Es ist neun Uhr fünfundvierzig",
      "Es ist einundzwanzig Uhr fünfundvierzig"
     ]
@@ -998,8 +1006,11 @@ registerTests({
     "word": "9:30",
     "correct": "halb zehn",
     "akzeptiert": [
+     "Halb zehn",
      "neun Uhr dreißig",
+     "Neun Uhr dreißig",
      "einundzwanzig Uhr dreißig",
+     "Einundzwanzig Uhr dreißig",
      "Es ist halb zehn",
      "Es ist neun Uhr dreißig",
      "Es ist einundzwanzig Uhr dreißig"
@@ -1010,7 +1021,9 @@ registerTests({
     "word": "14:00",
     "correct": "vierzehn Uhr",
     "akzeptiert": [
+     "Vierzehn Uhr",
      "zwei Uhr",
+     "Zwei Uhr",
      "Es ist vierzehn Uhr",
      "Es ist zwei Uhr"
     ]
@@ -1020,9 +1033,13 @@ registerTests({
     "word": "7:15",
     "correct": "viertel nach sieben",
     "akzeptiert": [
+     "Viertel nach sieben",
      "sieben Uhr fünfzehn",
+     "Sieben Uhr fünfzehn",
      "neunzehn Uhr fünfzehn",
+     "Neunzehn Uhr fünfzehn",
      "Es ist viertel nach sieben",
+     "Es ist Viertel nach sieben",
      "Es ist sieben Uhr fünfzehn",
      "Es ist neunzehn Uhr fünfzehn"
     ]
@@ -1032,9 +1049,13 @@ registerTests({
     "word": "6:45",
     "correct": "viertel vor sieben",
     "akzeptiert": [
+     "Viertel vor sieben",
      "sechs Uhr fünfundvierzig",
+     "Sechs Uhr fünfundvierzig",
      "achtzehn Uhr fünfundvierzig",
+     "Achtzehn Uhr fünfundvierzig",
      "Es ist viertel vor sieben",
+     "Es ist Viertel vor sieben",
      "Es ist sechs Uhr fünfundvierzig",
      "Es ist achtzehn Uhr fünfundvierzig"
     ]
@@ -1044,8 +1065,11 @@ registerTests({
     "word": "4:30",
     "correct": "halb fünf",
     "akzeptiert": [
+     "Halb fünf",
      "vier Uhr dreißig",
+     "Vier Uhr dreißig",
      "sechzehn Uhr dreißig",
+     "Sechzehn Uhr dreißig",
      "Es ist halb fünf",
      "Es ist vier Uhr dreißig",
      "Es ist sechzehn Uhr dreißig"
@@ -1619,10 +1643,14 @@ registerTests({
       "bild": "Uhr_3_15",
       "antwort": [
        "viertel nach drei",
+       "Viertel nach drei",
        "Es ist viertel nach drei",
+       "Es ist Viertel nach drei",
        "drei Uhr fünfzehn",
+       "Drei Uhr fünfzehn",
        "Es ist drei Uhr fünfzehn",
        "fünfzehn Uhr fünfzehn",
+       "Fünfzehn Uhr fünfzehn",
        "Es ist fünfzehn Uhr fünfzehn"
       ],
       "label": "Uhr 3:15"
@@ -1631,10 +1659,13 @@ registerTests({
       "bild": "Uhr_6_20",
       "antwort": [
        "zwanzig nach sechs",
+       "Zwanzig nach sechs",
        "Es ist zwanzig nach sechs",
        "sechs Uhr zwanzig",
+       "Sechs Uhr zwanzig",
        "Es ist sechs Uhr zwanzig",
        "achtzehn Uhr zwanzig",
+       "Achtzehn Uhr zwanzig",
        "Es ist achtzehn Uhr zwanzig"
       ],
       "label": "Uhr 6:20"
@@ -1643,10 +1674,13 @@ registerTests({
       "bild": "Uhr_7_30",
       "antwort": [
        "halb acht",
+       "Halb acht",
        "Es ist halb acht",
        "sieben Uhr dreißig",
+       "Sieben Uhr dreißig",
        "Es ist sieben Uhr dreißig",
        "neunzehn Uhr dreißig",
+       "Neunzehn Uhr dreißig",
        "Es ist neunzehn Uhr dreißig"
       ],
       "label": "Uhr 7:30"
@@ -1655,12 +1689,16 @@ registerTests({
       "bild": "Uhr_7_35",
       "antwort": [
        "fünf nach halb acht",
+       "Fünf nach halb acht",
        "Es ist fünf nach halb acht",
        "fünfundzwanzig vor acht",
+       "Fünfundzwanzig vor acht",
        "Es ist fünfundzwanzig vor acht",
        "sieben Uhr fünfunddreißig",
+       "Sieben Uhr fünfunddreißig",
        "Es ist sieben Uhr fünfunddreißig",
        "neunzehn Uhr fünfunddreißig",
+       "Neunzehn Uhr fünfunddreißig",
        "Es ist neunzehn Uhr fünfunddreißig"
       ],
       "label": "Uhr 7:35"
@@ -1669,10 +1707,14 @@ registerTests({
       "bild": "Uhr_8_45",
       "antwort": [
        "viertel vor neun",
+       "Viertel vor neun",
        "Es ist viertel vor neun",
+       "Es ist Viertel vor neun",
        "acht Uhr fünfundvierzig",
+       "Acht Uhr fünfundvierzig",
        "Es ist acht Uhr fünfundvierzig",
        "zwanzig Uhr fünfundvierzig",
+       "Zwanzig Uhr fünfundvierzig",
        "Es ist zwanzig Uhr fünfundvierzig"
       ],
       "label": "Uhr 8:45"

@@ -909,6 +909,16 @@ body.pruefkonto .status-pill.rot { background: var(--bg); color: var(--ink-soft)
 .bild-quelle { font-size: 12px; color: var(--ink-soft); margin: 18px 0 6px; line-height: 1.4; }
 .vok-melden { display: block; margin-top: 8px; font-size: 13px; }
 
+/* Einstufungstest-Karten (13.11.2026): Erklärungsuhr, Auswahl-Optionen */
+.kk-uhr { max-width: 320px; width: 100%; display: block; margin: 8px auto 0; color: var(--ink); }
+.kk-uhr-leg { text-align: center; font-size: 13px; margin: 2px 0 6px; }
+.kk-optionen { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.kk-opt { border: 2px solid var(--line); border-radius: 8px; padding: 4px 10px; }
+.kk-opt.kk-ok { border-color: var(--good); background: var(--good-bg); font-weight: 600; }
+.kk-opt.kk-falsch { border-color: var(--bad); text-decoration: line-through; }
+
+.kk-anleitung { margin: 2px 0 6px; color: var(--ink-soft); font-size: 14px; }
+
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
   .ub-chip { padding: 6px 12px; border-radius: 999px; background: #EFEBDD; font-size: 14px; }

@@ -396,8 +396,8 @@ async function baueBewertung(div, sub, statusObj, statusKey) {
     const gewaehlt = [...new Set(falscheItems.map(it => it.teil))];
     const teileErg = erg.teile.map(x => ({ id: x.id, titel: x.titel, richtig: x.richtig, gesamt: x.gesamt, punkte: x.punkte, max: x.max, wiederholen: neu === 'zettel_offen' && gewaehlt.indexOf(x.id) >= 0 }));
     const hinw = it => { const f = fb[it.id]; return f ? { loesung: (f.loesung || '').trim(), hinweis: (f.fehler || '').trim() } : { loesung: '', hinweis: '' }; };
-    const fehler = A.items.filter(it => !it.satz && effektiv(it, ov) === false).map(it => ({ teil: (A.teile.find(x => x.id === it.teil) || {}).titel || '', frage: it.frage, antwort: it.antwort, korrektAntwort: it.korrektAntwort || '', teilId: it.teil, num: it.num, key: it.key || null, bild: it.bild || null, bildGross: it.bildGross || null, ...hinw(it) })); // teilId+num: damit die Schüler-Seite das Bild zur Aufgabe findet
-    const saetze = A.items.filter(it => it.satz && effektiv(it, ov) === false).map(it => ({ frage: it.frage, satz: it.antwort, vorschlag: it.korrektAntwort || '', teilId: it.teil, num: it.num, ...hinw(it) }));   // teilId+num: Korrektur-Karte (12.11.2026)
+    const fehler = A.items.filter(it => !it.satz && effektiv(it, ov) === false).map(it => ({ teil: (A.teile.find(x => x.id === it.teil) || {}).titel || '', frage: it.frage, antwort: it.antwort, korrektAntwort: it.korrektAntwort || '', teilId: it.teil, num: it.num, itemIdx: it.itemIdx, key: it.key || null, bild: it.bild || null, bildGross: it.bildGross || null, ...hinw(it) })); // teilId+num: damit die Schüler-Seite das Bild zur Aufgabe findet
+    const saetze = A.items.filter(it => it.satz && effektiv(it, ov) === false).map(it => ({ frage: it.frage, satz: it.antwort, vorschlag: it.korrektAntwort || '', teilId: it.teil, num: it.num, itemIdx: it.itemIdx, ...hinw(it) }));   // teilId+num: Korrektur-Karte (12.11.2026)
     const felder = istAbschluss ? A.items.filter(it => it.key).map(it => ({ key: it.key, korrekt: effektiv(it, ov) === true })) : [];
     const ergebnis = neu === 'zettel_offen' ? 'zettel' : 'erledigt';
     const review = { v: 2, testId: sub.testId, name: sub.name, titel: titelAnzeige, art: A.art, reviewedAt: new Date().toISOString(), kommentar, ergebnis, korrektur: neu === 'zettel_offen',
@@ -502,8 +502,14 @@ function einstufungAktionHtml(sub, st) {
   if (ab === 'wiederholung_frei') return '<div class="bw-hinweis">Korrektur ok. Das Kind macht jetzt nur die falschen Fragen noch einmal.</div><div class="status-controls"><button type="button" class="btn secondary small einst-endgueltig">Endgültig erledigt</button></div>';
   return '<div class="bw-hinweis gut">Endgültig erledigt. Keine Wiederholung mehr.</div>';
 }
+// Korrektur-Karten auch beim Einstufungstest (13.11.2026): so sieht das Kind die Rückgabe
+function einstufungKartenKnopf(sub, st) {
+  return ablaufStatus(st, sub.testId) !== 'offen' && st && st.reviewKey && sub._neueste !== false
+    ? '<div class="status-controls"><button type="button" class="btn secondary small bw-karten">So sieht das Kind die Korrektur</button></div><div class="bw-karten-box"></div>' : '';
+}
 function einstufungAktionenVerbinden(div, sub, st, statusKey, commentInput) {
   div.addEventListener('click', async ev => {
+    if (ev.target.closest('.bw-karten')) { zeigeKartenLehrkraft(sub, st, div.querySelector('.bw-karten-box')); return; }
     const b = ev.target.closest('.einst-abschliessen, .einst-endgueltig, .einst-korrektur-ok');
     if (!b || b.disabled) return;
     b.disabled = true;

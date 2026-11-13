@@ -5,7 +5,7 @@
    im Duden, „Warum?“ erst Deutsch, dann die Sprache des Kindes, ggf. der Regel-Kasten, „Ins Heft“.
    Texte: data/korrektur-<lernfeld>.js (gen_korrektur.py). Fehlt eine Karte, gibt es trotzdem Aufgabe + Lösung (nie leer).
    ========================================================================== */
-const KORREKTUR_LERNFELDER = ['a2_lf5', 'a2_lf4', 'a2_lf3', 'a2_lf2', 'a2_lf1'];   // Lernfelder mit fertigen Karten (Phase 1: A2 LF5 Muster, dann LF4)
+const KORREKTUR_LERNFELDER = ['a2_lf5', 'a2_lf4', 'a2_lf3', 'a2_lf2', 'a2_lf1', 'a1_check', 'a2_grammatik', 'a2_lesen', 'a1_lf5'];   // a1_check = Einstufungstest (13.11.2026)   // Lernfelder mit fertigen Karten (Phase 1: A2 LF5 Muster, dann LF4)
 const KK_SPRACHEN = { ar: 'Arabisch', uk: 'Ukrainisch', ru: 'Russisch', tr: 'Türkisch', fa: 'Persisch', sq: 'Albanisch', bg: 'Bulgarisch', es: 'Spanisch', so: 'Somali', am: 'Amharisch', ti: 'Tigrinya', ku: 'Kurdisch (Sorani)' };
 const KK_PERSONEN = ['ich', 'du', 'er/sie/es', 'wir', 'ihr', 'sie/Sie'];
 const KK_ARTIKEL = ['der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einen', 'einem', 'einer', 'eines'];
@@ -36,8 +36,14 @@ async function ladeKorrektur(testId) {
   await kkSkript('data/korrektur-' + testId + '.js');   // Regel-Kästen stehen mit drin (nicht die ganze grammatik-erklaerungen.js laden)
   return (window.KORREKTUR[lf] && window.KORREKTUR[lf].karten[testId]) ? window.KORREKTUR[lf] : null;
 }
+// Deutsche Wortgruppen in arabischer/persischer/kurdischer Schrift als EIN Block links-nach-rechts (13.11.2026: „Wie heißen Sie?“
+// stand sonst verdreht, weil sich die einzelnen Wörter im Rechts-nach-links-Absatz umsortieren).
+const KK_LATEIN = /[A-Za-zÄÖÜäöüß0-9*][A-Za-zÄÖÜäöüß0-9*\s,.:;?!'’„“"\-–…\/+=]*[A-Za-zÄÖÜäöüß0-9*?!…“"]|[A-Za-zÄÖÜäöüß0-9]/g;   // ohne Klammern/Endpunkt (gehören zum RTL-Satz)
 function kkInline(s) {   // **fett**; bdi: deutsche Wörter in arabischer/persischer Schrift richtig einordnen; [[Wort|Stichwort]] -> Wort
-  return escapeHtml(String(s || '')).replace(/\*\*([^*]+)\*\*/g, '<strong><bdi>$1</bdi></strong>').replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, '$1');
+  let t = String(s || '');
+  if (/[\u0600-\u06FF]/.test(t)) t = t.replace(KK_LATEIN, x => '\u0001' + x + '\u0002');
+  return escapeHtml(t).replace(/\*\*([^*]+)\*\*/g, '<strong><bdi>$1</bdi></strong>').replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, '$1')
+    .replace(/\u0001/g, '<bdi dir="ltr">').replace(/\u0002/g, '</bdi>');
 }
 // Welche Karte gehört zu diesem Fehler? Schritt-Tests: „teil1:5“. Lernfeld-Test: aus dem Feld-Schlüssel.
 function korrekturSchluessel(testId, f) {
@@ -50,7 +56,7 @@ function korrekturSchluessel(testId, f) {
     m = /^gv-(\d+)$/.exec(f.key); if (m) return 'gv:' + m[1];
     m = /^sa\d*-(\d+)$/.exec(f.key); if (m) return 'sa:' + m[1];
     // Lernfeld-Tests A2 1–3 (13.11.2026): Konjugation je Verb (ganze Zeile), Steigern/Frage+Antwort/Körper je Zeile = eine Karte
-    m = /^konj-\d+-(.+)-\d+$/.exec(f.key); if (m) return 'konj:' + m[1];
+    m = /^konj-[a-z0-9]+-(.+)-\d+$/.exec(f.key); if (m) return 'konj:' + m[1];   // auch „konj-a0g0-…“ (Lernfeld-Tests mit Abschnitten, A1.5)
     m = /^(steig|fa|fak)-(\d+)-[ksfa]$/.exec(f.key); if (m) return m[1] + ':' + m[2];
     m = /^koerper-(\d+)-[em]$/.exec(f.key); if (m) return 'koerper:' + m[1];
     m = /^satzbau-(\d+)-\d+$/.exec(f.key); if (m) return 'satzbau:' + m[1];
@@ -58,12 +64,64 @@ function korrekturSchluessel(testId, f) {
     return f.key;
   }
   const t = (typeof TESTS !== 'undefined' && TESTS[testId]) || {};
+  if (t.bereiche) return einstufungSchluessel(t, f.frage, f.korrektAntwort);
+  const gb = grammatikBlock(testId);
+  if (gb) {   // Grammatik-Block (13.11.2026): „p<Aufgabe>:<Satz>“, ältere Bewertungen ohne itemIdx über den Fragetext
+    const nr = Number((/^p(\d+)$/.exec(f.teilId || '') || [])[1]), p = gb.punkte.find(x => x.nr === nr);
+    if (!p) return null;
+    const i = f.itemIdx != null ? f.itemIdx : p.uebung.items.findIndex(it => it.frage === f.frage);
+    return i >= 0 ? 'p' + nr + ':' + i : null;
+  }   // Einstufungstest: über den Fragetext (Fragen werden je Runde gezogen)
   if (f.teilId && /^teil\d$/.test(f.teilId) && f.num != null) return f.teilId + ':' + f.num;
   // ältere Bewertungen ohne Teil/Nummer: über den Fragetext
   const such = (teil, fn) => { const it = (t[teil] || []).find(fn); return it ? teil + ':' + it.num : null; };
   return such('teil1', i => 'Bildzuordnung: ' + i.word === f.frage) || such('teil2', i => `${i.vor} ___ ${i.nach}` === f.frage)
     || such('teil4', i => typeof teil4FrageText === 'function' && teil4FrageText(t, i) === f.frage)
     || such('teil3', i => f.satz != null && (i.word === f.frage || (i.pronomen && f.frage && f.frage.indexOf(i.word) >= 0))) || null;
+}
+
+function grammatikBlock(id) { const a = typeof ACTIVITIES !== 'undefined' && ACTIVITIES[id]; return a && Array.isArray(a.punkte) ? a : null; }
+// Lückensatz mit Lösung (wie heftSatz in bewertung.js): „Ich freue ___ auf die Ferien.“ + „mich“ -> ganzer Satz
+function kkGrammatikSatz(it) {
+  const a = [].concat(it.antwort)[0] || '', f = String(it.frage || '');
+  if (f.indexOf('___') < 0) return a;
+  let s = f.split('→').pop().trim();
+  const teile = (s.match(/___/g) || []).length > 1 ? a.split(' ') : [a];
+  teile.forEach(x => { s = s.replace('___', x); });
+  return s.replace(/\s*\([^)]*\)/g, '').trim();
+}
+// Einstufungstest (13.11.2026): Schlüssel „b<Bereich>:<Index im Pool>“
+function einstufungSchluessel(t, frage, korrekt) {   // gleiche Frage bei allen Uhren („Wie viel Uhr ist es?“) -> zusätzlich über die Lösung
+  const k = String(korrekt || '').toLowerCase().split(' / ')[0].trim();
+  for (let b = 0; b < t.bereiche.length; b++) {
+    const pool = t.bereiche[b].pool, gleich = pool.map((q, i) => i).filter(i => pool[i].prompt === frage);
+    if (!gleich.length) continue;
+    const i = gleich.length === 1 ? gleich[0] : gleich.find(i => [].concat(pool[i].answer, pool[i].acceptable || []).some(a => String(a).toLowerCase() === k));
+    return i == null ? null : 'b' + (b + 1) + ':' + i;
+  }
+  return null;
+}
+function einstufungFrage(t, key) {
+  const m = /^b(\d+):(\d+)$/.exec(key || ''); return m && t.bereiche && t.bereiche[m[1] - 1] ? t.bereiche[m[1] - 1].pool[Number(m[2])] : null;
+}
+// Erklärungsuhr (Lukas 11.11.: „Erklärungsuhr wieder einblenden und mit Pfeil zeigen“): rechte Hälfte „nach“, linke „vor“,
+// 12 = „Uhr“, 3 = „Viertel nach“, 6 = „halb“, 9 = „Viertel vor“; großer Zeiger rot mit Pfeil, kleiner Zeiger dunkel.
+function kkUhr(h, m) {
+  const cx = 160, cy = 132, r = 92, P = (a, l) => [cx + l * Math.sin(a * Math.PI / 180), cy - l * Math.cos(a * Math.PI / 180)].map(x => x.toFixed(1));
+  const zahlen = Array.from({ length: 12 }, (_, i) => { const [x, y] = P((i + 1) * 30, r - 16); return `<text x="${x}" y="${(+y + 5).toFixed(1)}" font-size="15" text-anchor="middle">${i + 1}</text>`; }).join('');
+  const an = { 0: 'uhr', 15: 'nach', 30: 'halb', 45: 'vor' }[m];
+  const lab = (k, x, y, txt, anchor) => `<text x="${x}" y="${y}" font-size="${an === k ? 15 : 12}" font-weight="${an === k ? 700 : 400}" fill="${an === k ? '#c0392b' : 'currentColor'}" text-anchor="${anchor}">${txt}</text>`;
+  const [mx, my] = P(m * 6, r - 22), [hx, hy] = P(((h % 12) + m / 60) * 30, r * 0.5);
+  return `<svg class="kk-svg kk-uhr" viewBox="0 0 320 262" role="img" aria-label="Uhr ${h}:${String(m).padStart(2, '0')}">
+    <defs><marker id="kkuz" markerUnits="userSpaceOnUse" markerWidth="16" markerHeight="16" refX="12" refY="8" orient="auto"><path d="M0 0L16 8L0 16z" fill="#c0392b"/></marker></defs>
+    <path d="M${cx} ${cy - r}A${r} ${r} 0 0 1 ${cx} ${cy + r}Z" fill="#e8f4ea"/><path d="M${cx} ${cy + r}A${r} ${r} 0 0 1 ${cx} ${cy - r}Z" fill="#fdf0e0"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="currentColor" stroke-width="3"/>${zahlen}
+    ${lab('uhr', cx, 24, '… Uhr', 'middle')}${lab('halb', cx, 254, 'halb', 'middle')}${lab('nach', 262, cy - 4, 'Viertel', 'start')}${lab('nach', 262, cy + 12, 'nach', 'start')}
+    ${lab('vor', 58, cy - 4, 'Viertel', 'end')}${lab('vor', 58, cy + 12, 'vor', 'end')}
+    <text x="${cx + 40}" y="${cy + 26}" font-size="12" fill="#2e7d32">nach</text><text x="${cx - 40}" y="${cy + 26}" font-size="12" fill="#b06000" text-anchor="end">vor</text>
+    <line x1="${cx}" y1="${cy}" x2="${hx}" y2="${hy}" stroke="#1E4B45" stroke-width="7" stroke-linecap="round"/>
+    <line x1="${cx}" y1="${cy}" x2="${mx}" y2="${my}" stroke="#c0392b" stroke-width="4" marker-end="url(#kkuz)"/><circle cx="${cx}" cy="${cy}" r="5" fill="currentColor"/></svg>
+    <p class="kk-uhr-leg"><span style="color:#c0392b">━ großer Zeiger</span> · <span style="color:#1E4B45">━ kleiner Zeiger</span></p>`;
 }
 
 // ---- Artikel, Fall, Groß-/Kleinschreibung: ohne KI aus der Antwort ablesbar (Lukas 12.11.2026) ----
@@ -118,6 +176,7 @@ function korrekturFormHinweis(antwort, richtig) {
 // ---- kleine Zeichnungen ----
 function kkZeichnung(z) {
   if (!z) return '';
+  const uz = /^uhr:(\d+):(\d+)$/.exec(z); if (uz) return kkUhr(Number(uz[1]), Number(uz[2]));
   if (z === 'treppe_hoch') return `<svg class="kk-svg" viewBox="0 0 260 130" role="img" aria-label="Treppe nach oben"><path d="M20 115h45v-28h45v-28h45v-28h80" fill="none" stroke="currentColor" stroke-width="4"/>
     <defs><marker id="kkp" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" refX="7" refY="7" orient="auto"><path d="M0 0L14 7L0 14z" fill="#c0392b"/></marker></defs>
     <path d="M45 100 L170 30" stroke="#c0392b" stroke-width="4" marker-end="url(#kkp)"/>
@@ -146,7 +205,12 @@ function kkZeichnung(z) {
 }
 
 // ---- Bausteine der Karte ----
-function kkBild(n, cls) { return (n && typeof ICONS !== 'undefined' && ICONS[n]) ? `<img class="${cls || 'kk-bild'}" src="${iconSrc(n)}" alt="">` : ''; }
+let kkMitArasaac = false;   // zeigt eine Karte ein ARASAAC-Bild? -> Lizenz-Hinweis unter den Karten (13.11.2026)
+function kkBild(n, cls) {
+  if (!(n && typeof ICONS !== 'undefined' && ICONS[n])) return '';
+  if ((window.ARASAAC_NAMEN || []).indexOf(n) >= 0) kkMitArasaac = true;
+  return `<img class="${cls || 'kk-bild'}" src="${iconSrc(n)}" alt="">`;
+}
 function kkVokHtml(st, v, sprachen) {
   if (!st || !v) return '';
   const m = /^(der|die|das) (.+)$/.exec(st);
@@ -172,6 +236,26 @@ function korrekturAufgabe(testId, f, fehlerGruppe) {
   const key = korrekturSchluessel(testId, f) || '';
   const [teil, nr] = key.split(':');
   const it = /^teil\d$/.test(teil) ? (t[teil] || []).find(i => String(i.num) === nr) : null;
+  const gb = grammatikBlock(testId), gm = gb && /^p(\d+):(\d+)$/.exec(key);
+  if (gm) {   // Grammatik-Block: Aufgabe mit Anleitung, Satz mit Lösung in der Lücke
+    const p = gb.punkte.find(x => x.nr === Number(gm[1])), it = p && p.uebung.items[Number(gm[2])];
+    if (it) {
+      const E = escapeHtml, loes = [].concat(it.antwort)[0], heft = /^\((im Heft|keine Antwort)\)$/.test(f.antwort || f.satz || '');
+      const satz = it.frage.indexOf('___') >= 0 ? E(it.frage.split('→').pop().trim()).replace(/___/, `<span class="kk-luecke"><strong>${E(loes.split(' ')[0])}</strong></span>`) : E(it.frage);
+      return { html: `<p class="kk-frage"><strong>Aufgabe ${p.nr}: ${E(p.titel || '')}</strong></p><p class="kk-anleitung">${E(p.uebung.anleitung || '')}</p><p class="kk-satz">${it.frage.indexOf('___') >= 0 ? satz : E(it.frage)}</p>`,
+        deine: null, richtig: `„${E(kkGrammatikSatz(it))}“`, ohneDeine: heft };
+    }
+  }
+  const ef = t.bereiche ? einstufungFrage(t, key) : null;
+  if (ef) {   // Einstufungstest: Frage wie im Test (Uhr, Auswahl, Lückensatz)
+    const E = escapeHtml, leer = !f.antwort || f.antwort === '(keine Antwort)';
+    if (ef.type === 'mc') return { html: `<p class="kk-frage">${E(ef.prompt)}</p><div class="kk-optionen">${ef.options.map((o, i) =>
+      `<span class="kk-opt${i === ef.correct ? ' kk-ok' : o === f.antwort ? ' kk-falsch' : ''}">${i === ef.correct ? '✓ ' : o === f.antwort ? '✗ ' : ''}${E(o)}</span>`).join('')}</div>`, deine: null, richtig: null, lab: 'Du hast gewählt:' };
+    if (ef.type === 'clock') return { html: `<p class="kk-frage">${E(ef.prompt)}</p>${typeof renderClockSVG === 'function' ? renderClockSVG(ef.hour, ef.minute, 130) : ''}`, deine: null, richtig: null };
+    const loes = [].concat(ef.answer)[0];
+    if (ef.prompt.indexOf('___') >= 0) return { html: `<p class="kk-satz">${E(ef.prompt).replace('___', `<span class="kk-luecke">${leer ? '' : `<s>${E(f.antwort)}</s> `}<strong>${E(loes)}</strong></span>`)}</p>`, deine: null, richtig: null };
+    return { html: `<p class="kk-frage">${E(ef.prompt)}</p>`, deine: null, richtig: null };
+  }
   if (teil === 'teil1' && it) {
     const gewaehlt = it.icons.find(n => n.replace(/_/g, ' ') === f.antwort);
     return { html: `<p class="kk-frage">Welches Bild passt zu <strong>${escapeHtml(it.word)}</strong>?</p><div class="kk-bilder">${it.icons.map((n, i) =>
@@ -229,12 +313,12 @@ function korrekturKarteHtml(testId, daten, f, sprachen, gruppe) {
   const A = korrekturAufgabe(testId, f, gruppe);
   const istSatz = f.satz != null;
   const antwort = istSatz ? f.satz : f.antwort, loesung = istSatz ? (f.loesung || f.vorschlag) : (f.loesung || f.korrektAntwort);
-  const form = A.gruppe ? [] : gruppe.length > 1 ? [].concat(...gruppe.map(g => korrekturFormHinweis(g.antwort, g.loesung || g.korrektAntwort))) : korrekturFormHinweis(antwort, loesung);
+  const form = A.gruppe || A.ohneDeine ? [] : gruppe.length > 1 ? [].concat(...gruppe.map(g => korrekturFormHinweis(g.antwort, g.loesung || g.korrektAntwort))) : korrekturFormHinweis(antwort, loesung);
   const leer = !antwort || /^\((keine Antwort|kein Satz)/.test(antwort);
   let h = `<article class="kk-karte" data-kk="${escapeHtml(key || '')}"${c ? '' : ' data-kk-fehlt="1"'}>`;
   h += `<div class="kk-aufgabe">${A.html}${kkZeichnung(c && c.zeige !== 'verbzeile' ? c.zeige : '')}</div>`;
   if (!A.gruppe) {
-    h += `<div class="kk-zeile kk-deine"><span class="kk-lab">${A.lab || 'Das hast du geschrieben:'}</span> ${leer ? '<em>nichts</em>' : (A.deine || `„${escapeHtml(antwort)}“`)}</div>`;
+    if (!A.ohneDeine) h += `<div class="kk-zeile kk-deine"><span class="kk-lab">${A.lab || 'Das hast du geschrieben:'}</span> ${leer ? '<em>nichts</em>' : (A.deine || `„${escapeHtml(antwort)}“`)}</div>`;
     if (loesung || A.richtig) h += `<div class="kk-zeile kk-richtig"><span class="kk-lab">So ist es richtig:</span> ${A.richtig || `„${escapeHtml(loesung)}“`}</div>`;
   }
   if (form.length) h += `<div class="kk-form">${form.map(x => `<p>⚠ ${kkInline(x)}</p>`).join('')}</div>`;
@@ -266,15 +350,22 @@ function korrekturListeHtml(testId, rv, daten, sprachen) {
     if (zus && nachKey[k]) { nachKey[k].push(f); return; }
     const g = [f]; gruppen.push(g); if (zus) nachKey[k] = g;
   });
+  kkMitArasaac = false;
+  const karten = gruppen.map(g => korrekturKarteHtml(testId, daten, g[0], sprachen, g)).join('');
   return `<h3 class="erg-h">Das war falsch — ${gruppen.length} ${gruppen.length === 1 ? 'Aufgabe' : 'Aufgaben'}</h3>
-    <p class="kk-intro">Lies bei jeder Aufgabe, <strong>warum</strong> es so richtig ist. Dann schreibe die Korrektur in dein Heft.</p>`
-    + gruppen.map(g => korrekturKarteHtml(testId, daten, g[0], sprachen, g)).join('');
+    <p class="kk-intro">Lies bei jeder Aufgabe, <strong>warum</strong> es so richtig ist. Dann schreibe die Korrektur in dein Heft.</p>` + karten
+    + (kkMitArasaac ? '<p class="bild-quelle">Bilder: Piktogramm-Urheber Sergio Palao. Herkunft: ARASAAC (http://www.arasaac.org). Lizenz: CC (BY-NC-SA). Eigentümer: Regierung von Aragon (Spanien).</p>' : '');
 }
 // Für Prüfungen: Aufgaben eines Tests ohne Karte
 function korrekturLuecken(testId, daten) {
-  const t = TESTS[testId], k = (daten && daten.karten[testId]) || {}, fehlt = [];
+  const t = TESTS[testId] || {}, k = (daten && daten.karten[testId]) || {}, fehlt = [];
   ['teil1', 'teil2', 'teil3', 'teil4'].forEach(teil => (t[teil] || []).forEach(i => { if (!k[teil + ':' + i.num]) fehlt.push(teil + ':' + i.num); }));
+  const gb = grammatikBlock(testId);
+  if (gb) { gb.punkte.forEach(p => p.uebung.items.forEach((_, i) => { if (!k['p' + p.nr + ':' + i]) fehlt.push('p' + p.nr + ':' + i); })); return fehlt; }
   korrekturLTSchluessel(t).forEach(x => { if (!k[x]) fehlt.push(x); });
+  (t.abschnitte || []).forEach((ab, ai) => (ab.items || []).forEach((_, ii) => { if (!k['g' + ai + '-' + ii]) fehlt.push('g' + ai + '-' + ii); }));
+  (t.abschnitte || []).filter(a => a.art === 'konjugation').forEach(a => (a.gruppen || []).forEach(g => g.verbs.forEach(v => { if (!k['konj:' + v]) fehlt.push('konj:' + v); })));   // Tests mit Abschnitten (A2 Lesen)
+  (t.bereiche || []).forEach((b, bi) => b.pool.forEach((_, i) => { if (!k['b' + (bi + 1) + ':' + i]) fehlt.push('b' + (bi + 1) + ':' + i); }));
   return fehlt;
 }
 // Alle Karten-Schlüssel der Lernfeld-Tests A2 1–3 (für die Vollständigkeits-Prüfung)
@@ -292,8 +383,9 @@ function korrekturLTSchluessel(t) {
 function korrekturAufgabeLT(t, teil, nr, f, gruppe) {
   const i = Number(nr), E = escapeHtml, ant = suf => (gruppe.find(g => (g.key || '').endsWith('-' + suf)) || {}).antwort;
   const zeile = (lab, suf) => ant(suf) != null ? `${lab}: „${E(ant(suf))}“` : `${lab}: ✓`;
-  if (teil === 'konj' && t.konjugation) {
-    const g = t.konjugation.find(x => x.forms[nr]);
+  const KG = (t.konjugation || []).concat(...(t.abschnitte || []).filter(a => a.art === 'konjugation').map(a => a.gruppen || []));
+  if (teil === 'konj' && KG.length) {
+    const g = KG.find(x => x.forms[nr]);
     if (!g) return null;
     const pers = x => Number((/-(\d+)$/.exec(x.key || '') || [])[1]);
     const falsch = new Set(gruppe.map(pers));

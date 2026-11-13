@@ -443,7 +443,7 @@ async function loadSubmissions(isBackgroundRefresh) {
       ${sub.bereichsErgebnisse ? `<div class="autoscore">${sub.autoCorrect} von ${sub.autoTotal} Bereichen mit ≥85% bestanden</div>${berichtHtml}${bereicheHtml}` : `<div class="autoscore">${(sub.isPunkteTest || sub.isGrammatikblock) ? 'Automatisch ausgewertet' : 'Teil 1/2/4 automatisch ausgewertet'}: <strong>${sub.autoCorrect} / ${sub.autoTotal}</strong> ${sub.isPunkteTest ? 'Punkte' : 'richtig'}</div>${teilDetailsHtml}${teil3Html}`}
       <textarea class="comment-input" placeholder="Kommentar für den Schüler (optional)">${escapeHtml(statusObj.comment || '')}</textarea>
       ${teilCheckboxenHtml}
-      <div class="bw-aktion">${einstufungAktionHtml(sub, statusObj)}</div>
+      <div class="bw-aktion">${einstufungAktionHtml(sub, statusObj)}${einstufungKartenKnopf(sub, statusObj)}</div>
     `;
 
     const commentInput = div.querySelector('.comment-input');
