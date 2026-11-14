@@ -59,7 +59,9 @@ function registerActivities(obj) { registerInto(ACTIVITIES, obj, 'ACTIVITIES'); 
 
 function iconSrc(name) { const b = ICONS[name]; return b ? (b.startsWith("/9j/") ? "data:image/jpeg;base64," : "data:image/png;base64,") + b : ""; } // leer, wenn das Bild auf dieser Seite nicht geladen ist (Lehrkraft-Seite); Fotos (B1.4) als JPEG
 function vereinheitlicheText(s) {
-  return String(s == null ? '' : s).replace(/[„“”‟″«»]/g, '"').replace(/[‚‘’‛′`´‹›]/g, "'").replace(/\s+/g, ' ').trim();
+  // wörtliche Rede (Merkliste 14.11.2026, Punkt 14): Leerzeichen nach dem Doppelpunkt vor der Rede und vor Satzzeichen zählen nicht
+  return String(s == null ? '' : s).replace(/[„“”‟″«»]/g, '"').replace(/[‚‘’‛′`´‹›]/g, "'").replace(/\s+/g, ' ').trim()
+    .replace(/\s*:\s*"/g, ': "').replace(/\s+([.,!?;:])/g, '$1');
 }
 // Satzzeichen/Anführungszeichen am Ende weg, aber nur, wenn danach noch etwas übrig bleibt ("?" bleibt "?")
 function ohneEndzeichen(s) { const o = s.replace(/[\s.!?;:,"']+$/, ''); return o || s; }
@@ -634,7 +636,11 @@ const T3_FINIT_NS = ['bin', 'bist', 'ist', 'sind', 'seid', 'habe', 'hast', 'hat'
 function t3Pflicht(item) {
   if (T3_NEBENSATZ.test(String(item.pronomen || ''))) return { art: 'nebensatz', woerter: [] };
   const word = String(item.word || '');
-  const klammer = (word.match(/\(([^)]*)\)/) || [])[1];
+  let klammer = (word.match(/\(([^)]*)\)/) || [])[1];
+  // „einkaufen (Perfekt)“: Klammer mit Grammatik-Hinweis ist keine Pflicht-Angabe für den Satz (Merkliste 14.11.2026)
+  if (klammer && /^(Perfekt|Präsens|Präteritum|Futur( I)?|Plural|Einzahl|Mehrzahl|Imperativ|Frage|Nebensatz)$/i.test(klammer.trim())) {
+    return t3Pflicht(Object.assign({}, item, { word: word.replace(/\s*\([^)]*\)/, '').trim() }));
+  }
   if (klammer) return { art: 'angabe', woerter: T3_WORT(klammer).split(' ').filter(x => x && !T3_FUELL.test(x) && !T3_ARTIKEL.test(x)) };
   if (/[?.!]/.test(word) || word.split(' ').length > 3) return { art: 'frei', woerter: [] };   // freie Frage ohne Angabe
   const teile = T3_WORT(word).split(' ').filter(Boolean);
@@ -649,11 +655,20 @@ const T3_UNREGEL = { sein: ['bin', 'bist', 'ist', 'sind', 'seid', 'war'], haben:
   fahren: ['fahr', 'fuhr'], schlafen: ['schlaf', 'schlief'], laufen: ['lauf', 'lief'], tragen: ['trag', 'trug'], gehen: ['geh', 'ging'], kommen: ['komm', 'kam'],
   schreiben: ['schreib', 'schrieb'], trinken: ['trink', 'trank'], finden: ['find', 'fand'], stehen: ['steh', 'stand'], sitzen: ['sitz', 'sass'],
   liegen: ['lieg', 'lag'], tun: ['tu', 'tat'], mogen: ['mag', 'mog', 'moch'], konnen: ['kann', 'konn'], mussen: ['muss'], durfen: ['darf', 'durf'], wollen: ['will', 'woll'] };
+// Trennbare Verben (Merkliste 14.11.2026, Punkt 13): „aufschütteln“ steht im Satz getrennt („Ich schüttle das Bett auf.“) oder mit ge-
+// („eingekauft“). Vorsilben in T3_WORT-Form (ohne Umlaute).
+const T3_VORSILBEN = ['zuruck', 'zusammen', 'weiter', 'sauber', 'heraus', 'herein', 'hinaus', 'fest', 'fern', 'heim', 'teil', 'auf', 'aus', 'ein', 'mit',
+  'weg', 'vor', 'nach', 'los', 'her', 'hin', 'ab', 'an', 'zu', 'um', 'bei'];
 function t3VerbDa(tokens, w) {
   const formen = T3_UNREGEL[w];
   if (formen && tokens.some(t => formen.some(f => t.indexOf(f) === 0))) return true;
   const stamm = w.replace(/(en|n)$/, '').replace(/el$/, 'l').replace(/er$/, 'r');
-  return tokens.some(t => t.indexOf(stamm.slice(0, Math.max(3, stamm.length - 1))) >= 0);
+  if (tokens.some(t => t.indexOf(stamm.slice(0, Math.max(3, stamm.length - 1))) >= 0)) return true;
+  const vs = T3_VORSILBEN.find(v => w.indexOf(v) === 0 && w.length > v.length + 3);
+  if (!vs) return false;
+  const basis = w.slice(vs.length);
+  if (tokens.indexOf(vs) >= 0 && t3VerbDa(tokens.filter(t => t !== vs), basis)) return true;          // getrennt: „räumen … auf“
+  return tokens.some(t => t.indexOf(vs) === 0 && t.length > vs.length + 2 && t3VerbDa([t.slice(vs.length).replace(/^(ge|zu)/, '')], basis));   // „eingekauft“, „aufzuräumen“
 }
 function t3Enthaelt(tokens, w, art) {
   if (art === 'verb') return t3VerbDa(tokens, w);
@@ -674,6 +689,27 @@ function t3UmlautFehler(person, rohVerb) {
 }
 // Vorgabe vor dem Feld ohne Erklärung in Klammern: „Sie (Plural)“ -> „Sie“ (Lukas 12./13.11.2026: doppelte Eingabe ist kein Fehler)
 function t3VorgabeKern(v) { return String(v || '').replace(/\s*\([^)]*\)/g, '').trim(); }
+// ---------------- BILDER GROSS ANSEHEN (Merkliste 14.11.2026, Punkt 2) ----------------
+// Jedes Bild in Blättern, Tests, Korrektur-Karten und Ergebnissen lässt sich antippen und groß ansehen (zoomen/verschieben).
+// Ausgenommen: Bilder, die selbst eine Auswahl sind (Bild-Antworten, Spielkarten) oder eine Wortkarte öffnen.
+const BILD_ZOOM_IN = '.blatt-figur, .blatt-textbild, .blatt-bildreihe, .einstieg, .kk-aufgabe, .kk-karte, .erg-fehler, .lt-bild-gross-wrap, '
+  + '#teil2items, #teil3items, #teil4items, #abschlussBody, .bw-bild-gross-wrap, .bw-bilder, .bw-zeile, .bw-heftzeile';
+const BILD_ZOOM_NICHT = '.img-opt, .mc-opt, .blatt-bild, .memory-card, .quartett-card, .domino-karte, .vok, .vb-produkt, .vb-geschaeft, [data-name], [data-farbwahl], [role=button], label, #bildGross, button, a';   // Bilder, die selbst eine Antwort sind, nie vergrößern
+function bildGrossZeigen(src) {
+  if (!src || document.getElementById('bildGross')) return;
+  const box = document.createElement('div'); box.id = 'bildGross';
+  box.innerHTML = `<button type="button" class="vok-zu" aria-label="Schließen">×</button><img src="${src}" alt="">`;
+  box.addEventListener('click', () => box.remove()); document.body.appendChild(box);
+}
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const img = e.target && e.target.closest ? e.target.closest('img') : null;
+  if (!img || img.closest(BILD_ZOOM_NICHT) || !img.closest(BILD_ZOOM_IN)) return;
+  if (e.target.closest('.nur-ansehen') && !e.isTrusted) return;
+  bildGrossZeigen(img.src);
+});
+
+// Antwort/Lösung in Anführungszeichen zeigen — außer sie enthält schon welche (wörtliche Rede: sonst „Monika ruft: „…““, Merkliste 14.11.2026, Punkt 15)
+function zitat(t) { const x = String(t == null ? '' : t); return /[„“"”]/.test(x) ? escapeHtml(x) : '„' + escapeHtml(x) + '“'; }
 function pruefeTeil3(item, satz) {
   if (typeof window !== 'undefined' && window.TEIL3_IMMER_RICHTIG) return { korrekt: true, grund: 'Testmodus' };   // nur in den automatischen Tests (test_site.py)
   const anfangRoh = String(item.pronomen || '');

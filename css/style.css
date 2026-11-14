@@ -919,6 +919,26 @@ body.pruefkonto .status-pill.rot { background: var(--bg); color: var(--ink-soft)
 
 .kk-anleitung { margin: 2px 0 6px; color: var(--ink-soft); font-size: 14px; }
 
+/* Bilder antippen = groß ansehen (Merkliste 14.11.2026, Punkt 2) */
+.blatt-bildreihe img, .einstieg img, .kk-aufgabe img, .kk-karte img, .erg-fehler img, .lt-bild-gross-wrap img, #teil2items img, #teil3items img, #teil4items img, #abschlussBody img, .bw-bilder img, .bw-bild-gross-wrap img { cursor: zoom-in; }
+.img-opt img, .mc-opt img, .quartett-card img, .memory-card img { cursor: pointer; }
+#bildGross img { width: auto; min-width: 100%; max-width: none; image-rendering: auto; }
+/* Bildquelle aufklappbar (Merkliste 14.11.2026, Punkt 3) */
+details.bild-quelle summary { cursor: pointer; color: var(--ink-soft); font-size: 12px; }
+details.bild-quelle:not([open]) { margin: 10px 0 4px; }
+/* Meldeknopf bei Übersetzungen (Merkliste 14.11.2026, Punkt 8) */
+.ueb-melden-zeile { margin: 6px 0 2px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+/* Bezugsmaterial bei der Schreibaufgabe (Merkliste 14.11.2026, Punkt 4) */
+.blatt-bezug { border: 2px solid var(--line); border-radius: 10px; padding: 6px 10px 2px; margin: 12px 0; background: #fff; }
+.blatt-bezug > summary { cursor: pointer; font-weight: 700; color: var(--teal-dark, #1f5c54); padding: 4px 0; }
+.blatt-bezug { padding: 4px 4px 2px; overflow-x: auto; }
+.blatt-bezug table { font-size: 13px; }
+.blatt-bezug table td, .blatt-bezug table th { padding: 4px 5px; }
+/* Fachwörter in Korrektur-Karten (Merkliste 14.11.2026, Punkt 10) */
+.kk-begriff { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
+.kk-begriff-box { border-left: 4px solid var(--teal, #2c6b62); background: #f3f8f6; padding: 6px 10px; margin: 4px 0 8px; border-radius: 6px; font-size: 14px; }
+.kk-begriff-box p { margin: 4px 0; }
+
   /* ---- Übersicht (Lehrkraft-Startseite) ---- */
   .ub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
   .ub-chip { padding: 6px 12px; border-radius: 999px; background: #EFEBDD; font-size: 14px; }

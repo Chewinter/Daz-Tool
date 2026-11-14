@@ -184,9 +184,9 @@ function zeileHtml(it, ov, fb, fbOffen, gezeigt) {
   const tipp = (e === false && !it.satz && typeof istWahrscheinlichTippfehler === 'function') ? istWahrscheinlichTippfehler(it.antwort, opt.length ? opt : it.korrektAntwort) : false;
   const cls = e === true ? 'antwort-correct' : e === false ? (tipp ? 'antwort-typo' : 'antwort-wrong') : '';
   const zeichen = e === true ? '✓' : e === false ? (tipp ? '⚠' : '✗') : '—';
-  let text = `${antwortBilderHtml(it, gezeigt)}${zeichen} ${escapeHtml(it.frage)} — „${escapeHtml(it.antwort)}“`;
+  let text = `${antwortBilderHtml(it, gezeigt)}${zeichen} ${escapeHtml(it.frage)} — ${zitat(it.antwort)}`;
   if (it.heft) {   // Grammatik-Hybrid (02.11.2026): im Heft geschrieben — Lösung immer daneben, ✓/✗ = abhaken
-    text = `<span class="bw-heft">Heft</span>${zeichen} ${escapeHtml(it.frage)}<div class="bw-heft-loesung">${it.frei ? 'Freie Antwort, zum Vergleich' : 'Lösung'}: „${escapeHtml(it.satz || it.korrektAntwort || '')}“</div>`;
+    text = `<span class="bw-heft">Heft</span>${zeichen} ${escapeHtml(it.frage)}<div class="bw-heft-loesung">${it.frei ? 'Freie Antwort, zum Vergleich' : 'Lösung'}: ${zitat(it.satz || it.korrektAntwort || '')}</div>`;
     if (e === null || e === undefined) text += ' <em>(im Heft ansehen und abhaken)</em>';
     if (geaendert) text += ' <em class="geaendert">(von dir abgehakt)</em>';
     return `<div class="antwortzeile bw-zeile ${cls} bw-heftzeile" data-id="${it.id}"><div class="bw-text">${text}</div>
@@ -195,7 +195,7 @@ function zeileHtml(it, ov, fb, fbOffen, gezeigt) {
         <button type="button" class="bw-btn ${e === false ? 'an-bad' : ''}" data-wert="false" title="im Heft falsch">✗</button>
       </div></div>`;
   }
-  if (e === false && it.korrektAntwort) text += `, ${it.satz ? 'Vorschlag' : 'richtig wäre'}: „${escapeHtml(it.korrektAntwort)}“`;
+  if (e === false && it.korrektAntwort) text += `, ${it.satz ? 'Vorschlag' : 'richtig wäre'}: ${zitat(it.korrektAntwort)}`;
   if (tipp) text += ' <em>(evtl. nur Tippfehler)</em>';
   if (e === null || e === undefined) text += ' <em>(nicht automatisch geprüft — bitte bewerten)</em>';
   if (it.satz && it.feedback) text += `<div class="kifeedback">${escapeHtml(it.feedback)}</div>`;

@@ -2673,12 +2673,12 @@ async function zeigeErgebnis(id, name) {
       if (f.bildGross && ICONS[f.bildGross] && !grossGezeigt.has(f.bildGross)) { grossGezeigt.add(f.bildGross); h += `<div class="lt-bild-gross-wrap"><img class="lt-bild-gross" src="${iconSrc(f.bildGross)}" alt=""></div>`; }
       if (f.teil !== letzterTeil) { h += `<div class="erg-teil">${escapeHtml(f.teil || '')}</div>`; letzterTeil = f.teil; }
       const b = bilderFuerFehler(id, f); // ohne die Bilder ist bei Bild-Aufgaben weder die Frage noch die Lösung verständlich
-      h += `<div class="erg-fehler"><div>${escapeHtml(f.frage)}</div>${b.aufgabe}<div class="erg-deine">Deine Antwort: ${b.deine || `„${escapeHtml(f.antwort)}“`}</div>${(f.loesung || f.korrektAntwort) ? `<div class="erg-richtig">Richtig: ${b.richtig}„${escapeHtml(f.loesung || f.korrektAntwort)}“</div>` : ''}${f.hinweis ? `<div class="erg-hinweis">Hinweis: ${escapeHtml(f.hinweis)}</div>` : ''}</div>`;
+      h += `<div class="erg-fehler"><div>${escapeHtml(f.frage)}</div>${b.aufgabe}<div class="erg-deine">Deine Antwort: ${b.deine || `${zitat(f.antwort)}`}</div>${(f.loesung || f.korrektAntwort) ? `<div class="erg-richtig">Richtig: ${b.richtig}${zitat(f.loesung || f.korrektAntwort)}</div>` : ''}${f.hinweis ? `<div class="erg-hinweis">Hinweis: ${escapeHtml(f.hinweis)}</div>` : ''}</div>`;
     });
   }
   if (!kkHtml && rv.saetze && rv.saetze.length) {
     h += `<h3 class="erg-h">Diese Sätze bitte verbessern</h3>`;
-    rv.saetze.forEach(s => { h += `<div class="erg-fehler"><div>${escapeHtml(s.frage)}</div><div class="erg-deine">Dein Satz: „${escapeHtml(s.satz)}“</div>${(s.loesung || s.vorschlag) ? `<div class="erg-richtig">So heißt der Satz richtig: „${escapeHtml(s.loesung || s.vorschlag)}“</div>` : ''}${s.hinweis ? `<div class="erg-hinweis">Hinweis: ${escapeHtml(s.hinweis)}</div>` : ''}</div>`; });
+    rv.saetze.forEach(s => { h += `<div class="erg-fehler"><div>${escapeHtml(s.frage)}</div><div class="erg-deine">Dein Satz: ${zitat(s.satz)}</div>${(s.loesung || s.vorschlag) ? `<div class="erg-richtig">So heißt der Satz richtig: ${zitat(s.loesung || s.vorschlag)}</div>` : ''}${s.hinweis ? `<div class="erg-hinweis">Hinweis: ${escapeHtml(s.hinweis)}</div>` : ''}</div>`; });
   }
   if (ab === 'wiederholung_frei') {
     h += `<div style="margin-top:18px;"><button class="btn" id="ergWiederholen">Jetzt wiederholen</button></div>`;
@@ -3287,10 +3287,10 @@ function setzeBildQuelle(viewId, id) {
   const w = document.querySelector('#' + viewId + ' .wrap');
   if (!w) return;
   let p = w.querySelector('.bild-quelle');
-  if (!p) { p = document.createElement('p'); p.className = 'bild-quelle'; w.appendChild(p); }
+  if (!p) { p = document.createElement('details'); p.className = 'bild-quelle'; w.appendChild(p); }   // aufklappbar (Merkliste 14.11.2026, Punkt 3)
   const daten = JSON.stringify((typeof TESTS !== 'undefined' && TESTS[id]) || (typeof ACTIVITIES !== 'undefined' && ACTIVITIES[id]) || {});
   const mit = ARASAAC_BILDER.concat(window.ARASAAC_NAMEN || []).some(n => daten.indexOf('"' + n + '"') >= 0);   // A2 seit 13.11.2026
-  p.textContent = mit ? ARASAAC_HINWEIS : '';
+  p.innerHTML = mit ? '<summary>Bildquelle</summary>' + escapeHtml(ARASAAC_HINWEIS) : '';
   p.classList.toggle('hidden', !mit);
 }
 
@@ -3490,7 +3490,7 @@ function erklSpracheHtml(sp, titel, absaetze) {
   return sp.map(k => {
     const t = absaetze && absaetze[k];
     return `<div class="blatt-erkl-sp" dir="auto"><div class="blatt-erkl-sp-kopf">${escapeHtml(SPRACHEN[k])}${t ? ': ' + escapeHtml(t[0]) : ''}</div>${t
-      ? (Array.isArray(t[1]) ? t[1] : [t[1]]).map(x => `<p dir="auto">${escapeHtml(x)}</p>`).join('') + '<p class="vok-fehlt">Übersetzung noch nicht geprüft. Stimmt etwas nicht? Sag es deiner Lehrkraft.</p>'
+      ? (Array.isArray(t[1]) ? t[1] : [t[1]]).map(x => `<p dir="auto">${escapeHtml(x)}</p>`).join('') + uebMeldenKnopf('Erklärung: ' + titel, k, [].concat(t[1]).join(' '))
       : '<p class="vok-fehlt">Für diese Sprache gibt es die Erklärung noch nicht.</p>'}</div>`;
   }).join('');
 }
@@ -3519,6 +3519,7 @@ function blattBlockHtml(b, vok) {
   if (b.art === 'tabelle') return blattTabelleHtml(b);
   if (b.art === 'saetze') return `<ol class="blatt-saetze">${b.zeilen.map(z => `<li>${blattInline(z)}</li>`).join('')}</ol>`;
   if (b.art === 'h') return `<h3 class="blatt-h3">${blattInline(b.text)}</h3>`;
+  if (b.art === 'hinweis' && /^Bilder: Piktogramm-Urheber/.test(b.text)) return `<details class="bild-quelle"><summary>Bildquelle</summary>${blattInline(b.text)}</details>`;   // Merkliste 14.11., Punkt 3
   if (b.art === 'hinweis') return `<p class="blatt-hinweis">${blattInline(b.text)}</p>`;
   if (b.art === 'checkliste') return `<ul class="blatt-check">${b.punkte.map(p => `<li>${blattInline(p)}</li>`).join('')}</ul>`;
   if (b.art === 'bildwoerter') return `${b.titel ? `<h3 class="blatt-h3">${blattInline(b.titel)}</h3>` : ''}<div class="blatt-bilder">${b.woerter.map(x =>
@@ -3530,6 +3531,7 @@ function blattBlockHtml(b, vok) {
   if (b.art === 'buchstabentexte') return `<div class="blatt-btexte">${b.texte.map((t, i) => `<div class="blatt-btext"><span class="blatt-buchstabe">${'ABCDEFGHIJ'[i]}</span><p>${blattInline(t)}</p></div>`).join('')}</div>`;
   if (b.art === 'wortliste') return blattWortlisteHtml(b, vok);
   if (b.art === 'erklaerung') return blattErklaerungHtml(b);
+  if (b.art === 'bezug') return `<details class="blatt-bezug" open><summary>Zum Nachschauen: ${escapeHtml(b.titel || '')}</summary>${(b.bloecke || []).map(x => blattBlockHtml(x, vok)).join('')}</details>`;   // Merkliste 14.11., Punkt 4
   return '';
 }
 async function zeigeArbeitsblatt(a, id) {
@@ -3551,7 +3553,7 @@ async function zeigeArbeitsblatt(a, id) {
     const s = b.seiten[seite], letzte = seite === b.seiten.length - 1;
     const st = (progressCache.statusInfo || {})[id];
     const z = blattZustand(id, st, progressCache.doneTests);
-    const hinweisOben = z === 'nochmal' && st.comment ? `<div class="blatt-auftrag wo-heft">${WO_SYMBOL.heft}<p><strong class="blatt-wo">Deine Lehrkraft:</strong> „${escapeHtml(st.comment)}“</p></div>` : '';
+    const hinweisOben = z === 'nochmal' && st.comment ? `<div class="blatt-auftrag wo-heft">${WO_SYMBOL.heft}<p><strong class="blatt-wo">Deine Lehrkraft:</strong> ${zitat(st.comment)}</p></div>` : '';
     let fertigHtml = '';
     if (letzte) fertigHtml = z === 'heft_zeigen' ? '<p class="blatt-status">✓ Du hast auf „Fertig“ getippt. Zeig dein Heft und dein Vokabelheft deiner Lehrkraft.</p>'
       : z === 'erledigt' ? '<p class="blatt-status">✓ Dieses Arbeitsblatt ist erledigt.</p>'
@@ -3567,11 +3569,7 @@ async function zeigeArbeitsblatt(a, id) {
       </div>`;
     body.querySelectorAll('.vok').forEach(v => v.addEventListener('click', () => zeigeVokabel(b, v.getAttribute('data-vok'), v)));
     body.querySelectorAll('.wl-sprache').forEach(s => s.addEventListener('change', () => { try { localStorage.setItem('daz_sprache', s.value); } catch (e) { /* egal */ } zeichne(); }));
-    body.querySelectorAll('.blatt-figur img, .blatt-textbild').forEach(img => img.addEventListener('click', () => {   // Bild groß ansehen (Handy)
-      const box = document.createElement('div'); box.id = 'bildGross';
-      box.innerHTML = `<button type="button" class="vok-zu" aria-label="Schließen">×</button><img src="${img.src}" alt="">`;
-      box.addEventListener('click', () => box.remove()); document.body.appendChild(box);
-    }));
+    // Bilder groß ansehen: ein gemeinsamer Handler für alle Seiten (bildGrossZeigen in snip_shared.js, 14.11.2026)
     const zb = document.getElementById('blattZurueck'); if (zb) zb.addEventListener('click', () => { seite--; zeichne(); window.scrollTo(0, 0); });
     const wb = document.getElementById('blattWeiter'); if (wb) wb.addEventListener('click', () => { seite++; zeichne(); window.scrollTo(0, 0); });
     const fb = document.getElementById('blattFertig'); if (fb) fb.addEventListener('click', async () => {
@@ -3761,11 +3759,6 @@ function zeigeEinstieg(testId) {
   el.className = liste.length ? 'einstieg' : 'hidden';
   el.innerHTML = liste.length ? '<h2 class="einstieg-kopf">Schau dir das Bild an</h2>' + liste.map(x =>
     `<figure class="blatt-figur">${iconSrc(x.bild) ? `<img src="${iconSrc(x.bild)}" alt="">` : ''}${x.unter ? `<figcaption>${escapeHtml(x.unter)}</figcaption>` : ''}</figure>`).join('') : '';
-  el.querySelectorAll('img').forEach(img => img.addEventListener('click', () => {
-    const box = document.createElement('div'); box.id = 'bildGross';
-    box.innerHTML = `<button type="button" class="vok-zu" aria-label="Schließen">×</button><img src="${img.src}" alt="">`;
-    box.addEventListener('click', () => box.remove()); document.body.appendChild(box);
-  }));
 }
 
 // ---------------- NOCHMAL ANSEHEN (Lukas 11.11.2026, Phase 0.2) ----------------
@@ -3870,7 +3863,7 @@ function zeigeEinstufungAnsehen(id, sub) {
   (sub.bereichsErgebnisse || []).forEach(b => {
     if (!b || !(b.details || []).length) return;
     h += `<h3 class="erg-h">${escapeHtml(b.name || '')}</h3>`;
-    b.details.forEach(d => { h += `<div class="erg-fehler ansehen-frage"><div>${escapeHtml(d.frage || '')}</div><div class="erg-deine">Deine Antwort: „${escapeHtml(d.antwort || '')}“</div></div>`; });
+    b.details.forEach(d => { h += `<div class="erg-fehler ansehen-frage"><div>${escapeHtml(d.frage || '')}</div><div class="erg-deine">Deine Antwort: ${zitat(d.antwort || '')}</div></div>`; });
   });
   body.innerHTML = h;
   showView('view-ergebnis');
@@ -3879,12 +3872,23 @@ function zeigeEinstufungAnsehen(id, sub) {
 // ---------------- MELDEKNOPF „Wort in meiner Sprache ist falsch“ (Lukas 12.11.2026) ----------------
 // Die Meldung geht still über den Postausgang (kommt auch nach, wenn das Internet weg war) als uebmeldung:<zeit>:<kind>.
 // Die Lehrkraft sieht alle Meldungen gesammelt in der Klassenübersicht und prüft die Übersetzungen danach.
+// Meldeknopf auch bei Erklärungen und Korrektur-Karten (Merkliste 14.11.2026, Punkt 8): ein Knopf je Sprache, Klick meldet still im Hintergrund.
+function uebMeldenKnopf(wort, sp, text) {
+  const schon = uebGemeldet(wort, sp);
+  return `<p class="ueb-melden-zeile"><span class="vok-fehlt">Übersetzung noch nicht geprüft.</span> <button type="button" class="btn small secondary ueb-melden" data-wort="${escapeHtml(wort)}" data-sp="${sp}" data-text="${escapeHtml(String(text || '').slice(0, 300))}"${schon ? ' disabled' : ''}>${schon ? '✓ Gemeldet. Danke!' : 'Übersetzung ist falsch'}</button></p>`;
+}
+document.addEventListener('click', e => {
+  const k = e.target && e.target.closest ? e.target.closest('.ueb-melden') : null;
+  if (!k || k.disabled) return;
+  meldeUebersetzung({ id: currentActivityId || currentTestId || '' }, k.getAttribute('data-wort'), k.getAttribute('data-sp'), k.getAttribute('data-text'));
+  k.disabled = true; k.textContent = '✓ Gemeldet. Danke!';
+});
 function uebGemeldetSet() { try { return JSON.parse(localStorage.getItem('daz_uebgemeldet') || '[]'); } catch (e) { return []; } }
 function uebGemeldet(wort, sp) { return uebGemeldetSet().indexOf(sp + '|' + wort) >= 0; }
 function meldeUebersetzung(b, wort, sp, text) {
   if (uebGemeldet(wort, sp)) return;
   try { localStorage.setItem('daz_uebgemeldet', JSON.stringify(uebGemeldetSet().concat([sp + '|' + wort]))); } catch (e) { /* egal */ }
-  const name = currentActivityName || '';
+  const name = currentActivityName || (typeof currentStudentName !== 'undefined' && currentStudentName) || ((document.getElementById('startName') || {}).value || '').trim();   // auch in Tests/Karten (14.11.)
   try {
     imHintergrundSenden([{ key: `uebmeldung:${Date.now()}:${slug(name)}`, value: JSON.stringify({ wort, sprache: sp, spracheName: SPRACHEN[sp] || sp,
       text: text || '', blatt: (b && b.id) || '', name, am: new Date().toISOString() }) }]);

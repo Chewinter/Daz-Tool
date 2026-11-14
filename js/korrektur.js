@@ -27,8 +27,8 @@ function kkSkript(pfad) {
 // Rückgabe: Daten des Lernfelds (alle schon geladenen Tests) oder null (dann alte Liste)
 window.KORREKTUR = window.KORREKTUR || {};
 function korrekturDaten(lf, test, d) {
-  const L = window.KORREKTUR[lf] || (window.KORREKTUR[lf] = { karten: {}, vok: {}, regeln: {} });
-  L.karten[test] = d.karten; Object.assign(L.vok, d.vok); Object.assign(L.regeln, d.regeln);
+  const L = window.KORREKTUR[lf] || (window.KORREKTUR[lf] = { karten: {}, vok: {}, regeln: {}, begriffe: {} });
+  L.karten[test] = d.karten; Object.assign(L.vok, d.vok); Object.assign(L.regeln, d.regeln); Object.assign(L.begriffe || (L.begriffe = {}), d.begriffe || {});
 }
 async function ladeKorrektur(testId) {
   const lf = korrekturLernfeld(testId);
@@ -39,6 +39,33 @@ async function ladeKorrektur(testId) {
 // Deutsche Wortgruppen in arabischer/persischer/kurdischer Schrift als EIN Block links-nach-rechts (13.11.2026: „Wie heißen Sie?“
 // stand sonst verdreht, weil sich die einzelnen Wörter im Rechts-nach-links-Absatz umsortieren).
 const KK_LATEIN = /[A-Za-zÄÖÜäöüß0-9*][A-Za-zÄÖÜäöüß0-9*\s,.:;?!'’„“"\-–…\/+=]*[A-Za-zÄÖÜäöüß0-9*?!…“"]|[A-Za-zÄÖÜäöüß0-9]/g;   // ohne Klammern/Endpunkt (gehören zum RTL-Satz)
+// Fachwörter (Nomen, Dativ, Endung …) antippbar: kurze Erklärung, darunter die Sprache des Kindes (Merkliste 14.11.2026, Punkt 10)
+function kkBegriffe(html, daten, schon) {
+  const B = (daten && daten.begriffe) || {};
+  Object.keys(B).forEach(k => {
+    if (schon.has(k)) return;
+    for (const f of (B[k].formen || [])) {
+      const re = new RegExp('(^|[^\\wäöüÄÖÜß<>/=-])(' + f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')(?![\\wäöüß])');
+      if (re.test(html)) { html = html.replace(re, (m, a, w) => `${a}<button type="button" class="kk-begriff" data-b="${escapeHtml(k)}">${w}</button>`); schon.add(k); break; }
+    }
+  });
+  return html;
+}
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('.kk-begriff') : null;
+  if (!b) return;
+  const karte = b.closest('.kk-karte'), p = b.closest('p');
+  const alt = p.nextElementSibling && p.nextElementSibling.classList.contains('kk-begriff-box') ? p.nextElementSibling : null;
+  if (alt) { const gleich = alt.dataset.b === b.dataset.b; alt.remove(); if (gleich) return; }
+  let R = null;
+  Object.values(window.KORREKTUR || {}).forEach(L => { if (!R && L.begriffe && L.begriffe[b.dataset.b]) R = L.begriffe[b.dataset.b]; });
+  if (!R) return;
+  const sp = (karte && karte.dataset.sp ? karte.dataset.sp.split(',') : []).filter(Boolean);
+  const box = document.createElement('div'); box.className = 'kk-begriff-box'; box.dataset.b = b.dataset.b;
+  box.innerHTML = `<strong>${escapeHtml(b.dataset.b)}</strong><p>${escapeHtml(R.de)}</p>${(R.bsp || []).length ? `<p class="kk-bsp">${R.bsp.map(escapeHtml).join(' · ')}</p>` : ''}`
+    + sp.map(k => R.sp && R.sp[k] ? `<div class="kk-sp-block" dir="auto"><div class="kk-sp-name">${KK_SPRACHEN[k]}: ${escapeHtml([].concat(R.sp[k])[0])}</div>${[].concat(R.sp[k]).slice(1).flat().map(x => `<p dir="auto">${escapeHtml(x)}</p>`).join('')}${typeof uebMeldenKnopf === 'function' ? uebMeldenKnopf('Fachwort: ' + b.dataset.b, k, [].concat(R.sp[k]).flat().join(' ')) : ''}</div>` : '').join('');
+  p.insertAdjacentElement('afterend', box);
+});
 function kkInline(s) {   // **fett**; bdi: deutsche Wörter in arabischer/persischer Schrift richtig einordnen; [[Wort|Stichwort]] -> Wort
   let t = String(s || '');
   if (/[\u0600-\u06FF]/.test(t)) t = t.replace(KK_LATEIN, x => '\u0001' + x + '\u0002');
@@ -216,7 +243,8 @@ function kkVokHtml(st, v, sprachen) {
   const m = /^(der|die|das) (.+)$/.exec(st);
   const kopf = m ? `<strong>${escapeHtml(m[2])}, ${m[1]}</strong> <span class="kk-gram">${st === 'die Lebensmittel' ? 'meist Plural' : KK_GENUS[m[1]] + ' · ' + (v.pl ? 'Plural: ' + escapeHtml(v.pl) : 'kein Plural')}</span>`
     : `<strong>${escapeHtml(st)}</strong>`;
-  const ueb = sprachen.map(k => v.sp && v.sp[k] ? `<div class="kk-sp" dir="auto"><span class="kk-sp-name">${KK_SPRACHEN[k]}:</span> ${escapeHtml(v.sp[k])}</div>` : '').join('');
+  const melden = (w, k, t) => typeof uebMeldenKnopf === 'function' ? uebMeldenKnopf(w, k, t) : '';   // nur auf der Seite des Kindes (Merkliste 14.11., Punkt 8)
+  const ueb = sprachen.map(k => v.sp && v.sp[k] ? `<div class="kk-sp" dir="auto"><span class="kk-sp-name">${KK_SPRACHEN[k]}:</span> ${escapeHtml(v.sp[k])}${melden(st, k, v.sp[k])}</div>` : '').join('');
   return `<div class="kk-wort">${kopf}${v.erkl ? `<div class="kk-erkl">${escapeHtml(v.erkl)}</div>` : ''}${v.bsp ? `<div class="kk-bsp">${escapeHtml(v.bsp)}</div>` : ''}${ueb}</div>`;
 }
 function kkRegelHtml(key, sprachen, daten) {
@@ -224,7 +252,7 @@ function kkRegelHtml(key, sprachen, daten) {
   if (!R) return '';
   return `<details class="kk-regel"><summary>💡 Regel: ${kkInline(R.titel)}</summary>${R.de.map(p => `<p>${kkInline(p)}</p>`).join('')}
     ${(R.bsp || []).length ? `<div class="kk-regel-bsp">${R.bsp.map(x => `<p>${escapeHtml(x)}</p>`).join('')}</div>` : ''}
-    ${sprachen.map(k => { const t = R.sp && R.sp[k]; return t ? `<div class="kk-sp-block" dir="auto"><div class="kk-sp-name">${KK_SPRACHEN[k]}: ${escapeHtml(t[0])}</div>${[].concat(t[1]).map(x => `<p dir="auto">${escapeHtml(x)}</p>`).join('')}</div>` : ''; }).join('')}</details>`;
+    ${sprachen.map(k => { const t = R.sp && R.sp[k]; return t ? `<div class="kk-sp-block" dir="auto"><div class="kk-sp-name">${KK_SPRACHEN[k]}: ${escapeHtml(t[0])}</div>${[].concat(t[1]).map(x => `<p dir="auto">${escapeHtml(x)}</p>`).join('')}${typeof uebMeldenKnopf === 'function' ? uebMeldenKnopf('Erklärung: ' + R.titel, k, [].concat(t[1]).join(' ')) : ''}</div>` : ''; }).join('')}</details>`;
 }
 function kkIconWort(t, icon) {   // Name eines Bildes als Wort (über die Aufgabe, in der es die richtige Lösung ist)
   const it = (t.teil1 || []).find(i => i.icons[i.correct] === icon);
@@ -243,7 +271,7 @@ function korrekturAufgabe(testId, f, fehlerGruppe) {
       const E = escapeHtml, loes = [].concat(it.antwort)[0], heft = /^\((im Heft|keine Antwort)\)$/.test(f.antwort || f.satz || '');
       const satz = it.frage.indexOf('___') >= 0 ? E(it.frage.split('→').pop().trim()).replace(/___/, `<span class="kk-luecke"><strong>${E(loes.split(' ')[0])}</strong></span>`) : E(it.frage);
       return { html: `<p class="kk-frage"><strong>Aufgabe ${p.nr}: ${E(p.titel || '')}</strong></p><p class="kk-anleitung">${E(p.uebung.anleitung || '')}</p><p class="kk-satz">${it.frage.indexOf('___') >= 0 ? satz : E(it.frage)}</p>`,
-        deine: null, richtig: `„${E(kkGrammatikSatz(it))}“`, ohneDeine: heft };
+        deine: null, richtig: `${zitat(kkGrammatikSatz(it))}`, ohneDeine: heft };
     }
   }
   const ef = t.bereiche ? einstufungFrage(t, key) : null;
@@ -260,7 +288,7 @@ function korrekturAufgabe(testId, f, fehlerGruppe) {
     const gewaehlt = it.icons.find(n => n.replace(/_/g, ' ') === f.antwort);
     return { html: `<p class="kk-frage">Welches Bild passt zu <strong>${escapeHtml(it.word)}</strong>?</p><div class="kk-bilder">${it.icons.map((n, i) =>
       `<figure class="kk-wahl${i === it.correct ? ' kk-ok' : n === gewaehlt ? ' kk-falsch' : ''}">${kkBild(n)}<figcaption>${i === it.correct ? '✓ richtig' : n === gewaehlt ? '✗ deine Wahl' : '&nbsp;'}</figcaption></figure>`).join('')}</div>`,
-      deine: gewaehlt ? `„${escapeHtml(kkIconWort(t, gewaehlt))}“` : null, richtig: `„${escapeHtml(it.word)}“`, lab: 'Du hast gewählt:' };
+      deine: gewaehlt ? `${zitat(kkIconWort(t, gewaehlt))}` : null, richtig: `${zitat(it.word)}`, lab: 'Du hast gewählt:' };
   }
   if (teil === 'teil2' && it) {
     const r = it.options[it.correct];
@@ -285,7 +313,7 @@ function korrekturAufgabe(testId, f, fehlerGruppe) {
     const b = t.beschriftung_items[Number(nr)];
     if (b) {
       const ant = suf => (fehlerGruppe.find(g => (g.key || '').endsWith('-' + suf)) || {}).antwort;
-      const zeile = (lab, suf) => ant(suf) != null ? `${lab}: „${escapeHtml(ant(suf))}“` : `${lab}: ✓`;
+      const zeile = (lab, suf) => ant(suf) != null ? `${lab}: ${zitat(ant(suf))}` : `${lab}: ✓`;
       return { html: `${kkBild(b.bild, 'kk-bild-gross')}<p class="kk-frage">Beschrifte mit Artikel in der Einzahl und Mehrzahl.</p>`,
         deine: zeile('Einzahl', 'a') + ' · ' + zeile('Mehrzahl', 'p'), richtig: `<strong>${escapeHtml(b.artikel + ' ' + b.wort)}</strong> · <strong>${escapeHtml(b.plural)}</strong>` };
     }
@@ -293,7 +321,7 @@ function korrekturAufgabe(testId, f, fehlerGruppe) {
   if (teil === 'dial' && t.dialog_luecken) {
     const d = t.dialog_luecken[Number(nr)];
     if (d) return { html: `${d.bild ? kkBild(d.bild, 'kk-bild') : ''}<p class="kk-satz"><strong>${escapeHtml(d.sprecher)}</strong> ${escapeHtml(d.start)} <span class="kk-luecke">…</span></p>`,
-      deine: f.antwort ? `„${escapeHtml(d.start + ' ' + f.antwort)}“` : null, richtig: `„${escapeHtml(d.start + ' ' + d.antwort)}“` };
+      deine: f.antwort ? `${zitat(d.start + ' ' + f.antwort)}` : null, richtig: `${zitat(d.start + ' ' + d.antwort)}` };
   }
   if (teil === 'gv' && t.verbinden_bilder) {
     const g = t.verbinden_bilder.geschaefte[Number(nr)], P = t.verbinden_bilder.produkte;
@@ -315,22 +343,23 @@ function korrekturKarteHtml(testId, daten, f, sprachen, gruppe) {
   const antwort = istSatz ? f.satz : f.antwort, loesung = istSatz ? (f.loesung || f.vorschlag) : (f.loesung || f.korrektAntwort);
   const form = A.gruppe || A.ohneDeine ? [] : gruppe.length > 1 ? [].concat(...gruppe.map(g => korrekturFormHinweis(g.antwort, g.loesung || g.korrektAntwort))) : korrekturFormHinweis(antwort, loesung);
   const leer = !antwort || /^\((keine Antwort|kein Satz)/.test(antwort);
-  let h = `<article class="kk-karte" data-kk="${escapeHtml(key || '')}"${c ? '' : ' data-kk-fehlt="1"'}>`;
+  let h = `<article class="kk-karte" data-kk="${escapeHtml(key || '')}" data-sp="${sprachen.join(',')}"${c ? '' : ' data-kk-fehlt="1"'}>`;
   h += `<div class="kk-aufgabe">${A.html}${kkZeichnung(c && c.zeige !== 'verbzeile' ? c.zeige : '')}</div>`;
   if (!A.gruppe) {
-    if (!A.ohneDeine) h += `<div class="kk-zeile kk-deine"><span class="kk-lab">${A.lab || 'Das hast du geschrieben:'}</span> ${leer ? '<em>nichts</em>' : (A.deine || `„${escapeHtml(antwort)}“`)}</div>`;
-    if (loesung || A.richtig) h += `<div class="kk-zeile kk-richtig"><span class="kk-lab">So ist es richtig:</span> ${A.richtig || `„${escapeHtml(loesung)}“`}</div>`;
+    if (!A.ohneDeine) h += `<div class="kk-zeile kk-deine"><span class="kk-lab">${A.lab || 'Das hast du geschrieben:'}</span> ${leer ? '<em>nichts</em>' : (A.deine || `${zitat(antwort)}`)}</div>`;
+    if (loesung || A.richtig) h += `<div class="kk-zeile kk-richtig"><span class="kk-lab">So ist es richtig:</span> ${A.richtig || `${zitat(loesung)}`}</div>`;
   }
   if (form.length) h += `<div class="kk-form">${form.map(x => `<p>⚠ ${kkInline(x)}</p>`).join('')}</div>`;
   if (c && c.vok) h += kkVokHtml(c.vok, daten.vok[c.vok], sprachen);
   if (c) {
-    h += `<div class="kk-warum"><div class="kk-warum-kopf">Warum?</div>${c.warum.map(p => `<p>${kkInline(p)}</p>`).join('')}`;
+    const schon = new Set();
+    h += `<div class="kk-warum"><div class="kk-warum-kopf">Warum?</div>${c.warum.map(p => `<p>${kkBegriffe(kkInline(p), daten, schon)}</p>`).join('')}`;
     sprachen.forEach(k => {
       const u = c.ueb && c.ueb[k];
-      h += u ? `<div class="kk-sp-block" dir="auto"><div class="kk-sp-name">${KK_SPRACHEN[k]}</div>${u.map(p => `<p dir="auto">${kkInline(p)}</p>`).join('')}</div>`
+      h += u ? `<div class="kk-sp-block" dir="auto"><div class="kk-sp-name">${KK_SPRACHEN[k]}</div>${u.map(p => `<p dir="auto">${kkInline(p)}</p>`).join('')}${typeof uebMeldenKnopf === 'function' ? uebMeldenKnopf('Korrektur-Karte ' + testId + ' ' + (key || ''), k, u.join(' ')) : ''}</div>`
         : `<div class="kk-sp-block kk-sp-fehlt">${KK_SPRACHEN[k]}: Diese Erklärung gibt es noch nicht in deiner Sprache.</div>`;
     });
-    if (sprachen.some(k => c.ueb && c.ueb[k])) h += '<p class="kk-sp-fehlt">Übersetzung noch nicht geprüft. Stimmt etwas nicht? Sag es deiner Lehrkraft.</p>';
+    if (sprachen.some(k => c.ueb && c.ueb[k]) && typeof uebMeldenKnopf !== 'function') h += '<p class="kk-sp-fehlt">Übersetzung noch nicht geprüft. Stimmt etwas nicht? Sag es deiner Lehrkraft.</p>';
     h += `</div>`;
     if (c.regel) h += kkRegelHtml(c.regel, sprachen, daten);
   }
@@ -354,7 +383,7 @@ function korrekturListeHtml(testId, rv, daten, sprachen) {
   const karten = gruppen.map(g => korrekturKarteHtml(testId, daten, g[0], sprachen, g)).join('');
   return `<h3 class="erg-h">Das war falsch — ${gruppen.length} ${gruppen.length === 1 ? 'Aufgabe' : 'Aufgaben'}</h3>
     <p class="kk-intro">Lies bei jeder Aufgabe, <strong>warum</strong> es so richtig ist. Dann schreibe die Korrektur in dein Heft.</p>` + karten
-    + (kkMitArasaac ? '<p class="bild-quelle">Bilder: Piktogramm-Urheber Sergio Palao. Herkunft: ARASAAC (http://www.arasaac.org). Lizenz: CC (BY-NC-SA). Eigentümer: Regierung von Aragon (Spanien).</p>' : '');
+    + (kkMitArasaac ? '<details class="bild-quelle"><summary>Bildquelle</summary>Bilder: Piktogramm-Urheber Sergio Palao. Herkunft: ARASAAC (http://www.arasaac.org). Lizenz: CC (BY-NC-SA). Eigentümer: Regierung von Aragon (Spanien).</details>' : '');
 }
 // Für Prüfungen: Aufgaben eines Tests ohne Karte
 function korrekturLuecken(testId, daten) {
@@ -382,7 +411,7 @@ function korrekturLTSchluessel(t) {
 // Die Aufgabe eines Lernfeld-Tests A2 1–3, wie sie im Test war (13.11.2026)
 function korrekturAufgabeLT(t, teil, nr, f, gruppe) {
   const i = Number(nr), E = escapeHtml, ant = suf => (gruppe.find(g => (g.key || '').endsWith('-' + suf)) || {}).antwort;
-  const zeile = (lab, suf) => ant(suf) != null ? `${lab}: „${E(ant(suf))}“` : `${lab}: ✓`;
+  const zeile = (lab, suf) => ant(suf) != null ? `${lab}: ${zitat(ant(suf))}` : `${lab}: ✓`;
   const KG = (t.konjugation || []).concat(...(t.abschnitte || []).filter(a => a.art === 'konjugation').map(a => a.gruppen || []));
   if (teil === 'konj' && KG.length) {
     const g = KG.find(x => x.forms[nr]);
@@ -407,7 +436,7 @@ function korrekturAufgabeLT(t, teil, nr, f, gruppe) {
   if (teil === 'fa' && t.frage_antwort && t.frage_antwort[i]) {
     const r = t.frage_antwort[i];
     return { html: `<p class="kk-frage">${E(r.person)} · <strong>${E(r.was)}</strong> · ${r.jaNein === 'ja' ? 'Ja ✓' : 'Nein ✗'}</p>`, deine: zeile('Frage', 'f') + '<br>' + zeile('Antwort', 'a'),
-      richtig: `„${E(r.frage)}“<br>„${E(r.antwort)}“` };
+      richtig: `${zitat(r.frage)}<br>${zitat(r.antwort)}` };
   }
   if (teil === 'praep' && t.praepositionen) {
     const P = t.praepositionen;
@@ -417,8 +446,8 @@ function korrekturAufgabeLT(t, teil, nr, f, gruppe) {
   }
   if (teil === 'satzbau' && t.satzbau && t.satzbau.aufgaben && t.satzbau.aufgaben[i]) {
     const a = t.satzbau.aufgaben[i];
-    const deine = gruppe.map(x => `„${E(x.antwort || '')}“`).join('<br>');
-    const richtig = [0, 1, 2].map(k => typeof computeSatzbauAnswer === 'function' ? computeSatzbauAnswer(a.nomen, a.adjektiv, k) : '').filter(Boolean).map(x => `„${E([].concat(x)[0])}“`).join('<br>');
+    const deine = gruppe.map(x => `${zitat(x.antwort || '')}`).join('<br>');
+    const richtig = [0, 1, 2].map(k => typeof computeSatzbauAnswer === 'function' ? computeSatzbauAnswer(a.nomen, a.adjektiv, k) : '').filter(Boolean).map(x => `${zitat([].concat(x)[0])}`).join('<br>');
     return { html: `<p class="kk-frage">Bilde drei Sätze mit <strong>${E(a.nomen)}</strong> + <strong>${E(a.adjektiv)}</strong>.</p>`, deine, richtig: richtig || null };
   }
   if (teil === 'wa' && t.wortarten_zeile && t.wortarten_zeile[i]) {
@@ -435,11 +464,11 @@ function korrekturAufgabeLT(t, teil, nr, f, gruppe) {
     const r = t.frage_antwort_koerper[i];
     const frage = r.frageAntwortGegeben ? r.frageAntwortGegeben + ' ' + r.frageLuecke : r.frage;
     return { html: `${kkBild(r.bild, 'kk-bild')}<p class="kk-frage">${E(r.trait)}: Frage und antworte.</p>`, deine: zeile('Frage', 'f') + '<br>' + zeile('Antwort', 'a'),
-      richtig: `„${E(frage)}“<br>„${E(r.antwort)}“` };
+      richtig: `${zitat(frage)}<br>${zitat(r.antwort)}` };
   }
   if (teil === 'vs' && t.vervollstaendige && t.vervollstaendige[i]) {
     const v = t.vervollstaendige[i];
-    return { html: `<p class="kk-satz"><strong>${E(v.start)}</strong> <span class="kk-luecke">…</span></p>`, deine: f.antwort ? `„${E(v.start + ' ' + f.antwort)}“` : null, richtig: `„${E(v.start + ' ' + v.antwort)}“` };
+    return { html: `<p class="kk-satz"><strong>${E(v.start)}</strong> <span class="kk-luecke">…</span></p>`, deine: f.antwort ? `${zitat(v.start + ' ' + f.antwort)}` : null, richtig: `${zitat(v.start + ' ' + v.antwort)}` };
   }
   if (teil === 'sb' && Array.isArray(t.satzbau) && t.satzbau[i]) return { html: `<p class="kk-frage">Bilde einen Satz aus: <em>${t.satzbau[i].woerter.map(E).join(' • ')}</em></p>`, deine: null, richtig: null };
   return null;
